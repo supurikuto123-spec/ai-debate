@@ -147,7 +147,7 @@ app.get('/demo', async (c) => {
 })
 
 // Google OAuth authentication
-app.get('/auth/google', (c) => {
+app.get('/auth/google', async (c) => {
   const { GOOGLE_CLIENT_ID, GOOGLE_REDIRECT_URI } = c.env
   
   if (!GOOGLE_CLIENT_ID || !GOOGLE_REDIRECT_URI) {
@@ -156,11 +156,35 @@ app.get('/auth/google', (c) => {
     const mockEmail = 'user' + Date.now() + '@example.com'
     const mockName = 'Test User'
     
-    setCookie(c, 'google_id', mockGoogleId, { maxAge: 600 })
-    setCookie(c, 'google_email', mockEmail, { maxAge: 600 })
-    setCookie(c, 'google_name', mockName, { maxAge: 600 })
+    // Check if user already exists (for mock)
+    const existingUser = await c.env.DB.prepare(
+      'SELECT * FROM users WHERE google_id = ? OR email = ?'
+    ).bind(mockGoogleId, mockEmail).first()
     
-    return c.redirect('/register')
+    if (existingUser) {
+      const userData = {
+        id: existingUser.id,
+        user_id: existingUser.user_id,
+        username: existingUser.username,
+        email: existingUser.email,
+        credits: existingUser.credits
+      }
+      
+      setCookie(c, 'user', JSON.stringify(userData), {
+        httpOnly: true,
+        secure: false,
+        sameSite: 'Lax',
+        maxAge: 60 * 60 * 24 * 30
+      })
+      
+      return c.redirect('/demo')
+    } else {
+      setCookie(c, 'google_id', mockGoogleId, { maxAge: 600 })
+      setCookie(c, 'google_email', mockEmail, { maxAge: 600 })
+      setCookie(c, 'google_name', mockName, { maxAge: 600 })
+      
+      return c.redirect('/register')
+    }
   }
   
   // Production Google OAuth
@@ -211,12 +235,37 @@ app.get('/auth/google/callback', async (c) => {
     
     const googleUser = await userResponse.json()
     
-    // Set cookies
-    setCookie(c, 'google_id', googleUser.id, { httpOnly: true, secure: true, maxAge: 3600 })
-    setCookie(c, 'google_email', googleUser.email, { httpOnly: true, secure: true, maxAge: 3600 })
-    setCookie(c, 'google_name', googleUser.name, { httpOnly: true, secure: true, maxAge: 3600 })
+    // Check if user already exists
+    const existingUser = await c.env.DB.prepare(
+      'SELECT * FROM users WHERE google_id = ? OR email = ?'
+    ).bind(googleUser.id, googleUser.email).first()
     
-    return c.redirect('/register')
+    if (existingUser) {
+      // Existing user - direct login
+      const userData = {
+        id: existingUser.id,
+        user_id: existingUser.user_id,
+        username: existingUser.username,
+        email: existingUser.email,
+        credits: existingUser.credits
+      }
+      
+      setCookie(c, 'user', JSON.stringify(userData), {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'Lax',
+        maxAge: 60 * 60 * 24 * 30 // 30 days
+      })
+      
+      return c.redirect('/demo')
+    } else {
+      // New user - go to registration
+      setCookie(c, 'google_id', googleUser.id, { httpOnly: true, secure: true, maxAge: 3600 })
+      setCookie(c, 'google_email', googleUser.email, { httpOnly: true, secure: true, maxAge: 3600 })
+      setCookie(c, 'google_name', googleUser.name, { httpOnly: true, secure: true, maxAge: 3600 })
+      
+      return c.redirect('/register')
+    }
   } catch (error) {
     console.error('OAuth error:', error)
     return c.text('Authentication failed', 500)
