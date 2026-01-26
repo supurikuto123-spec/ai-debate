@@ -662,6 +662,14 @@ section {
     letter-spacing: 0;
 }
 
+.meter-separator-home {
+    font-size: 2rem;
+    font-weight: 900;
+    color: #ff0000;
+    text-shadow: 0 0 15px #ff0000;
+    animation: separatorBlink 1s infinite;
+}
+
 .meter-label-home {
     font-size: 0.7rem;
     color: #666;

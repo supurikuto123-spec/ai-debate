@@ -79,7 +79,7 @@ export const homepage = (user: any) => `
                         <a href="/logout" class="btn-secondary text-sm px-4 py-2">ログアウト</a>
                     ` : `
                         <a href="/auth/google" class="btn-secondary text-sm px-4 py-2">事前登録</a>
-                        <a href="/auth/google" class="btn-primary text-sm px-4 py-2">ログイン</a>
+                        <button onclick="alert('🚧 ログイン機能は現在作成中です')" class="btn-primary text-sm px-4 py-2">ログイン</button>
                     `}
                 </div>
             </div>
@@ -133,18 +133,16 @@ export const homepage = (user: any) => `
                         <h3 class="text-xl font-bold mb-4 cyber-text text-center">サービスリリースまで</h3>
                         <div class="countdown-display">
                             <div class="digital-meter-home">
-                                <div class="meter-segment-home error-char">E</div>
-                                <div class="meter-segment-home error-char">R</div>
-                                <div class="meter-segment-home error-char">R</div>
-                                <div class="meter-segment-home error-char">O</div>
-                                <div class="meter-segment-home error-char">R</div>
+                                <div class="meter-segment-home">-</div>
+                                <div class="meter-segment-home">-</div>
+                                <div class="meter-separator-home">:</div>
+                                <div class="meter-segment-home">-</div>
+                                <div class="meter-segment-home">-</div>
+                                <div class="meter-separator-home">:</div>
+                                <div class="meter-segment-home">-</div>
+                                <div class="meter-segment-home">-</div>
                             </div>
-                            <div class="meter-label-home">LAUNCH_DATE_UNDEFINED</div>
-                            <div class="meter-error-home">
-                                <div class="error-blink">▲</div>
-                                <span>□ERROR□</span>
-                                <div class="error-blink">▲</div>
-                            </div>
+                            <div class="meter-label-home">E R R O R</div>
                             <p class="text-xs text-gray-500 mt-3 text-center">
                                 ※ リリース日確定次第、お知らせします
                             </p>
