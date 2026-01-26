@@ -4,8 +4,18 @@ console.log('🚀 AI Debate initialized!');
 // Smooth scrolling for navigation links
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
+        const href = this.getAttribute('href');
+        
+        // If href is exactly "#", show "under construction" message
+        if (href === '#') {
+            e.preventDefault();
+            showNotification('🚧 この機能は現在作成中です', 'info');
+            return;
+        }
+        
+        // Otherwise, smooth scroll to target
         e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
+        const target = document.querySelector(href);
         if (target) {
             target.scrollIntoView({
                 behavior: 'smooth',

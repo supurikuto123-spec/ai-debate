@@ -126,6 +126,31 @@ export const homepage = (user: any) => `
                         </button>
                     `}
                 </div>
+
+                <!-- Release Countdown -->
+                <div class="mt-16 max-w-md mx-auto">
+                    <div class="countdown-box-home">
+                        <h3 class="text-xl font-bold mb-4 cyber-text text-center">サービスリリースまで</h3>
+                        <div class="countdown-display">
+                            <div class="digital-meter-home">
+                                <div class="meter-segment-home error-char">E</div>
+                                <div class="meter-segment-home error-char">R</div>
+                                <div class="meter-segment-home error-char">R</div>
+                                <div class="meter-segment-home error-char">O</div>
+                                <div class="meter-segment-home error-char">R</div>
+                            </div>
+                            <div class="meter-label-home">LAUNCH_DATE_UNDEFINED</div>
+                            <div class="meter-error-home">
+                                <div class="error-blink">▲</div>
+                                <span>□ERROR□</span>
+                                <div class="error-blink">▲</div>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-3 text-center">
+                                ※ リリース日確定次第、お知らせします
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -193,8 +218,6 @@ export const homepage = (user: any) => `
                                 <ul class="space-y-2 text-sm text-gray-300">
                                     <li>• 新規登録ボーナス：500</li>
                                     <li>• 毎日ログイン：10 / 日</li>
-                                    <li>• 試合観戦：5 / 試合</li>
-                                    <li>• チャット参加：2 / コメント</li>
                                     <li>• 勝利報酬：30-100</li>
                                 </ul>
                             </div>
