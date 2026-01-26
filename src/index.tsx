@@ -128,13 +128,21 @@ app.post('/api/register', async (c) => {
 })
 
 // Demo page
-app.get('/demo', (c) => {
+app.get('/demo', async (c) => {
   const userCookie = getCookie(c, 'user')
   if (!userCookie) {
     return c.redirect('/')
   }
   
   const user = JSON.parse(userCookie)
+  
+  // Get registration number (count of users registered before this user)
+  const result = await c.env.DB.prepare(`
+    SELECT COUNT(*) as count FROM users WHERE created_at <= (SELECT created_at FROM users WHERE id = ?)
+  `).bind(user.id).first()
+  
+  user.registration_number = result?.count || 1
+  
   return c.html(demoPage(user))
 })
 

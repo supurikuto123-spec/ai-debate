@@ -25,6 +25,19 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     });
 });
 
+// Social icon links (except Instagram)
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.social-icon').forEach(icon => {
+        const href = icon.getAttribute('href');
+        if (href === '#') {
+            icon.addEventListener('click', (e) => {
+                e.preventDefault();
+                showNotification('🚧 この機能は現在作成中です', 'info');
+            });
+        }
+    });
+});
+
 // Button click handlers (mock functionality)
 document.querySelectorAll('button').forEach(button => {
     button.addEventListener('click', function(e) {

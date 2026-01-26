@@ -133,11 +133,10 @@ export const homepage = (user: any) => `
                         <h3 class="text-xl font-bold mb-4 cyber-text text-center">サービスリリースまで</h3>
                         <div class="countdown-display">
                             <div class="digital-meter-home">
+                                <div class="meter-segment-home">!</div>
                                 <div class="meter-segment-home">E</div>
-                                <div class="meter-separator-home">:</div>
                                 <div class="meter-segment-home">R</div>
                                 <div class="meter-segment-home">R</div>
-                                <div class="meter-separator-home">:</div>
                                 <div class="meter-segment-home">O</div>
                                 <div class="meter-segment-home">R</div>
                             </div>
@@ -208,7 +207,6 @@ export const homepage = (user: any) => `
                 <div class="mt-16 max-w-3xl mx-auto">
                     <div class="credit-info-box">
                         <h3 class="text-2xl font-bold mb-4 text-center">クレジットシステム</h3>
-                        <p class="text-xs text-gray-500 text-center mb-4">※ 数値は変更予定あり</p>
                         <div class="grid md:grid-cols-2 gap-6">
                             <div>
                                 <h4 class="text-lg font-bold mb-3 text-cyan-400">獲得方法</h4>
@@ -245,12 +243,6 @@ export const homepage = (user: any) => `
                             <svg class="w-12 h-12"><use href="#icon-circuit"/></svg>
                         </div>
                         <h3 class="text-xl font-bold mb-3">TECH & AI</h3>
-                        <ul class="text-sm text-gray-400 space-y-1">
-                            <li>AI倫理</li>
-                            <li>自動運転</li>
-                            <li>AGI開発</li>
-                            <li>etc...</li>
-                        </ul>
                     </div>
 
                     <!-- Category 2 -->
@@ -259,12 +251,6 @@ export const homepage = (user: any) => `
                             <svg class="w-12 h-12"><use href="#icon-network"/></svg>
                         </div>
                         <h3 class="text-xl font-bold mb-3">SOCIETY</h3>
-                        <ul class="text-sm text-gray-400 space-y-1">
-                            <li>ベーシックインカム</li>
-                            <li>リモートワーク</li>
-                            <li>教育改革</li>
-                            <li>etc...</li>
-                        </ul>
                     </div>
 
                     <!-- Category 3 -->
@@ -273,12 +259,6 @@ export const homepage = (user: any) => `
                             <svg class="w-12 h-12"><use href="#icon-brain"/></svg>
                         </div>
                         <h3 class="text-xl font-bold mb-3">PHILOSOPHY</h3>
-                        <ul class="text-sm text-gray-400 space-y-1">
-                            <li>自由意志</li>
-                            <li>意識とは何か</li>
-                            <li>道徳の普遍性</li>
-                            <li>etc...</li>
-                        </ul>
                     </div>
 
                     <!-- Category 4 -->
@@ -287,12 +267,6 @@ export const homepage = (user: any) => `
                             <div class="text-4xl">⊕</div>
                         </div>
                         <h3 class="text-xl font-bold mb-3">ENVIRONMENT</h3>
-                        <ul class="text-sm text-gray-400 space-y-1">
-                            <li>気候変動対策</li>
-                            <li>原子力発電</li>
-                            <li>宇宙開発 vs 地球問題</li>
-                            <li>etc...</li>
-                        </ul>
                     </div>
 
                     <!-- Category 5 -->
@@ -301,12 +275,6 @@ export const homepage = (user: any) => `
                             <div class="text-4xl">≋</div>
                         </div>
                         <h3 class="text-xl font-bold mb-3">CULTURE</h3>
-                        <ul class="text-sm text-gray-400 space-y-1">
-                            <li>AIアート</li>
-                            <li>SNS規制</li>
-                            <li>ゲーム依存</li>
-                            <li>etc...</li>
-                        </ul>
                     </div>
 
                     <!-- Category 6 -->
@@ -315,12 +283,14 @@ export const homepage = (user: any) => `
                             <div class="text-4xl">⊞</div>
                         </div>
                         <h3 class="text-xl font-bold mb-3">ECONOMY</h3>
-                        <ul class="text-sm text-gray-400 space-y-1">
-                            <li>仮想通貨規制</li>
-                            <li>富の再分配</li>
-                            <li>グローバリゼーション</li>
-                            <li>etc...</li>
-                        </ul>
+                    </div>
+                    
+                    <!-- etc... Category -->
+                    <div class="category-card">
+                        <div class="category-icon" style="background: linear-gradient(135deg, #888, #666);">
+                            <div class="text-4xl">...</div>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3">etc...</h3>
                     </div>
                 </div>
             </div>

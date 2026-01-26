@@ -50,7 +50,7 @@ export const demoPage = (user: any) => `
             <div class="cyber-grid"></div>
             <div class="container mx-auto px-6 text-center relative z-10 py-20">
                 <!-- Success Animation -->
-                <div class="success-checkmark mb-16">
+                <div class="success-checkmark mb-20">
                     <div class="check-icon">
                         <span class="icon-line line-tip"></span>
                         <span class="icon-line line-long"></span>
@@ -98,19 +98,8 @@ export const demoPage = (user: any) => `
                         <div class="stat-icon">
                             <div class="text-4xl">⊚</div>
                         </div>
-                        <div class="stat-value">#${(() => {
-                            // Use database ID as registration order number
-                            // This represents the order in which users registered
-                            const dbId = user.id;
-                            // Extract numeric part if UUID, otherwise use as-is
-                            if (typeof dbId === 'string' && dbId.includes('-')) {
-                                // For UUID, use a hash-like number
-                                return Math.abs(dbId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 10000).toString().padStart(4, '0');
-                            }
-                            return dbId.toString().padStart(4, '0');
-                        })()}</div>
+                        <div class="stat-value">#${user.registration_number || 1}</div>
                         <div class="stat-label text-center">登録番号</div>
-                        <div class="stat-badge text-center">※数値は変動予定</div>
                     </div>
                 </div>
 
@@ -154,11 +143,10 @@ export const demoPage = (user: any) => `
                         <h3 class="text-2xl font-bold mb-4 cyber-text">リリースまで</h3>
                         <div class="countdown-display">
                             <div class="digital-meter">
+                                <div class="meter-segment">!</div>
                                 <div class="meter-segment">E</div>
-                                <div class="meter-separator">:</div>
                                 <div class="meter-segment">R</div>
                                 <div class="meter-segment">R</div>
-                                <div class="meter-separator">:</div>
                                 <div class="meter-segment">O</div>
                                 <div class="meter-segment">R</div>
                             </div>
