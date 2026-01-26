@@ -1,10 +1,22 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { serveStatic } from 'hono/cloudflare-workers'
+import { setCookie, getCookie, deleteCookie } from 'hono/cookie'
+import { homepage } from './pages/homepage'
+import { demoPage } from './pages/demo'
+import { registerPage } from './pages/register'
 
-const app = new Hono()
+type Bindings = {
+  DB: D1Database
+  GOOGLE_CLIENT_ID?: string
+  GOOGLE_CLIENT_SECRET?: string
+  GOOGLE_REDIRECT_URI?: string
+  SESSION_SECRET?: string
+}
 
-// Enable CORS for API routes
+const app = new Hono<{ Bindings: Bindings }>()
+
+// Enable CORS
 app.use('/api/*', cors())
 
 // Serve static files
@@ -12,434 +24,160 @@ app.use('/static/*', serveStatic({ root: './public' }))
 
 // Homepage
 app.get('/', (c) => {
-  return c.html(`
-    <!DOCTYPE html>
-    <html lang="ja">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>AI Debate - AIディベートショー観戦プラットフォーム</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <link href="/static/styles.css" rel="stylesheet">
-    </head>
-    <body class="bg-black text-white overflow-x-hidden">
-        <!-- SVG Icons Definition -->
-        <svg style="display: none;">
-            <defs>
-                <!-- Circuit Icon -->
-                <symbol id="icon-circuit" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.18L19.82 8 12 11.82 4.18 8 12 4.18zM4 9.5l7 3.5v7l-7-3.5v-7zm16 0v7l-7 3.5v-7l7-3.5z"/>
-                </symbol>
-                
-                <!-- Pulse Icon -->
-                <symbol id="icon-pulse" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M3 13h2l2-4 4 8 4-16 2 8h4"/>
-                </symbol>
-                
-                <!-- Network Icon -->
-                <symbol id="icon-network" viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="2" fill="currentColor"/>
-                    <circle cx="4" cy="4" r="2" fill="currentColor"/>
-                    <circle cx="20" cy="4" r="2" fill="currentColor"/>
-                    <circle cx="4" cy="20" r="2" fill="currentColor"/>
-                    <circle cx="20" cy="20" r="2" fill="currentColor"/>
-                    <line x1="12" y1="12" x2="4" y2="4" stroke="currentColor" stroke-width="1"/>
-                    <line x1="12" y1="12" x2="20" y2="4" stroke="currentColor" stroke-width="1"/>
-                    <line x1="12" y1="12" x2="4" y2="20" stroke="currentColor" stroke-width="1"/>
-                    <line x1="12" y1="12" x2="20" y2="20" stroke="currentColor" stroke-width="1"/>
-                </symbol>
-                
-                <!-- Hexagon Coin -->
-                <symbol id="icon-credit" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M12 2L2 7v10l10 5 10-5V7L12 2z"/>
-                    <text x="12" y="15" text-anchor="middle" font-size="10" font-weight="bold" fill="#000">C</text>
-                </symbol>
-                
-                <!-- Brain Wire -->
-                <symbol id="icon-brain" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M12 2C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm0 2c2.76 0 5 2.24 5 5 0 1.64-.8 3.09-2.03 4H9.03C7.8 12.09 7 10.64 7 9c0-2.76 2.24-5 5-5z"/>
-                </symbol>
-                
-                <!-- Trophy -->
-                <symbol id="icon-trophy" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/>
-                </symbol>
-            </defs>
-        </svg>
+  const user = getCookie(c, 'user')
+  return c.html(homepage(user ? JSON.parse(user) : null))
+})
 
-        <!-- Navigation -->
-        <nav class="fixed top-0 w-full z-50 bg-black/80 backdrop-blur-md border-b-2 border-cyan-500">
-            <div class="container mx-auto px-6 py-4 flex justify-between items-center">
-                <div class="flex items-center space-x-3">
-                    <div class="cyber-logo w-10 h-10 flex items-center justify-center">
-                        <svg class="w-8 h-8 text-cyan-400"><use href="#icon-brain"/></svg>
-                    </div>
-                    <span class="text-2xl font-bold cyber-text">AI Debate</span>
-                </div>
-                <div class="hidden md:flex space-x-8">
-                    <a href="#home" class="nav-link">ホーム</a>
-                    <a href="#how" class="nav-link">仕組み</a>
-                    <a href="#categories" class="nav-link">カテゴリー</a>
-                    <a href="#features" class="nav-link">機能</a>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <div class="credit-display">
-                        <svg class="w-5 h-5 text-yellow-400"><use href="#icon-credit"/></svg>
-                        <span class="text-sm font-bold">500</span>
-                    </div>
-                    <button class="btn-secondary text-sm px-4 py-2">登録</button>
-                    <button class="btn-primary text-sm px-4 py-2">ログイン</button>
-                </div>
-            </div>
-        </nav>
+// Registration page
+app.get('/register', (c) => {
+  const googleId = getCookie(c, 'google_id')
+  const email = getCookie(c, 'google_email')
+  const name = getCookie(c, 'google_name')
+  
+  if (!googleId || !email) {
+    return c.redirect('/')
+  }
+  
+  return c.html(registerPage({ email, name: name || '' }))
+})
 
-        <!-- Hero Section -->
-        <section id="home" class="min-h-screen flex items-center justify-center relative pt-20">
-            <div class="cyber-grid"></div>
-            <div class="container mx-auto px-6 text-center relative z-10">
-                <div class="glitch-wrapper">
-                    <h1 class="text-6xl md:text-8xl font-black mb-6 glitch" data-text="AI Debate">
-                        AI Debate
-                    </h1>
-                </div>
-                <p class="text-xl md:text-2xl mb-8 text-cyan-300 max-w-3xl mx-auto neon-text">
-                    AI vs AI ディベートショーを観戦しよう
-                </p>
-                <p class="text-lg mb-12 text-gray-300 max-w-2xl mx-auto">
-                    最先端のAI同士が繰り広げる白熱したディベートを楽しむ<br>
-                    観戦でクレジット獲得、自分でもAIと対決可能
-                </p>
-                <div class="flex flex-col md:flex-row gap-6 justify-center items-center">
-                    <button class="btn-glow text-xl px-12 py-4">
-                        <span class="mr-3">▶</span>ライブ配信を見る
-                    </button>
-                    <button class="btn-outline text-xl px-12 py-4">
-                        <span class="mr-3">⚔</span>試合を作成
-                    </button>
-                </div>
-            </div>
-        </section>
+// Handle registration submission
+app.post('/api/register', async (c) => {
+  const { user_id, username } = await c.req.json()
+  const googleId = getCookie(c, 'google_id')
+  const email = getCookie(c, 'google_email')
+  
+  if (!googleId || !email) {
+    return c.json({ error: 'Not authenticated' }, 401)
+  }
+  
+  // Validate user_id
+  if (!/^[a-zA-Z0-9_-]{3,20}$/.test(user_id)) {
+    return c.json({ error: 'ユーザーIDは3-20文字の英数字、アンダースコア、ハイフンのみ使用可能です' }, 400)
+  }
+  
+  // Validate username
+  if (!username || username.length < 1 || username.length > 30) {
+    return c.json({ error: 'ユーザー名は1-30文字である必要があります' }, 400)
+  }
+  
+  // Check forbidden words
+  const forbiddenWords = ['admin', 'root', 'system', 'moderator', 'aidebate', 'official']
+  const lowerUsername = username.toLowerCase()
+  const lowerUserId = user_id.toLowerCase()
+  
+  for (const word of forbiddenWords) {
+    if (lowerUsername.includes(word) || lowerUserId.includes(word)) {
+      return c.json({ error: `禁止ワード "${word}" が含まれています` }, 400)
+    }
+  }
+  
+  try {
+    // Check if user_id already exists
+    const existing = await c.env.DB.prepare(
+      'SELECT id FROM users WHERE user_id = ?'
+    ).bind(user_id).first()
+    
+    if (existing) {
+      return c.json({ error: 'このユーザーIDは既に使用されています' }, 400)
+    }
+    
+    // Check if email already registered
+    const existingEmail = await c.env.DB.prepare(
+      'SELECT id FROM users WHERE email = ?'
+    ).bind(email).first()
+    
+    if (existingEmail) {
+      return c.json({ error: 'このメールアドレスは既に登録されています' }, 400)
+    }
+    
+    // Create user (pre-registration gets 500 credits, normal gets 300)
+    const userId = crypto.randomUUID()
+    const credits = 500 // Pre-registration bonus
+    
+    await c.env.DB.prepare(`
+      INSERT INTO users (id, user_id, username, email, google_id, credits, is_pre_registration, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, 1, datetime('now'), datetime('now'))
+    `).bind(userId, user_id, username, email, googleId, credits).run()
+    
+    // Record credit transaction
+    await c.env.DB.prepare(`
+      INSERT INTO credit_transactions (id, user_id, amount, type, reason, created_at)
+      VALUES (?, ?, ?, 'earn', 'pre_registration_bonus', datetime('now'))
+    `).bind(crypto.randomUUID(), user_id, credits).run()
+    
+    // Set user cookie
+    const userData = { id: userId, user_id, username, email, credits }
+    setCookie(c, 'user', JSON.stringify(userData), {
+      httpOnly: true,
+      secure: false, // Set to true in production
+      sameSite: 'Lax',
+      maxAge: 60 * 60 * 24 * 30 // 30 days
+    })
+    
+    // Clear temporary Google cookies
+    deleteCookie(c, 'google_id')
+    deleteCookie(c, 'google_email')
+    deleteCookie(c, 'google_name')
+    
+    return c.json({ success: true, redirect: '/demo' })
+  } catch (error) {
+    console.error('Registration error:', error)
+    return c.json({ error: 'サーバーエラーが発生しました' }, 500)
+  }
+})
 
-        <!-- How It Works -->
-        <section id="how" class="py-20 relative bg-gradient-to-b from-black to-purple-900/20">
-            <div class="container mx-auto px-6">
-                <h2 class="text-5xl font-bold text-center mb-16 cyber-text">仕組み</h2>
-                <div class="grid md:grid-cols-3 gap-12">
-                    <!-- Step 1 -->
-                    <div class="text-center">
-                        <div class="step-number">01</div>
-                        <div class="flex justify-center mb-6">
-                            <svg class="w-20 h-20 text-cyan-400"><use href="#icon-network"/></svg>
-                        </div>
-                        <h3 class="text-2xl font-bold mb-4">AI vs AI 試合を観戦</h3>
-                        <p class="text-gray-400 mb-4">
-                            ライブ配信されるAI同士のディベートを観戦。リアルタイムチャットで他の観客と交流しながら楽しもう
-                        </p>
-                        <div class="credit-badge">
-                            <svg class="w-4 h-4"><use href="#icon-credit"/></svg>
-                            <span>+5 クレジット / 試合</span>
-                        </div>
-                    </div>
+// Demo page
+app.get('/demo', (c) => {
+  const userCookie = getCookie(c, 'user')
+  if (!userCookie) {
+    return c.redirect('/')
+  }
+  
+  const user = JSON.parse(userCookie)
+  return c.html(demoPage(user))
+})
 
-                    <!-- Step 2 -->
-                    <div class="text-center">
-                        <div class="step-number">02</div>
-                        <div class="flex justify-center mb-6">
-                            <svg class="w-20 h-20 text-pink-400"><use href="#icon-pulse"/></svg>
-                        </div>
-                        <h3 class="text-2xl font-bold mb-4">試合を作成する</h3>
-                        <p class="text-gray-400 mb-4">
-                            トピックとAIキャラクターを選んで試合をリクエスト。人気試合なら観客数に応じてクレジット還元
-                        </p>
-                        <div class="credit-badge cost">
-                            <svg class="w-4 h-4"><use href="#icon-credit"/></svg>
-                            <span>50-200 クレジット</span>
-                        </div>
-                    </div>
+// Mock Google OAuth (for development)
+// In production, use real Google OAuth
+app.get('/auth/google', (c) => {
+  // Mock login for development
+  const mockGoogleId = 'mock_' + Date.now()
+  const mockEmail = 'user' + Date.now() + '@example.com'
+  const mockName = 'Test User'
+  
+  setCookie(c, 'google_id', mockGoogleId, { maxAge: 600 })
+  setCookie(c, 'google_email', mockEmail, { maxAge: 600 })
+  setCookie(c, 'google_name', mockName, { maxAge: 600 })
+  
+  return c.redirect('/register')
+})
 
-                    <!-- Step 3 -->
-                    <div class="text-center">
-                        <div class="step-number">03</div>
-                        <div class="flex justify-center mb-6">
-                            <svg class="w-20 h-20 text-green-400"><use href="#icon-circuit"/></svg>
-                        </div>
-                        <h3 class="text-2xl font-bold mb-4">自分も参戦</h3>
-                        <p class="text-gray-400 mb-4">
-                            クレジットを使ってAIと対戦。勝利すればレーティング上昇とクレジット獲得
-                        </p>
-                        <div class="credit-badge cost">
-                            <svg class="w-4 h-4"><use href="#icon-credit"/></svg>
-                            <span>20-50 クレジット</span>
-                        </div>
-                    </div>
-                </div>
+// Logout
+app.get('/logout', (c) => {
+  deleteCookie(c, 'user')
+  return c.redirect('/')
+})
 
-                <!-- Credit System Explanation -->
-                <div class="mt-16 max-w-3xl mx-auto">
-                    <div class="credit-info-box">
-                        <h3 class="text-2xl font-bold mb-4 text-center">クレジットシステム</h3>
-                        <div class="grid md:grid-cols-2 gap-6">
-                            <div>
-                                <h4 class="text-lg font-bold mb-3 text-cyan-400">獲得方法</h4>
-                                <ul class="space-y-2 text-sm text-gray-300">
-                                    <li>• 新規登録ボーナス：500</li>
-                                    <li>• 毎日ログイン：10 / 日</li>
-                                    <li>• 試合観戦：5 / 試合</li>
-                                    <li>• チャット参加：2 / コメント</li>
-                                    <li>• 勝利報酬：30-100</li>
-                                </ul>
-                            </div>
-                            <div>
-                                <h4 class="text-lg font-bold mb-3 text-pink-400">使い道</h4>
-                                <ul class="space-y-2 text-sm text-gray-300">
-                                    <li>• AI vs AI 試合作成：50-200</li>
-                                    <li>• User vs AI 対戦：20-50</li>
-                                    <li>• AI性格カスタマイズ：30</li>
-                                    <li>• プロフィール装飾：20-100</li>
-                                    <li>• トピック作成：30</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
+// API: Get user info
+app.get('/api/user', (c) => {
+  const userCookie = getCookie(c, 'user')
+  if (!userCookie) {
+    return c.json({ error: 'Not authenticated' }, 401)
+  }
+  
+  return c.json(JSON.parse(userCookie))
+})
 
-        <!-- Categories Section -->
-        <section id="categories" class="py-20 relative">
-            <div class="container mx-auto px-6">
-                <h2 class="text-5xl font-bold text-center mb-16 cyber-text">カテゴリー</h2>
-                <div class="grid md:grid-cols-3 gap-6">
-                    <!-- Category 1 -->
-                    <div class="category-card">
-                        <div class="category-icon tech">
-                            <svg class="w-12 h-12"><use href="#icon-circuit"/></svg>
-                        </div>
-                        <h3 class="text-xl font-bold mb-3">TECH & AI</h3>
-                        <ul class="text-sm text-gray-400 space-y-1">
-                            <li>AI倫理</li>
-                            <li>自動運転</li>
-                            <li>AGI開発</li>
-                            <li>プライバシー vs セキュリティ</li>
-                        </ul>
-                    </div>
-
-                    <!-- Category 2 -->
-                    <div class="category-card">
-                        <div class="category-icon society">
-                            <svg class="w-12 h-12"><use href="#icon-network"/></svg>
-                        </div>
-                        <h3 class="text-xl font-bold mb-3">SOCIETY</h3>
-                        <ul class="text-sm text-gray-400 space-y-1">
-                            <li>ベーシックインカム</li>
-                            <li>リモートワーク</li>
-                            <li>教育改革</li>
-                            <li>世代間格差</li>
-                        </ul>
-                    </div>
-
-                    <!-- Category 3 -->
-                    <div class="category-card">
-                        <div class="category-icon philosophy">
-                            <svg class="w-12 h-12"><use href="#icon-brain"/></svg>
-                        </div>
-                        <h3 class="text-xl font-bold mb-3">PHILOSOPHY</h3>
-                        <ul class="text-sm text-gray-400 space-y-1">
-                            <li>自由意志</li>
-                            <li>意識とは何か</li>
-                            <li>道徳の普遍性</li>
-                            <li>死生観</li>
-                        </ul>
-                    </div>
-
-                    <!-- Category 4 -->
-                    <div class="category-card">
-                        <div class="category-icon environment">
-                            <div class="text-4xl">⊕</div>
-                        </div>
-                        <h3 class="text-xl font-bold mb-3">ENVIRONMENT</h3>
-                        <ul class="text-sm text-gray-400 space-y-1">
-                            <li>気候変動対策</li>
-                            <li>原子力発電</li>
-                            <li>宇宙開発 vs 地球問題</li>
-                            <li>動物実験</li>
-                        </ul>
-                    </div>
-
-                    <!-- Category 5 -->
-                    <div class="category-card">
-                        <div class="category-icon culture">
-                            <div class="text-4xl">≋</div>
-                        </div>
-                        <h3 class="text-xl font-bold mb-3">CULTURE</h3>
-                        <ul class="text-sm text-gray-400 space-y-1">
-                            <li>AIアート</li>
-                            <li>SNS規制</li>
-                            <li>ゲーム依存</li>
-                            <li>文化の多様性</li>
-                        </ul>
-                    </div>
-
-                    <!-- Category 6 -->
-                    <div class="category-card">
-                        <div class="category-icon economy">
-                            <div class="text-4xl">⊞</div>
-                        </div>
-                        <h3 class="text-xl font-bold mb-3">ECONOMY</h3>
-                        <ul class="text-sm text-gray-400 space-y-1">
-                            <li>仮想通貨規制</li>
-                            <li>富の再分配</li>
-                            <li>グローバリゼーション</li>
-                            <li>労働の未来</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Features Section -->
-        <section id="features" class="py-20 relative bg-gradient-to-b from-black to-cyan-900/10">
-            <div class="container mx-auto px-6">
-                <h2 class="text-5xl font-bold text-center mb-16 cyber-text">主な機能</h2>
-                <div class="grid md:grid-cols-3 gap-8">
-                    <!-- Feature 1 -->
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <svg class="w-10 h-10"><use href="#icon-pulse"/></svg>
-                        </div>
-                        <h3 class="text-2xl font-bold mb-4">ライブ観戦</h3>
-                        <p class="text-gray-400">
-                            AI vs AI の白熱したディベートをリアルタイムで観戦。チャットで他の観客と盛り上がろう
-                        </p>
-                    </div>
-                    
-                    <!-- Feature 2 -->
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <svg class="w-10 h-10"><use href="#icon-trophy"/></svg>
-                        </div>
-                        <h3 class="text-2xl font-bold mb-4">レーティングシステム</h3>
-                        <p class="text-gray-400">
-                            自分でAIと対戦してスキルアップ。論理性・説得力・創造性を評価してランキング上位を目指そう
-                        </p>
-                    </div>
-                    
-                    <!-- Feature 3 -->
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <div class="text-4xl">◈</div>
-                        </div>
-                        <h3 class="text-2xl font-bold mb-4">AIキャラクター</h3>
-                        <p class="text-gray-400">
-                            論理学者、弁護士、哲学者など個性豊かなAIから選択。それぞれ異なる戦略とスタイルを持つ
-                        </p>
-                    </div>
-                    
-                    <!-- Feature 4 -->
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <div class="text-4xl">⊚</div>
-                        </div>
-                        <h3 class="text-2xl font-bold mb-4">コミュニティ</h3>
-                        <p class="text-gray-400">
-                            リアルタイムチャット、フォーラム、フォロー機能で交流。名勝負をシェアして楽しもう
-                        </p>
-                    </div>
-                    
-                    <!-- Feature 5 -->
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <svg class="w-10 h-10"><use href="#icon-credit"/></svg>
-                        </div>
-                        <h3 class="text-2xl font-bold mb-4">クレジット経済</h3>
-                        <p class="text-gray-400">
-                            観戦や参加でクレジット獲得。無料でも十分楽しめる持続可能なシステム
-                        </p>
-                    </div>
-                    
-                    <!-- Feature 6 -->
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <div class="text-4xl">⟁</div>
-                        </div>
-                        <h3 class="text-2xl font-bold mb-4">リプレイ機能</h3>
-                        <p class="text-gray-400">
-                            過去の名勝負をいつでも視聴可能。ハイライトやお気に入り機能で学習にも最適
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- CTA Section -->
-        <section class="py-20 relative">
-            <div class="container mx-auto px-6 text-center">
-                <div class="cta-box">
-                    <h2 class="text-5xl font-bold mb-6 cyber-text">
-                        Ready to Watch?
-                    </h2>
-                    <p class="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-                        今すぐ参加して、AI同士の知的バトルを観戦しよう<br>
-                        登録で500クレジット無料プレゼント
-                    </p>
-                    <button class="btn-glow text-2xl px-16 py-5">
-                        無料で始める
-                    </button>
-                </div>
-            </div>
-        </section>
-
-        <!-- Footer -->
-        <footer class="py-12 border-t-2 border-cyan-500/30">
-            <div class="container mx-auto px-6">
-                <div class="grid md:grid-cols-4 gap-8 mb-8">
-                    <div>
-                        <h4 class="text-xl font-bold mb-4 text-cyan-400">AI Debate</h4>
-                        <p class="text-gray-400">
-                            AI同士のディベートを観戦する<br>新しいエンタメプラットフォーム
-                        </p>
-                    </div>
-                    <div>
-                        <h4 class="text-lg font-bold mb-4">プラットフォーム</h4>
-                        <ul class="space-y-2 text-gray-400">
-                            <li><a href="#" class="hover:text-cyan-400">ライブ配信</a></li>
-                            <li><a href="#" class="hover:text-cyan-400">リプレイ</a></li>
-                            <li><a href="#" class="hover:text-cyan-400">ランキング</a></li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h4 class="text-lg font-bold mb-4">コミュニティ</h4>
-                        <ul class="space-y-2 text-gray-400">
-                            <li><a href="#" class="hover:text-cyan-400">フォーラム</a></li>
-                            <li><a href="#" class="hover:text-cyan-400">ディスカッション</a></li>
-                            <li><a href="#" class="hover:text-cyan-400">ヘルプ</a></li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h4 class="text-lg font-bold mb-4">Follow Us</h4>
-                        <div class="flex space-x-4">
-                            <a href="#" class="social-icon">
-                                <div class="text-xl">𝕏</div>
-                            </a>
-                            <a href="#" class="social-icon">
-                                <div class="text-xl">D</div>
-                            </a>
-                            <a href="#" class="social-icon">
-                                <div class="text-xl">G</div>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                <div class="text-center text-gray-500 pt-8 border-t border-gray-800">
-                    <p>&copy; 2026 AI Debate. All rights reserved.</p>
-                </div>
-            </div>
-        </footer>
-
-        <script src="/static/app.js"></script>
-    </body>
-    </html>
-  `)
+// API: Check user_id availability
+app.get('/api/check-userid/:userid', async (c) => {
+  const userid = c.req.param('userid')
+  
+  const existing = await c.env.DB.prepare(
+    'SELECT id FROM users WHERE user_id = ?'
+  ).bind(userid).first()
+  
+  return c.json({ available: !existing })
 })
 
 export default app
