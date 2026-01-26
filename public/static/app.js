@@ -9,7 +9,7 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         // If href is exactly "#", show "under construction" message
         if (href === '#') {
             e.preventDefault();
-            showNotification('🚧 この機能は現在作成中です', 'info');
+            showNotification('✨ 機能は近日公開予定です！', 'info');
             return;
         }
         
@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (href === '#') {
             icon.addEventListener('click', (e) => {
                 e.preventDefault();
-                showNotification('🚧 この機能は現在作成中です', 'info');
+                showNotification('✨ 機能は近日公開予定です！', 'info');
             });
         }
     });

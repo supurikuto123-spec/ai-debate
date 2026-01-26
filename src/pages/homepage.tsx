@@ -79,7 +79,7 @@ export const homepage = (user: any) => `
                         <a href="/logout" class="btn-secondary text-sm px-4 py-2">ログアウト</a>
                     ` : `
                         <a href="/auth/google" class="btn-secondary text-sm px-4 py-2">事前登録</a>
-                        <button onclick="alert('🚧 ログイン機能は現在作成中です')" class="btn-primary text-sm px-4 py-2">ログイン</button>
+                        <button onclick="showNotification('✨ 機能は近日公開予定です！', 'info')" class="btn-primary text-sm px-4 py-2">ログイン</button>
                     `}
                 </div>
             </div>
@@ -243,6 +243,11 @@ export const homepage = (user: any) => `
                             <svg class="w-12 h-12"><use href="#icon-circuit"/></svg>
                         </div>
                         <h3 class="text-xl font-bold mb-3">TECH & AI</h3>
+                        <ul class="text-sm text-gray-400 space-y-1">
+                            <li>AI倫理</li>
+                            <li>自動運転</li>
+                            <li>AGI開発</li>
+                        </ul>
                     </div>
 
                     <!-- Category 2 -->
@@ -251,6 +256,11 @@ export const homepage = (user: any) => `
                             <svg class="w-12 h-12"><use href="#icon-network"/></svg>
                         </div>
                         <h3 class="text-xl font-bold mb-3">SOCIETY</h3>
+                        <ul class="text-sm text-gray-400 space-y-1">
+                            <li>ベーシックインカム</li>
+                            <li>リモートワーク</li>
+                            <li>教育改革</li>
+                        </ul>
                     </div>
 
                     <!-- Category 3 -->
@@ -259,6 +269,11 @@ export const homepage = (user: any) => `
                             <svg class="w-12 h-12"><use href="#icon-brain"/></svg>
                         </div>
                         <h3 class="text-xl font-bold mb-3">PHILOSOPHY</h3>
+                        <ul class="text-sm text-gray-400 space-y-1">
+                            <li>自由意志</li>
+                            <li>意識とは何か</li>
+                            <li>道徳の普遍性</li>
+                        </ul>
                     </div>
 
                     <!-- Category 4 -->
@@ -267,6 +282,11 @@ export const homepage = (user: any) => `
                             <div class="text-4xl">⊕</div>
                         </div>
                         <h3 class="text-xl font-bold mb-3">ENVIRONMENT</h3>
+                        <ul class="text-sm text-gray-400 space-y-1">
+                            <li>気候変動対策</li>
+                            <li>原子力発電</li>
+                            <li>宇宙開発</li>
+                        </ul>
                     </div>
 
                     <!-- Category 5 -->
@@ -275,6 +295,11 @@ export const homepage = (user: any) => `
                             <div class="text-4xl">≋</div>
                         </div>
                         <h3 class="text-xl font-bold mb-3">CULTURE</h3>
+                        <ul class="text-sm text-gray-400 space-y-1">
+                            <li>AIアート</li>
+                            <li>SNS規制</li>
+                            <li>ゲーム依存</li>
+                        </ul>
                     </div>
 
                     <!-- Category 6 -->
@@ -283,6 +308,11 @@ export const homepage = (user: any) => `
                             <div class="text-4xl">⊞</div>
                         </div>
                         <h3 class="text-xl font-bold mb-3">ECONOMY</h3>
+                        <ul class="text-sm text-gray-400 space-y-1">
+                            <li>仮想通貨規制</li>
+                            <li>富の再分配</li>
+                            <li>グローバリゼーション</li>
+                        </ul>
                     </div>
                     
                     <!-- etc... Category -->

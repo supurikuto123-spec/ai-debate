@@ -235,7 +235,7 @@ export const demoPage = (user: any) => `
                 border-radius: 50%;
                 box-sizing: content-box;
                 border: 4px solid #00ff00;
-                animation: checkmarkPulse 1s ease-out;
+                animation: checkmarkPulse 1s ease-out, checkmarkGlow 2s ease-in-out infinite;
             }
 
             .icon-line {
@@ -349,6 +349,15 @@ export const demoPage = (user: any) => `
                 100% {
                     transform: scale(1);
                     opacity: 1;
+                }
+            }
+
+            @keyframes checkmarkGlow {
+                0%, 100% {
+                    box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+                }
+                50% {
+                    box-shadow: 0 0 40px rgba(0, 255, 0, 0.8);
                 }
             }
 
