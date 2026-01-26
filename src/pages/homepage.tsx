@@ -130,23 +130,45 @@ export const homepage = (user: any) => `
                 <!-- Release Countdown & Stats -->
                 <div class="mt-16">
                     <!-- Real-time Stats Meters -->
-                    <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-12">
-                        <!-- Visitor Counter -->
+                    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto mb-12">
+                        <!-- Real-time Online Users -->
                         <div class="stat-meter-box">
                             <div class="text-center mb-3">
-                                <i class="fas fa-users text-cyan-400 text-3xl mb-2"></i>
-                                <h4 class="text-lg font-bold cyber-text">リアルタイム訪問者数</h4>
+                                <i class="fas fa-signal text-cyan-400 text-3xl mb-2"></i>
+                                <h4 class="text-sm font-bold cyber-text">リアルタイム接続数</h4>
+                            </div>
+                            <div class="digital-meter-display">
+                                <div class="meter-value" id="online-count">--+</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Total Visitor Counter -->
+                        <div class="stat-meter-box">
+                            <div class="text-center mb-3">
+                                <i class="fas fa-eye text-purple-400 text-3xl mb-2"></i>
+                                <h4 class="text-sm font-bold cyber-text">累計訪問者数</h4>
                             </div>
                             <div class="digital-meter-display">
                                 <div class="meter-value" id="visitor-count">--+</div>
                             </div>
                         </div>
                         
-                        <!-- Registered Users Counter -->
+                        <!-- Real-time Logged-in Users -->
                         <div class="stat-meter-box">
                             <div class="text-center mb-3">
-                                <i class="fas fa-user-check text-green-400 text-3xl mb-2"></i>
-                                <h4 class="text-lg font-bold cyber-text">登録済みユーザー数</h4>
+                                <i class="fas fa-user-clock text-green-400 text-3xl mb-2"></i>
+                                <h4 class="text-sm font-bold cyber-text">ログイン中ユーザー</h4>
+                            </div>
+                            <div class="digital-meter-display">
+                                <div class="meter-value" id="online-users">--+</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Total Registered Users Counter -->
+                        <div class="stat-meter-box">
+                            <div class="text-center mb-3">
+                                <i class="fas fa-user-check text-yellow-400 text-3xl mb-2"></i>
+                                <h4 class="text-sm font-bold cyber-text">総登録ユーザー数</h4>
                             </div>
                             <div class="digital-meter-display">
                                 <div class="meter-value" id="user-count">--+</div>

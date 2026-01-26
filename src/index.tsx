@@ -301,12 +301,22 @@ app.get('/api/check-userid/:userid', async (c) => {
 
 // API: Get visitor count (mock implementation - real-time tracking would need KV)
 app.get('/api/stats/visitors', async (c) => {
-  // Simulate visitor count: random between 30-150
-  const baseCount = 73
-  const variance = Math.floor(Math.random() * 40) - 20
-  const visitors = Math.max(30, baseCount + variance)
+  // Simulate total visitor count: random between 300-800
+  const baseCount = 550
+  const variance = Math.floor(Math.random() * 200) - 100
+  const visitors = Math.max(300, baseCount + variance)
   
   return c.json({ count: visitors })
+})
+
+// API: Get online user count (simulated real-time)
+app.get('/api/stats/online', async (c) => {
+  // Simulate online users: random between 5-30
+  const baseCount = 15
+  const variance = Math.floor(Math.random() * 20) - 10
+  const online = Math.max(5, baseCount + variance)
+  
+  return c.json({ count: online })
 })
 
 // API: Get registered user count
@@ -322,6 +332,25 @@ app.get('/api/stats/users', async (c) => {
     console.error('Error getting user count:', error)
     // Return mock data if DB unavailable
     return c.json({ count: 42 })
+  }
+})
+
+// API: Get online logged-in users (simulated)
+app.get('/api/stats/online-users', async (c) => {
+  try {
+    const result = await c.env.DB.prepare(
+      'SELECT COUNT(*) as count FROM users'
+    ).first()
+    
+    const totalUsers = result?.count || 0
+    // Simulate 10-30% of total users being online
+    const onlinePercentage = 0.15 + Math.random() * 0.15 // 15-30%
+    const online = Math.max(1, Math.floor(totalUsers * onlinePercentage))
+    
+    return c.json({ count: online })
+  } catch (error) {
+    console.error('Error getting online user count:', error)
+    return c.json({ count: 5 })
   }
 })
 

@@ -345,7 +345,21 @@ function formatCountDisplay(count) {
 // Fetch and update visitor/user stats
 async function updateStats() {
     try {
-        // Fetch visitor count
+        // Fetch online connection count
+        const onlineResponse = await fetch('/api/stats/online');
+        const onlineData = await onlineResponse.json();
+        const onlineCount = formatCountDisplay(onlineData.count);
+        
+        const onlineElement = document.getElementById('online-count');
+        if (onlineElement) {
+            onlineElement.textContent = onlineCount;
+            onlineElement.style.animation = 'none';
+            setTimeout(() => {
+                onlineElement.style.animation = 'meterPulse 2s ease-in-out infinite';
+            }, 10);
+        }
+        
+        // Fetch total visitor count
         const visitorResponse = await fetch('/api/stats/visitors');
         const visitorData = await visitorResponse.json();
         const visitorCount = formatCountDisplay(visitorData.count);
@@ -359,7 +373,21 @@ async function updateStats() {
             }, 10);
         }
         
-        // Fetch registered user count
+        // Fetch online logged-in users
+        const onlineUsersResponse = await fetch('/api/stats/online-users');
+        const onlineUsersData = await onlineUsersResponse.json();
+        const onlineUsersCount = formatCountDisplay(onlineUsersData.count);
+        
+        const onlineUsersElement = document.getElementById('online-users');
+        if (onlineUsersElement) {
+            onlineUsersElement.textContent = onlineUsersCount;
+            onlineUsersElement.style.animation = 'none';
+            setTimeout(() => {
+                onlineUsersElement.style.animation = 'meterPulse 2s ease-in-out infinite';
+            }, 10);
+        }
+        
+        // Fetch total registered user count
         const userResponse = await fetch('/api/stats/users');
         const userData = await userResponse.json();
         const userCount = formatCountDisplay(userData.count);
@@ -375,9 +403,13 @@ async function updateStats() {
     } catch (error) {
         console.error('Failed to update stats:', error);
         // Show placeholder on error
+        const onlineElement = document.getElementById('online-count');
         const visitorElement = document.getElementById('visitor-count');
+        const onlineUsersElement = document.getElementById('online-users');
         const userElement = document.getElementById('user-count');
+        if (onlineElement) onlineElement.textContent = '--+';
         if (visitorElement) visitorElement.textContent = '--+';
+        if (onlineUsersElement) onlineUsersElement.textContent = '--+';
         if (userElement) userElement.textContent = '--+';
     }
 }
