@@ -50,7 +50,7 @@ export const demoPage = (user: any) => `
             <div class="cyber-grid"></div>
             <div class="container mx-auto px-6 text-center relative z-10 py-20">
                 <!-- Success Animation -->
-                <div class="success-checkmark mb-24">
+                <div class="success-checkmark" style="margin-bottom: 8rem;">
                     <div class="check-icon">
                         <span class="icon-line line-tip"></span>
                         <span class="icon-line line-long"></span>
@@ -59,7 +59,7 @@ export const demoPage = (user: any) => `
                     </div>
                 </div>
 
-                <div class="glitch-wrapper mb-6">
+                <div class="glitch-wrapper mb-6" style="margin-top: 2rem;">
                     <h1 class="text-5xl md:text-7xl font-black glitch" data-text="登録完了！">
                         登録完了！
                     </h1>
