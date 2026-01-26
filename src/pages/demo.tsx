@@ -112,8 +112,8 @@ export const demoPage = (user: any) => `
                         <div class="progress-item completed">
                             <div class="progress-status">✓</div>
                             <div class="progress-content">
-                                <h4 class="text-lg font-bold">フェーズ 1：事前登録システム</h4>
-                                <p class="text-sm text-gray-400">ユーザー登録・認証システム構築</p>
+                                <h4 class="text-lg font-bold">フェーズ 1：基盤システム</h4>
+                                <p class="text-sm text-gray-400">事前登録・認証・データベース構築完了</p>
                             </div>
                             <div class="progress-badge">完了</div>
                         </div>
@@ -121,8 +121,8 @@ export const demoPage = (user: any) => `
                         <div class="progress-item in-progress">
                             <div class="progress-status pulse">▶</div>
                             <div class="progress-content">
-                                <h4 class="text-lg font-bold">フェーズ 2：AIディベートエンジン</h4>
-                                <p class="text-sm text-gray-400">AI vs AI 対戦システムの実装中</p>
+                                <h4 class="text-lg font-bold">フェーズ 2：コア機能開発</h4>
+                                <p class="text-sm text-gray-400">AIディベートエンジン、観戦システム実装中</p>
                             </div>
                             <div class="progress-badge current">開発中</div>
                         </div>
@@ -130,17 +130,8 @@ export const demoPage = (user: any) => `
                         <div class="progress-item upcoming">
                             <div class="progress-status">○</div>
                             <div class="progress-content">
-                                <h4 class="text-lg font-bold">フェーズ 3：リアルタイムチャット</h4>
-                                <p class="text-sm text-gray-400">WebSocketによる観戦・コメント機能</p>
-                            </div>
-                            <div class="progress-badge">予定</div>
-                        </div>
-
-                        <div class="progress-item upcoming">
-                            <div class="progress-status">○</div>
-                            <div class="progress-content">
-                                <h4 class="text-lg font-bold">フェーズ 4：レーティングシステム</h4>
-                                <p class="text-sm text-gray-400">ランキング・成長トラッキング</p>
+                                <h4 class="text-lg font-bold">フェーズ 3：正式リリース</h4>
+                                <p class="text-sm text-gray-400">チャット・ランキング・コミュニティ機能追加</p>
                             </div>
                             <div class="progress-badge">予定</div>
                         </div>
@@ -151,10 +142,24 @@ export const demoPage = (user: any) => `
                 <div class="max-w-3xl mx-auto mb-12">
                     <div class="countdown-box">
                         <h3 class="text-2xl font-bold mb-4 cyber-text">リリースまで</h3>
-                        <div class="countdown-error">
-                            <div class="error-icon">⚠</div>
-                            <p class="text-lg mb-2">カウントダウン機能は準備中</p>
-                            <p class="text-sm text-gray-400">
+                        <div class="countdown-display">
+                            <div class="digital-meter">
+                                <div class="meter-segment">-</div>
+                                <div class="meter-segment">-</div>
+                                <div class="meter-separator">:</div>
+                                <div class="meter-segment">-</div>
+                                <div class="meter-segment">-</div>
+                                <div class="meter-separator">:</div>
+                                <div class="meter-segment">-</div>
+                                <div class="meter-segment">-</div>
+                            </div>
+                            <div class="meter-label">日 : 時 : 分</div>
+                            <div class="meter-error">
+                                <div class="error-blink">▲</div>
+                                <span>ERROR: LAUNCH_DATE_UNDEFINED</span>
+                                <div class="error-blink">▲</div>
+                            </div>
+                            <p class="text-sm text-gray-400 mt-4">
                                 リリース日が確定次第、メールでお知らせします<br>
                                 <span class="text-cyan-400">${user.email}</span>
                             </p>
@@ -479,16 +484,117 @@ export const demoPage = (user: any) => `
                 padding: 2rem;
             }
 
-            .countdown-error {
-                padding: 2rem;
-                background: rgba(255, 100, 100, 0.1);
-                border: 2px dashed #ff6464;
-                border-radius: 12px;
+            /* Digital Countdown Meter */
+            .countdown-display {
+                text-align: center;
             }
 
-            .error-icon {
+            .digital-meter {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                gap: 0.5rem;
+                margin: 2rem 0;
+                font-family: 'Orbitron', monospace;
+            }
+
+            .meter-segment {
+                width: 60px;
+                height: 80px;
+                background: #000;
+                border: 3px solid #ff0000;
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
                 font-size: 3rem;
-                margin-bottom: 1rem;
+                font-weight: 900;
+                color: #ff0000;
+                text-shadow: 0 0 20px #ff0000;
+                animation: segmentFlicker 2s infinite;
+            }
+
+            .meter-separator {
+                font-size: 3rem;
+                font-weight: 900;
+                color: #ff0000;
+                text-shadow: 0 0 20px #ff0000;
+                animation: separatorBlink 1s infinite;
+            }
+
+            .meter-label {
+                font-size: 0.9rem;
+                color: #666;
+                letter-spacing: 2rem;
+                margin-left: 1rem;
+            }
+
+            .meter-error {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 1rem;
+                margin: 1.5rem 0;
+                padding: 1rem;
+                background: rgba(255, 0, 0, 0.1);
+                border: 2px dashed #ff0000;
+                border-radius: 8px;
+                font-family: 'Courier New', monospace;
+                font-size: 1.1rem;
+                color: #ff0000;
+                font-weight: 700;
+            }
+
+            .error-blink {
+                animation: errorBlink 0.5s infinite;
+            }
+
+            @keyframes segmentFlicker {
+                0%, 100% {
+                    opacity: 1;
+                }
+                50% {
+                    opacity: 0.8;
+                }
+            }
+
+            @keyframes separatorBlink {
+                0%, 49% {
+                    opacity: 1;
+                }
+                50%, 100% {
+                    opacity: 0.3;
+                }
+            }
+
+            @keyframes errorBlink {
+                0%, 49% {
+                    opacity: 1;
+                }
+                50%, 100% {
+                    opacity: 0;
+                }
+            }
+
+            @media (max-width: 768px) {
+                .meter-segment {
+                    width: 40px;
+                    height: 60px;
+                    font-size: 2rem;
+                }
+
+                .meter-separator {
+                    font-size: 2rem;
+                }
+
+                .meter-label {
+                    letter-spacing: 1rem;
+                    font-size: 0.75rem;
+                }
+
+                .meter-error {
+                    font-size: 0.85rem;
+                }
             }
 
             /* Info Items */

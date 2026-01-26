@@ -78,10 +78,6 @@ export const homepage = (user: any) => `
                         <div class="text-sm text-gray-300">@${user.user_id}</div>
                         <a href="/logout" class="btn-secondary text-sm px-4 py-2">ログアウト</a>
                     ` : `
-                        <div class="credit-display">
-                            <svg class="w-5 h-5 text-yellow-400"><use href="#icon-credit"/></svg>
-                            <span class="text-sm font-bold">500</span>
-                        </div>
                         <a href="/auth/google" class="btn-secondary text-sm px-4 py-2">事前登録</a>
                         <a href="/auth/google" class="btn-primary text-sm px-4 py-2">ログイン</a>
                     `}
@@ -115,11 +111,11 @@ export const homepage = (user: any) => `
                 ` : ''}
                 <div class="flex flex-col md:flex-row gap-6 justify-center items-center">
                     ${user ? `
-                        <button class="btn-glow text-xl px-12 py-4">
-                            <span class="mr-3">▶</span>ライブ配信を見る
-                        </button>
+                        <a href="/demo" class="btn-glow text-xl px-12 py-4">
+                            <span class="mr-3">▶</span>マイページへ
+                        </a>
                         <button class="btn-outline text-xl px-12 py-4">
-                            <span class="mr-3">⚔</span>試合を作成
+                            <span class="mr-3">▶</span>ライブ配信を見る
                         </button>
                     ` : `
                         <a href="/auth/google" class="btn-glow text-xl px-12 py-4">
@@ -133,8 +129,275 @@ export const homepage = (user: any) => `
             </div>
         </section>
 
-        <!-- Rest of the homepage content... (truncated for brevity, keeping same structure) -->
-        
+        <!-- How It Works -->
+        <section id="how" class="py-20 relative bg-gradient-to-b from-black to-purple-900/20">
+            <div class="container mx-auto px-6">
+                <h2 class="text-5xl font-bold text-center mb-16 cyber-text">仕組み</h2>
+                <div class="grid md:grid-cols-3 gap-12">
+                    <!-- Step 1 -->
+                    <div class="text-center">
+                        <div class="step-number">01</div>
+                        <div class="flex justify-center mb-6">
+                            <svg class="w-20 h-20 text-cyan-400"><use href="#icon-network"/></svg>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-4">AI vs AI 試合を観戦</h3>
+                        <p class="text-gray-400 mb-4">
+                            ライブ配信されるAI同士のディベートを観戦。リアルタイムチャットで他の観客と交流しながら楽しもう
+                        </p>
+                        <div class="credit-badge">
+                            <svg class="w-4 h-4"><use href="#icon-credit"/></svg>
+                            <span>+5 クレジット / 試合</span>
+                        </div>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="text-center">
+                        <div class="step-number">02</div>
+                        <div class="flex justify-center mb-6">
+                            <svg class="w-20 h-20 text-pink-400"><use href="#icon-pulse"/></svg>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-4">試合を作成する</h3>
+                        <p class="text-gray-400 mb-4">
+                            トピックとAIキャラクターを選んで試合をリクエスト。人気試合なら観客数に応じてクレジット還元
+                        </p>
+                        <div class="credit-badge cost">
+                            <svg class="w-4 h-4"><use href="#icon-credit"/></svg>
+                            <span>50-200 クレジット</span>
+                        </div>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="text-center">
+                        <div class="step-number">03</div>
+                        <div class="flex justify-center mb-6">
+                            <svg class="w-20 h-20 text-green-400"><use href="#icon-circuit"/></svg>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-4">自分も参戦</h3>
+                        <p class="text-gray-400 mb-4">
+                            クレジットを使ってAIと対戦。勝利すればレーティング上昇とクレジット獲得
+                        </p>
+                        <div class="credit-badge cost">
+                            <svg class="w-4 h-4"><use href="#icon-credit"/></svg>
+                            <span>20-50 クレジット</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Credit System Explanation -->
+                <div class="mt-16 max-w-3xl mx-auto">
+                    <div class="credit-info-box">
+                        <h3 class="text-2xl font-bold mb-4 text-center">クレジットシステム</h3>
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div>
+                                <h4 class="text-lg font-bold mb-3 text-cyan-400">獲得方法</h4>
+                                <ul class="space-y-2 text-sm text-gray-300">
+                                    <li>• 新規登録ボーナス：500</li>
+                                    <li>• 毎日ログイン：10 / 日</li>
+                                    <li>• 試合観戦：5 / 試合</li>
+                                    <li>• チャット参加：2 / コメント</li>
+                                    <li>• 勝利報酬：30-100</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 class="text-lg font-bold mb-3 text-pink-400">使い道</h4>
+                                <ul class="space-y-2 text-sm text-gray-300">
+                                    <li>• AI vs AI 試合作成：50-200</li>
+                                    <li>• User vs AI 対戦：20-50</li>
+                                    <li>• AI性格カスタマイズ：30</li>
+                                    <li>• プロフィール装飾：20-100</li>
+                                    <li>• トピック作成：30</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Categories Section -->
+        <section id="categories" class="py-20 relative">
+            <div class="container mx-auto px-6">
+                <h2 class="text-5xl font-bold text-center mb-16 cyber-text">カテゴリー</h2>
+                <div class="grid md:grid-cols-3 gap-6">
+                    <!-- Category 1 -->
+                    <div class="category-card">
+                        <div class="category-icon tech">
+                            <svg class="w-12 h-12"><use href="#icon-circuit"/></svg>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3">TECH & AI</h3>
+                        <ul class="text-sm text-gray-400 space-y-1">
+                            <li>AI倫理</li>
+                            <li>自動運転</li>
+                            <li>AGI開発</li>
+                            <li>プライバシー vs セキュリティ</li>
+                        </ul>
+                    </div>
+
+                    <!-- Category 2 -->
+                    <div class="category-card">
+                        <div class="category-icon society">
+                            <svg class="w-12 h-12"><use href="#icon-network"/></svg>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3">SOCIETY</h3>
+                        <ul class="text-sm text-gray-400 space-y-1">
+                            <li>ベーシックインカム</li>
+                            <li>リモートワーク</li>
+                            <li>教育改革</li>
+                            <li>世代間格差</li>
+                        </ul>
+                    </div>
+
+                    <!-- Category 3 -->
+                    <div class="category-card">
+                        <div class="category-icon philosophy">
+                            <svg class="w-12 h-12"><use href="#icon-brain"/></svg>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3">PHILOSOPHY</h3>
+                        <ul class="text-sm text-gray-400 space-y-1">
+                            <li>自由意志</li>
+                            <li>意識とは何か</li>
+                            <li>道徳の普遍性</li>
+                            <li>死生観</li>
+                        </ul>
+                    </div>
+
+                    <!-- Category 4 -->
+                    <div class="category-card">
+                        <div class="category-icon environment">
+                            <div class="text-4xl">⊕</div>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3">ENVIRONMENT</h3>
+                        <ul class="text-sm text-gray-400 space-y-1">
+                            <li>気候変動対策</li>
+                            <li>原子力発電</li>
+                            <li>宇宙開発 vs 地球問題</li>
+                            <li>動物実験</li>
+                        </ul>
+                    </div>
+
+                    <!-- Category 5 -->
+                    <div class="category-card">
+                        <div class="category-icon culture">
+                            <div class="text-4xl">≋</div>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3">CULTURE</h3>
+                        <ul class="text-sm text-gray-400 space-y-1">
+                            <li>AIアート</li>
+                            <li>SNS規制</li>
+                            <li>ゲーム依存</li>
+                            <li>文化の多様性</li>
+                        </ul>
+                    </div>
+
+                    <!-- Category 6 -->
+                    <div class="category-card">
+                        <div class="category-icon economy">
+                            <div class="text-4xl">⊞</div>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3">ECONOMY</h3>
+                        <ul class="text-sm text-gray-400 space-y-1">
+                            <li>仮想通貨規制</li>
+                            <li>富の再分配</li>
+                            <li>グローバリゼーション</li>
+                            <li>労働の未来</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section id="features" class="py-20 relative bg-gradient-to-b from-black to-cyan-900/10">
+            <div class="container mx-auto px-6">
+                <h2 class="text-5xl font-bold text-center mb-16 cyber-text">主な機能</h2>
+                <div class="grid md:grid-cols-3 gap-8">
+                    <!-- Feature 1 -->
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <svg class="w-10 h-10"><use href="#icon-pulse"/></svg>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-4">ライブ観戦</h3>
+                        <p class="text-gray-400">
+                            AI vs AI の白熱したディベートをリアルタイムで観戦。チャットで他の観客と盛り上がろう
+                        </p>
+                    </div>
+                    
+                    <!-- Feature 2 -->
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <svg class="w-10 h-10"><use href="#icon-trophy"/></svg>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-4">レーティングシステム</h3>
+                        <p class="text-gray-400">
+                            自分でAIと対戦してスキルアップ。論理性・説得力・創造性を評価してランキング上位を目指そう
+                        </p>
+                    </div>
+                    
+                    <!-- Feature 3 -->
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <div class="text-4xl">◈</div>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-4">AIキャラクター</h3>
+                        <p class="text-gray-400">
+                            論理学者、弁護士、哲学者など個性豊かなAIから選択。それぞれ異なる戦略とスタイルを持つ
+                        </p>
+                    </div>
+                    
+                    <!-- Feature 4 -->
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <div class="text-4xl">⊚</div>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-4">コミュニティ</h3>
+                        <p class="text-gray-400">
+                            リアルタイムチャット、フォーラム、フォロー機能で交流。名勝負をシェアして楽しもう
+                        </p>
+                    </div>
+                    
+                    <!-- Feature 5 -->
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <svg class="w-10 h-10"><use href="#icon-credit"/></svg>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-4">クレジット経済</h3>
+                        <p class="text-gray-400">
+                            観戦や参加でクレジット獲得。無料でも十分楽しめる持続可能なシステム
+                        </p>
+                    </div>
+                    
+                    <!-- Feature 6 -->
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <div class="text-4xl">⟁</div>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-4">リプレイ機能</h3>
+                        <p class="text-gray-400">
+                            過去の名勝負をいつでも視聴可能。ハイライトやお気に入り機能で学習にも最適
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="py-20 relative">
+            <div class="container mx-auto px-6 text-center">
+                <div class="cta-box">
+                    <h2 class="text-5xl font-bold mb-6 cyber-text">
+                        Ready to Watch?
+                    </h2>
+                    <p class="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+                        今すぐ参加して、AI同士の知的バトルを観戦しよう<br>
+                        登録で500クレジット無料プレゼント
+                    </p>
+                    <a href="/auth/google" class="btn-glow text-2xl px-16 py-5">
+                        無料で始める
+                    </a>
+                </div>
+            </div>
+        </section>
+
         <!-- Footer -->
         <footer class="py-12 border-t-2 border-cyan-500/30">
             <div class="container mx-auto px-6">
