@@ -133,16 +133,14 @@ export const homepage = (user: any) => `
                         <h3 class="text-xl font-bold mb-4 cyber-text text-center">サービスリリースまで</h3>
                         <div class="countdown-display">
                             <div class="digital-meter-home">
-                                <div class="meter-segment-home">-</div>
-                                <div class="meter-segment-home">-</div>
+                                <div class="meter-segment-home">E</div>
                                 <div class="meter-separator-home">:</div>
-                                <div class="meter-segment-home">-</div>
-                                <div class="meter-segment-home">-</div>
+                                <div class="meter-segment-home">R</div>
+                                <div class="meter-segment-home">R</div>
                                 <div class="meter-separator-home">:</div>
-                                <div class="meter-segment-home">-</div>
-                                <div class="meter-segment-home">-</div>
+                                <div class="meter-segment-home">O</div>
+                                <div class="meter-segment-home">R</div>
                             </div>
-                            <div class="meter-label-home">E R R O R</div>
                             <p class="text-xs text-gray-500 mt-3 text-center">
                                 ※ リリース日確定次第、お知らせします
                             </p>
@@ -210,6 +208,7 @@ export const homepage = (user: any) => `
                 <div class="mt-16 max-w-3xl mx-auto">
                     <div class="credit-info-box">
                         <h3 class="text-2xl font-bold mb-4 text-center">クレジットシステム</h3>
+                        <p class="text-xs text-gray-500 text-center mb-4">※ 数値は変更予定あり</p>
                         <div class="grid md:grid-cols-2 gap-6">
                             <div>
                                 <h4 class="text-lg font-bold mb-3 text-cyan-400">獲得方法</h4>
@@ -250,7 +249,7 @@ export const homepage = (user: any) => `
                             <li>AI倫理</li>
                             <li>自動運転</li>
                             <li>AGI開発</li>
-                            <li>プライバシー vs セキュリティ</li>
+                            <li>etc...</li>
                         </ul>
                     </div>
 
@@ -264,7 +263,7 @@ export const homepage = (user: any) => `
                             <li>ベーシックインカム</li>
                             <li>リモートワーク</li>
                             <li>教育改革</li>
-                            <li>世代間格差</li>
+                            <li>etc...</li>
                         </ul>
                     </div>
 
@@ -278,7 +277,7 @@ export const homepage = (user: any) => `
                             <li>自由意志</li>
                             <li>意識とは何か</li>
                             <li>道徳の普遍性</li>
-                            <li>死生観</li>
+                            <li>etc...</li>
                         </ul>
                     </div>
 
@@ -292,7 +291,7 @@ export const homepage = (user: any) => `
                             <li>気候変動対策</li>
                             <li>原子力発電</li>
                             <li>宇宙開発 vs 地球問題</li>
-                            <li>動物実験</li>
+                            <li>etc...</li>
                         </ul>
                     </div>
 
@@ -306,7 +305,7 @@ export const homepage = (user: any) => `
                             <li>AIアート</li>
                             <li>SNS規制</li>
                             <li>ゲーム依存</li>
-                            <li>文化の多様性</li>
+                            <li>etc...</li>
                         </ul>
                     </div>
 
@@ -320,7 +319,7 @@ export const homepage = (user: any) => `
                             <li>仮想通貨規制</li>
                             <li>富の再分配</li>
                             <li>グローバリゼーション</li>
-                            <li>労働の未来</li>
+                            <li>etc...</li>
                         </ul>
                     </div>
                 </div>
@@ -456,6 +455,9 @@ export const homepage = (user: any) => `
                             </a>
                             <a href="#" class="social-icon">
                                 <i class="fab fa-github"></i>
+                            </a>
+                            <a href="https://www.instagram.com/not_rare.tar" target="_blank" rel="noopener noreferrer" class="social-icon">
+                                <i class="fab fa-instagram"></i>
                             </a>
                         </div>
                     </div>
