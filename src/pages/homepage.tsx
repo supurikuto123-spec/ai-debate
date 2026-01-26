@@ -135,8 +135,10 @@ export const homepage = (user: any) => `
                             <div class="digital-meter-home">
                                 <div class="meter-segment-home">!</div>
                                 <div class="meter-segment-home">E</div>
+                                <div class="meter-separator-home">:</div>
                                 <div class="meter-segment-home">R</div>
                                 <div class="meter-segment-home">R</div>
+                                <div class="meter-separator-home">:</div>
                                 <div class="meter-segment-home">O</div>
                                 <div class="meter-segment-home">R</div>
                             </div>
