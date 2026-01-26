@@ -146,19 +146,81 @@ app.get('/demo', async (c) => {
   return c.html(demoPage(user))
 })
 
-// Mock Google OAuth (for development)
-// In production, use real Google OAuth
+// Google OAuth authentication
 app.get('/auth/google', (c) => {
-  // Mock login for development
-  const mockGoogleId = 'mock_' + Date.now()
-  const mockEmail = 'user' + Date.now() + '@example.com'
-  const mockName = 'Test User'
+  const { GOOGLE_CLIENT_ID, GOOGLE_REDIRECT_URI } = c.env
   
-  setCookie(c, 'google_id', mockGoogleId, { maxAge: 600 })
-  setCookie(c, 'google_email', mockEmail, { maxAge: 600 })
-  setCookie(c, 'google_name', mockName, { maxAge: 600 })
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_REDIRECT_URI) {
+    // Fallback to mock for development
+    const mockGoogleId = 'mock_' + Date.now()
+    const mockEmail = 'user' + Date.now() + '@example.com'
+    const mockName = 'Test User'
+    
+    setCookie(c, 'google_id', mockGoogleId, { maxAge: 600 })
+    setCookie(c, 'google_email', mockEmail, { maxAge: 600 })
+    setCookie(c, 'google_name', mockName, { maxAge: 600 })
+    
+    return c.redirect('/register')
+  }
   
-  return c.redirect('/register')
+  // Production Google OAuth
+  const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth')
+  authUrl.searchParams.set('client_id', GOOGLE_CLIENT_ID)
+  authUrl.searchParams.set('redirect_uri', GOOGLE_REDIRECT_URI)
+  authUrl.searchParams.set('response_type', 'code')
+  authUrl.searchParams.set('scope', 'openid email profile')
+  authUrl.searchParams.set('access_type', 'offline')
+  
+  return c.redirect(authUrl.toString())
+})
+
+// Google OAuth callback
+app.get('/auth/google/callback', async (c) => {
+  const code = c.req.query('code')
+  const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI } = c.env
+  
+  if (!code) {
+    return c.text('Authorization code not found', 400)
+  }
+  
+  try {
+    // Exchange code for tokens
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id: GOOGLE_CLIENT_ID,
+        client_secret: GOOGLE_CLIENT_SECRET,
+        redirect_uri: GOOGLE_REDIRECT_URI,
+        grant_type: 'authorization_code'
+      }).toString()
+    })
+    
+    const tokens = await tokenResponse.json()
+    
+    if (!tokens.access_token) {
+      console.error('Token error:', tokens)
+      return c.text('Failed to get access token', 500)
+    }
+    
+    // Get user info
+    const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { 'Authorization': `Bearer ${tokens.access_token}` }
+    })
+    
+    const googleUser = await userResponse.json()
+    
+    // Set cookies
+    setCookie(c, 'google_id', googleUser.id, { httpOnly: true, secure: true, maxAge: 3600 })
+    setCookie(c, 'google_email', googleUser.email, { httpOnly: true, secure: true, maxAge: 3600 })
+    setCookie(c, 'google_name', googleUser.name, { httpOnly: true, secure: true, maxAge: 3600 })
+    
+    return c.redirect('/register')
+  } catch (error) {
+    console.error('OAuth error:', error)
+    return c.text('Authentication failed', 500)
+  }
 })
 
 // Logout
