@@ -79,7 +79,7 @@ export const homepage = (user: any) => `
                         <a href="/logout" class="btn-secondary text-sm px-4 py-2">ログアウト</a>
                     ` : `
                         <a href="/auth/google" class="btn-secondary text-sm px-4 py-2">事前登録</a>
-                        <button onclick="showNotification('✨ 機能は近日公開予定です！', 'info')" class="btn-primary text-sm px-4 py-2">ログイン</button>
+                        <a href="/auth/google" class="btn-primary text-sm px-4 py-2">ログイン</a>
                     `}
                 </div>
             </div>
@@ -134,7 +134,7 @@ export const homepage = (user: any) => `
                         <!-- Visitor Counter -->
                         <div class="stat-meter-box">
                             <div class="text-center mb-3">
-                                <svg class="w-8 h-8 mx-auto text-cyan-400 mb-2"><use href="#icon-pulse"/></svg>
+                                <i class="fas fa-users text-cyan-400 text-3xl mb-2"></i>
                                 <h4 class="text-lg font-bold cyber-text">リアルタイム訪問者数</h4>
                             </div>
                             <div class="digital-meter-display">
@@ -145,7 +145,7 @@ export const homepage = (user: any) => `
                         <!-- Registered Users Counter -->
                         <div class="stat-meter-box">
                             <div class="text-center mb-3">
-                                <svg class="w-8 h-8 mx-auto text-green-400 mb-2"><use href="#icon-trophy"/></svg>
+                                <i class="fas fa-user-check text-green-400 text-3xl mb-2"></i>
                                 <h4 class="text-lg font-bold cyber-text">登録済みユーザー数</h4>
                             </div>
                             <div class="digital-meter-display">
@@ -322,7 +322,7 @@ export const homepage = (user: any) => `
                     <!-- Category 5 -->
                     <div class="category-card">
                         <div class="category-icon culture">
-                            <div class="text-4xl">≋</div>
+                            <i class="fas fa-palette text-5xl"></i>
                         </div>
                         <h3 class="text-xl font-bold mb-3">CULTURE</h3>
                         <ul class="text-sm text-gray-400 space-y-1">
@@ -335,7 +335,7 @@ export const homepage = (user: any) => `
                     <!-- Category 6 -->
                     <div class="category-card">
                         <div class="category-icon economy">
-                            <div class="text-4xl">⊞</div>
+                            <i class="fas fa-chart-line text-5xl"></i>
                         </div>
                         <h3 class="text-xl font-bold mb-3">ECONOMY</h3>
                         <ul class="text-sm text-gray-400 space-y-1">
@@ -348,7 +348,7 @@ export const homepage = (user: any) => `
                     <!-- etc... Category -->
                     <div class="category-card">
                         <div class="category-icon" style="background: linear-gradient(135deg, #888, #666);">
-                            <div class="text-4xl">...</div>
+                            <i class="fas fa-ellipsis-h text-5xl"></i>
                         </div>
                         <h3 class="text-xl font-bold mb-3">etc...</h3>
                     </div>
