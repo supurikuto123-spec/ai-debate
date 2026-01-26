@@ -318,3 +318,73 @@ function activateEasterEgg() {
 }
 
 console.log('💡 Tip: Try the Konami code! ↑↑↓↓←→←→BA');
+
+// Format count to display ranges (1+, 5+, 10+, 30+, 50+, 100+, then 1000+, 3000+, 5000+, etc.)
+function formatCountDisplay(count) {
+    if (count < 1) return '1+';
+    if (count < 5) return '1+';
+    if (count < 10) return '5+';
+    if (count < 30) return '10+';
+    if (count < 50) return '30+';
+    if (count < 100) return '50+';
+    if (count < 300) return '100+';
+    if (count < 500) return '300+';
+    if (count < 1000) return '500+';
+    if (count < 3000) return '1000+';
+    if (count < 5000) return '3000+';
+    if (count < 10000) return '5000+';
+    
+    // For 10000+, use 10k, 30k, 50k, 100k format
+    if (count < 30000) return '10000+';
+    if (count < 50000) return '30000+';
+    if (count < 100000) return '50000+';
+    
+    return '100000+';
+}
+
+// Fetch and update visitor/user stats
+async function updateStats() {
+    try {
+        // Fetch visitor count
+        const visitorResponse = await fetch('/api/stats/visitors');
+        const visitorData = await visitorResponse.json();
+        const visitorCount = formatCountDisplay(visitorData.count);
+        
+        const visitorElement = document.getElementById('visitor-count');
+        if (visitorElement) {
+            visitorElement.textContent = visitorCount;
+            visitorElement.style.animation = 'none';
+            setTimeout(() => {
+                visitorElement.style.animation = 'meterPulse 2s ease-in-out infinite';
+            }, 10);
+        }
+        
+        // Fetch registered user count
+        const userResponse = await fetch('/api/stats/users');
+        const userData = await userResponse.json();
+        const userCount = formatCountDisplay(userData.count);
+        
+        const userElement = document.getElementById('user-count');
+        if (userElement) {
+            userElement.textContent = userCount;
+            userElement.style.animation = 'none';
+            setTimeout(() => {
+                userElement.style.animation = 'meterPulse 2s ease-in-out infinite';
+            }, 10);
+        }
+    } catch (error) {
+        console.error('Failed to update stats:', error);
+        // Show placeholder on error
+        const visitorElement = document.getElementById('visitor-count');
+        const userElement = document.getElementById('user-count');
+        if (visitorElement) visitorElement.textContent = '--+';
+        if (userElement) userElement.textContent = '--+';
+    }
+}
+
+// Update stats on page load
+document.addEventListener('DOMContentLoaded', () => {
+    updateStats();
+    // Refresh stats every 30 seconds
+    setInterval(updateStats, 30000);
+});

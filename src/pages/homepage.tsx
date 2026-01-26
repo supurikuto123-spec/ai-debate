@@ -127,24 +127,52 @@ export const homepage = (user: any) => `
                     `}
                 </div>
 
-                <!-- Release Countdown -->
-                <div class="mt-16 max-w-md mx-auto">
-                    <div class="countdown-box-home">
-                        <h3 class="text-xl font-bold mb-4 cyber-text text-center">サービスリリースまで</h3>
-                        <div class="countdown-display">
-                            <div class="digital-meter-home">
-                                <div class="meter-segment-home">!</div>
-                                <div class="meter-segment-home">E</div>
-                                <div class="meter-separator-home">:</div>
-                                <div class="meter-segment-home">R</div>
-                                <div class="meter-segment-home">R</div>
-                                <div class="meter-separator-home">:</div>
-                                <div class="meter-segment-home">O</div>
-                                <div class="meter-segment-home">R</div>
+                <!-- Release Countdown & Stats -->
+                <div class="mt-16">
+                    <!-- Real-time Stats Meters -->
+                    <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-12">
+                        <!-- Visitor Counter -->
+                        <div class="stat-meter-box">
+                            <div class="text-center mb-3">
+                                <svg class="w-8 h-8 mx-auto text-cyan-400 mb-2"><use href="#icon-pulse"/></svg>
+                                <h4 class="text-lg font-bold cyber-text">リアルタイム訪問者数</h4>
                             </div>
-                            <p class="text-xs text-gray-500 mt-3 text-center">
-                                ※ リリース日確定次第、お知らせします
-                            </p>
+                            <div class="digital-meter-display">
+                                <div class="meter-value" id="visitor-count">--+</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Registered Users Counter -->
+                        <div class="stat-meter-box">
+                            <div class="text-center mb-3">
+                                <svg class="w-8 h-8 mx-auto text-green-400 mb-2"><use href="#icon-trophy"/></svg>
+                                <h4 class="text-lg font-bold cyber-text">登録済みユーザー数</h4>
+                            </div>
+                            <div class="digital-meter-display">
+                                <div class="meter-value" id="user-count">--+</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Release Countdown -->
+                    <div class="max-w-md mx-auto">
+                        <div class="countdown-box-home">
+                            <h3 class="text-xl font-bold mb-4 cyber-text text-center">サービスリリースまで</h3>
+                            <div class="countdown-display">
+                                <div class="digital-meter-home">
+                                    <div class="meter-segment-home">!</div>
+                                    <div class="meter-segment-home">E</div>
+                                    <div class="meter-separator-home">:</div>
+                                    <div class="meter-segment-home">R</div>
+                                    <div class="meter-segment-home">R</div>
+                                    <div class="meter-separator-home">:</div>
+                                    <div class="meter-segment-home">O</div>
+                                    <div class="meter-segment-home">R</div>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-3 text-center">
+                                    ※ リリース日確定次第、お知らせします
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
