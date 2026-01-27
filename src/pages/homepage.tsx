@@ -210,7 +210,7 @@ export const homepage = (user: any) => `
                     <div class="text-center">
                         <div class="step-number">01</div>
                         <div class="flex justify-center mb-6">
-                            <svg class="w-20 h-20 text-cyan-400"><use href="#icon-network"/></svg>
+                            <i class="fas fa-tv text-cyan-400" style="font-size: 5rem;"></i>
                         </div>
                         <h3 class="text-2xl font-bold mb-4">AI vs AI 試合を観戦</h3>
                         <p class="text-gray-400 mb-4">
@@ -226,7 +226,7 @@ export const homepage = (user: any) => `
                     <div class="text-center">
                         <div class="step-number">02</div>
                         <div class="flex justify-center mb-6">
-                            <svg class="w-20 h-20 text-pink-400"><use href="#icon-pulse"/></svg>
+                            <i class="fas fa-plus-circle text-pink-400" style="font-size: 5rem;"></i>
                         </div>
                         <h3 class="text-2xl font-bold mb-4">試合を作成する</h3>
                         <p class="text-gray-400 mb-4">
@@ -242,7 +242,7 @@ export const homepage = (user: any) => `
                     <div class="text-center">
                         <div class="step-number">03</div>
                         <div class="flex justify-center mb-6">
-                            <svg class="w-20 h-20 text-green-400"><use href="#icon-circuit"/></svg>
+                            <i class="fas fa-fist-raised text-green-400" style="font-size: 5rem;"></i>
                         </div>
                         <h3 class="text-2xl font-bold mb-4">自分も参戦</h3>
                         <p class="text-gray-400 mb-4">
@@ -305,7 +305,7 @@ export const homepage = (user: any) => `
                     <!-- Category 2 -->
                     <div class="category-card">
                         <div class="category-icon society">
-                            <svg class="w-12 h-12"><use href="#icon-network"/></svg>
+                            <i class="fas fa-users text-5xl"></i>
                         </div>
                         <h3 class="text-xl font-bold mb-3">SOCIETY</h3>
                         <ul class="text-sm text-gray-400 space-y-1">
@@ -318,7 +318,7 @@ export const homepage = (user: any) => `
                     <!-- Category 3 -->
                     <div class="category-card">
                         <div class="category-icon philosophy">
-                            <svg class="w-12 h-12"><use href="#icon-brain"/></svg>
+                            <i class="fas fa-lightbulb text-5xl"></i>
                         </div>
                         <h3 class="text-xl font-bold mb-3">PHILOSOPHY</h3>
                         <ul class="text-sm text-gray-400 space-y-1">
@@ -331,7 +331,7 @@ export const homepage = (user: any) => `
                     <!-- Category 4 -->
                     <div class="category-card">
                         <div class="category-icon environment">
-                            <div class="text-4xl">⊕</div>
+                            <i class="fas fa-globe-americas text-5xl"></i>
                         </div>
                         <h3 class="text-xl font-bold mb-3">ENVIRONMENT</h3>
                         <ul class="text-sm text-gray-400 space-y-1">
