@@ -319,10 +319,11 @@ function activateEasterEgg() {
 
 console.log('💡 Tip: Try the Konami code! ↑↑↓↓←→←→BA');
 
-// Format count to display ranges (1+, 5+, 10+, 30+, 50+, 100+, then 1000+, 3000+, 5000+, etc.)
+// Format count to display ranges (1+, 3+, 5+, 10+, 30+, 50+, 100+, then 300+, 500+, 1000+, etc.)
 function formatCountDisplay(count) {
     if (count < 1) return '1+';
-    if (count < 5) return '1+';
+    if (count < 3) return '1+';
+    if (count < 5) return '3+';
     if (count < 10) return '5+';
     if (count < 30) return '10+';
     if (count < 50) return '30+';
