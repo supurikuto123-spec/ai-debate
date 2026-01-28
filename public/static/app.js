@@ -349,11 +349,10 @@ async function updateStats() {
         // Fetch online connection count
         const onlineResponse = await fetch('/api/stats/online');
         const onlineData = await onlineResponse.json();
-        const onlineCount = formatCountDisplay(onlineData.count);
         
         const onlineElement = document.getElementById('online-count');
         if (onlineElement) {
-            onlineElement.textContent = onlineCount;
+            onlineElement.textContent = onlineData.count;
             onlineElement.style.animation = 'none';
             setTimeout(() => {
                 onlineElement.style.animation = 'meterPulse 2s ease-in-out infinite';
@@ -363,39 +362,23 @@ async function updateStats() {
         // Fetch total visitor count
         const visitorResponse = await fetch('/api/stats/visitors');
         const visitorData = await visitorResponse.json();
-        const visitorCount = formatCountDisplay(visitorData.count);
         
         const visitorElement = document.getElementById('visitor-count');
         if (visitorElement) {
-            visitorElement.textContent = visitorCount;
+            visitorElement.textContent = visitorData.count;
             visitorElement.style.animation = 'none';
             setTimeout(() => {
                 visitorElement.style.animation = 'meterPulse 2s ease-in-out infinite';
             }, 10);
         }
         
-        // Fetch online logged-in users
-        const onlineUsersResponse = await fetch('/api/stats/online-users');
-        const onlineUsersData = await onlineUsersResponse.json();
-        const onlineUsersCount = formatCountDisplay(onlineUsersData.count);
-        
-        const onlineUsersElement = document.getElementById('online-users');
-        if (onlineUsersElement) {
-            onlineUsersElement.textContent = onlineUsersCount;
-            onlineUsersElement.style.animation = 'none';
-            setTimeout(() => {
-                onlineUsersElement.style.animation = 'meterPulse 2s ease-in-out infinite';
-            }, 10);
-        }
-        
         // Fetch total registered user count
         const userResponse = await fetch('/api/stats/users');
         const userData = await userResponse.json();
-        const userCount = formatCountDisplay(userData.count);
         
         const userElement = document.getElementById('user-count');
         if (userElement) {
-            userElement.textContent = userCount;
+            userElement.textContent = userData.count;
             userElement.style.animation = 'none';
             setTimeout(() => {
                 userElement.style.animation = 'meterPulse 2s ease-in-out infinite';
@@ -406,12 +389,10 @@ async function updateStats() {
         // Show placeholder on error
         const onlineElement = document.getElementById('online-count');
         const visitorElement = document.getElementById('visitor-count');
-        const onlineUsersElement = document.getElementById('online-users');
         const userElement = document.getElementById('user-count');
-        if (onlineElement) onlineElement.textContent = '--+';
-        if (visitorElement) visitorElement.textContent = '--+';
-        if (onlineUsersElement) onlineUsersElement.textContent = '--+';
-        if (userElement) userElement.textContent = '--+';
+        if (onlineElement) onlineElement.textContent = '--';
+        if (visitorElement) visitorElement.textContent = '--';
+        if (userElement) userElement.textContent = '--';
     }
 }
 

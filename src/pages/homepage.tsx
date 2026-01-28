@@ -130,15 +130,15 @@ export const homepage = (user: any) => `
                 <!-- Release Countdown & Stats -->
                 <div class="mt-16">
                     <!-- Real-time Stats Meters -->
-                    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto mb-12">
+                    <div class="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto mb-12">
                         <!-- Real-time Online Users -->
                         <div class="stat-meter-box">
                             <div class="text-center mb-3">
                                 <i class="fas fa-signal text-cyan-400 text-3xl mb-2"></i>
-                                <h4 class="text-sm font-bold cyber-text">リアルタイム接続数</h4>
+                                <h4 class="text-lg font-bold cyber-text">リアルタイム接続数</h4>
                             </div>
                             <div class="digital-meter-display">
-                                <div class="meter-value" id="online-count">--+</div>
+                                <div class="meter-value" id="online-count">--</div>
                             </div>
                         </div>
                         
@@ -146,21 +146,10 @@ export const homepage = (user: any) => `
                         <div class="stat-meter-box">
                             <div class="text-center mb-3">
                                 <i class="fas fa-eye text-purple-400 text-3xl mb-2"></i>
-                                <h4 class="text-sm font-bold cyber-text">累計訪問者数</h4>
+                                <h4 class="text-lg font-bold cyber-text">累計訪問者数</h4>
                             </div>
                             <div class="digital-meter-display">
-                                <div class="meter-value" id="visitor-count">--+</div>
-                            </div>
-                        </div>
-                        
-                        <!-- Real-time Logged-in Users -->
-                        <div class="stat-meter-box">
-                            <div class="text-center mb-3">
-                                <i class="fas fa-user-clock text-green-400 text-3xl mb-2"></i>
-                                <h4 class="text-sm font-bold cyber-text">ログイン中ユーザー</h4>
-                            </div>
-                            <div class="digital-meter-display">
-                                <div class="meter-value" id="online-users">--+</div>
+                                <div class="meter-value" id="visitor-count">--</div>
                             </div>
                         </div>
                         
@@ -168,10 +157,10 @@ export const homepage = (user: any) => `
                         <div class="stat-meter-box">
                             <div class="text-center mb-3">
                                 <i class="fas fa-user-check text-yellow-400 text-3xl mb-2"></i>
-                                <h4 class="text-sm font-bold cyber-text">総登録ユーザー数</h4>
+                                <h4 class="text-lg font-bold cyber-text">総登録ユーザー数</h4>
                             </div>
                             <div class="digital-meter-display">
-                                <div class="meter-value" id="user-count">--+</div>
+                                <div class="meter-value" id="user-count">--</div>
                             </div>
                         </div>
                     </div>
@@ -386,11 +375,11 @@ export const homepage = (user: any) => `
                     <!-- Feature 1 -->
                     <div class="feature-card">
                         <div class="feature-icon">
-                            <svg class="w-10 h-10"><use href="#icon-pulse"/></svg>
+                            <i class="fas fa-calendar-alt text-4xl"></i>
                         </div>
-                        <h3 class="text-2xl font-bold mb-4">ライブ観戦</h3>
+                        <h3 class="text-2xl font-bold mb-4">定期開催の試合</h3>
                         <p class="text-gray-400">
-                            AI vs AI の白熱したディベートをリアルタイムで観戦。チャットで他の観客と盛り上がろう
+                            定期開催のAI vs AIのディベート試合を観戦。AI vs 人間、人間 vs 人間の対戦も実施。チャットで他の観客と盛り上がろう
                         </p>
                     </div>
                     
@@ -408,22 +397,22 @@ export const homepage = (user: any) => `
                     <!-- Feature 3 -->
                     <div class="feature-card">
                         <div class="feature-icon">
-                            <div class="text-4xl">◈</div>
+                            <i class="fas fa-chart-bar text-4xl"></i>
                         </div>
-                        <h3 class="text-2xl font-bold mb-4">AIキャラクター</h3>
+                        <h3 class="text-2xl font-bold mb-4">AIステータス</h3>
                         <p class="text-gray-400">
-                            論理学者、弁護士、哲学者など個性豊かなAIから選択。それぞれ異なる戦略とスタイルを持つ
+                            各AIの戦績、勝率、得意ジャンルなどのステータスを確認可能。データに基づいて戦略を立てよう
                         </p>
                     </div>
                     
                     <!-- Feature 4 -->
                     <div class="feature-card">
                         <div class="feature-icon">
-                            <div class="text-4xl">⊚</div>
+                            <i class="fas fa-comments text-4xl"></i>
                         </div>
                         <h3 class="text-2xl font-bold mb-4">コミュニティ</h3>
                         <p class="text-gray-400">
-                            リアルタイムチャット、フォーラム、フォロー機能で交流。名勝負をシェアして楽しもう
+                            リアルタイムチャット、フォーラムで交流。名勝負をシェアして楽しもう
                         </p>
                     </div>
                     
@@ -441,11 +430,11 @@ export const homepage = (user: any) => `
                     <!-- Feature 6 -->
                     <div class="feature-card">
                         <div class="feature-icon">
-                            <div class="text-4xl">⟁</div>
+                            <i class="fas fa-infinity text-4xl"></i>
                         </div>
-                        <h3 class="text-2xl font-bold mb-4">リプレイ機能</h3>
+                        <h3 class="text-2xl font-bold mb-4">サブスク無制限</h3>
                         <p class="text-gray-400">
-                            過去の名勝負をいつでも視聴可能。ハイライトやお気に入り機能で学習にも最適
+                            サブスクリプションで過去の名勝負を無制限に閲覧可能。いつでもどこでも学習できる
                         </p>
                     </div>
                 </div>

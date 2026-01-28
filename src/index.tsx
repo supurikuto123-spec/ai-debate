@@ -299,27 +299,31 @@ app.get('/api/check-userid/:userid', async (c) => {
   return c.json({ available: !existing })
 })
 
-// API: Get visitor count (mock implementation - real-time tracking would need KV)
-app.get('/api/stats/visitors', async (c) => {
-  // Simulate total visitor count: random between 300-800
-  const baseCount = 550
-  const variance = Math.floor(Math.random() * 200) - 100
-  const visitors = Math.max(300, baseCount + variance)
-  
-  return c.json({ count: visitors })
-})
-
-// API: Get online user count (simulated real-time)
+// API: Get online connection count (real-time tracking - simulated with random for now)
 app.get('/api/stats/online', async (c) => {
-  // Simulate online users: random between 5-30
-  const baseCount = 15
-  const variance = Math.floor(Math.random() * 20) - 10
-  const online = Math.max(5, baseCount + variance)
+  // TODO: Implement real tracking with Cloudflare KV
+  // For now, return random value between 5-30
+  const baseCount = 12
+  const variance = Math.floor(Math.random() * 15) - 7
+  const online = Math.max(1, baseCount + variance)
   
   return c.json({ count: online })
 })
 
-// API: Get registered user count
+// API: Get total visitor count (from database)
+app.get('/api/stats/visitors', async (c) => {
+  try {
+    // TODO: Create visits tracking table
+    // For now, return a simulated cumulative count
+    const simulatedVisits = 1547 + Math.floor(Math.random() * 100)
+    return c.json({ count: simulatedVisits })
+  } catch (error) {
+    console.error('Error getting visitor count:', error)
+    return c.json({ count: 1500 })
+  }
+})
+
+// API: Get registered user count (from database)
 app.get('/api/stats/users', async (c) => {
   try {
     const result = await c.env.DB.prepare(
@@ -330,27 +334,7 @@ app.get('/api/stats/users', async (c) => {
     return c.json({ count })
   } catch (error) {
     console.error('Error getting user count:', error)
-    // Return mock data if DB unavailable
-    return c.json({ count: 42 })
-  }
-})
-
-// API: Get online logged-in users (simulated)
-app.get('/api/stats/online-users', async (c) => {
-  try {
-    const result = await c.env.DB.prepare(
-      'SELECT COUNT(*) as count FROM users'
-    ).first()
-    
-    const totalUsers = result?.count || 0
-    // Simulate 10-30% of total users being online
-    const onlinePercentage = 0.15 + Math.random() * 0.15 // 15-30%
-    const online = Math.max(1, Math.floor(totalUsers * onlinePercentage))
-    
-    return c.json({ count: online })
-  } catch (error) {
-    console.error('Error getting online user count:', error)
-    return c.json({ count: 5 })
+    return c.json({ count: 0 })
   }
 })
 
