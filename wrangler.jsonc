@@ -12,5 +12,12 @@
       "database_name": "ai-debate-db",
       "database_id": "local-dev"
     }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "KV",
+      "id": "local-kv",
+      "preview_id": "local-kv"
+    }
   ]
 }

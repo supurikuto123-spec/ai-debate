@@ -8,6 +8,7 @@ import { registerPage } from './pages/register'
 
 type Bindings = {
   DB: D1Database
+  KV: KVNamespace
   GOOGLE_CLIENT_ID?: string
   GOOGLE_CLIENT_SECRET?: string
   GOOGLE_REDIRECT_URI?: string
@@ -23,8 +24,43 @@ app.use('/api/*', cors())
 app.use('/static/*', serveStatic({ root: './public' }))
 
 // Homepage
-app.get('/', (c) => {
+app.get('/', async (c) => {
   const user = getCookie(c, 'user')
+  
+  // Track visit in database
+  try {
+    const visitId = crypto.randomUUID()
+    const sessionId = getCookie(c, 'session_id') || crypto.randomUUID()
+    
+    // Set session cookie if new
+    if (!getCookie(c, 'session_id')) {
+      setCookie(c, 'session_id', sessionId, {
+        httpOnly: true,
+        secure: false,
+        sameSite: 'Lax',
+        maxAge: 60 * 60 * 24 * 30 // 30 days
+      })
+    }
+    
+    // Record visit
+    await c.env.DB.prepare(`
+      INSERT INTO visits (id, session_id, ip_address, user_agent, page_path, created_at)
+      VALUES (?, ?, ?, ?, ?, datetime('now'))
+    `).bind(
+      visitId,
+      sessionId,
+      c.req.header('cf-connecting-ip') || 'unknown',
+      c.req.header('user-agent') || 'unknown',
+      '/'
+    ).run()
+    
+    // Track online user in KV (expires after 5 minutes)
+    const onlineKey = `online:${sessionId}`
+    await c.env.KV.put(onlineKey, Date.now().toString(), { expirationTtl: 300 })
+  } catch (error) {
+    console.error('Error tracking visit:', error)
+  }
+  
   return c.html(homepage(user ? JSON.parse(user) : null))
 })
 
@@ -299,27 +335,32 @@ app.get('/api/check-userid/:userid', async (c) => {
   return c.json({ available: !existing })
 })
 
-// API: Get online connection count (real-time tracking - simulated with random for now)
+// API: Get online connection count (real-time tracking with KV)
 app.get('/api/stats/online', async (c) => {
-  // TODO: Implement real tracking with Cloudflare KV
-  // For now, return random value between 5-30
-  const baseCount = 12
-  const variance = Math.floor(Math.random() * 15) - 7
-  const online = Math.max(1, baseCount + variance)
-  
-  return c.json({ count: online })
+  try {
+    // Get all online users from KV (keys starting with 'online:')
+    const list = await c.env.KV.list({ prefix: 'online:' })
+    const onlineCount = list.keys.length
+    
+    return c.json({ count: onlineCount })
+  } catch (error) {
+    console.error('Error getting online count:', error)
+    return c.json({ count: 0 })
+  }
 })
 
 // API: Get total visitor count (from database)
 app.get('/api/stats/visitors', async (c) => {
   try {
-    // TODO: Create visits tracking table
-    // For now, return a simulated cumulative count
-    const simulatedVisits = 1547 + Math.floor(Math.random() * 100)
-    return c.json({ count: simulatedVisits })
+    const result = await c.env.DB.prepare(
+      'SELECT COUNT(*) as count FROM visits'
+    ).first()
+    
+    const count = result?.count || 0
+    return c.json({ count })
   } catch (error) {
     console.error('Error getting visitor count:', error)
-    return c.json({ count: 1500 })
+    return c.json({ count: 0 })
   }
 })
 
