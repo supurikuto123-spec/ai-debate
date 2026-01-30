@@ -101,6 +101,7 @@ export const mainPage = (user: any) => `
                                 <div class="ai-avatar">🤖</div>
                                 <div class="ai-info">
                                     <div class="ai-name">論理学者AI</div>
+                                    <div class="ai-model">Powered by GPT-4o</div>
                                     <div class="ai-stance">賛成派</div>
                                 </div>
                             </div>
@@ -109,6 +110,7 @@ export const mainPage = (user: any) => `
                                 <div class="ai-avatar">🧠</div>
                                 <div class="ai-info">
                                     <div class="ai-name">倫理哲学AI</div>
+                                    <div class="ai-model">Powered by Claude-3.5</div>
                                     <div class="ai-stance">反対派</div>
                                 </div>
                             </div>
@@ -148,6 +150,7 @@ export const mainPage = (user: any) => `
                                 <div class="ai-avatar">🤖</div>
                                 <div class="ai-info">
                                     <div class="ai-name">経済学者AI</div>
+                                    <div class="ai-model">Powered by GPT-4o</div>
                                     <div class="ai-stance">賛成派</div>
                                 </div>
                             </div>
@@ -195,6 +198,7 @@ export const mainPage = (user: any) => `
                                 <div class="ai-avatar">⚡</div>
                                 <div class="ai-info">
                                     <div class="ai-name">環境科学AI</div>
+                                    <div class="ai-model">Powered by Gemini-2.0</div>
                                     <div class="ai-stance">賛成派</div>
                                 </div>
                             </div>
@@ -203,6 +207,7 @@ export const mainPage = (user: any) => `
                                 <div class="ai-avatar">🌱</div>
                                 <div class="ai-info">
                                     <div class="ai-name">再生可能AI</div>
+                                    <div class="ai-model">Powered by Claude-3.5</div>
                                     <div class="ai-stance">反対派</div>
                                 </div>
                             </div>
@@ -242,6 +247,7 @@ export const mainPage = (user: any) => `
                                 <div class="ai-avatar">🤖</div>
                                 <div class="ai-info">
                                     <div class="ai-name">安全研究AI</div>
+                                    <div class="ai-model">Powered by GPT-4o</div>
                                     <div class="ai-stance">賛成派</div>
                                 </div>
                             </div>
@@ -250,6 +256,7 @@ export const mainPage = (user: any) => `
                                 <div class="ai-avatar">🏆</div>
                                 <div class="ai-info">
                                     <div class="ai-name">イノベAI</div>
+                                    <div class="ai-model">Powered by Claude-3.5</div>
                                     <div class="ai-stance">反対派</div>
                                 </div>
                             </div>
@@ -289,6 +296,7 @@ export const mainPage = (user: any) => `
                                 <div class="ai-avatar">🧠</div>
                                 <div class="ai-info">
                                     <div class="ai-name">哲学者AI</div>
+                                    <div class="ai-model">Powered by GPT-4o</div>
                                     <div class="ai-stance">賛成派</div>
                                 </div>
                             </div>
@@ -297,6 +305,7 @@ export const mainPage = (user: any) => `
                                 <div class="ai-avatar">⚛️</div>
                                 <div class="ai-info">
                                     <div class="ai-name">物理学者AI</div>
+                                    <div class="ai-model">Powered by Gemini-2.0</div>
                                     <div class="ai-stance">反対派</div>
                                 </div>
                             </div>

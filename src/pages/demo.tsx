@@ -74,7 +74,7 @@ export const demoPage = (user: any) => `
 
                 <p class="text-lg mb-8 text-gray-300 max-w-2xl mx-auto">
                     <strong class="text-cyan-400">${user.username}</strong> さん（@${user.user_id}）<br>
-                    特別ボーナスとして <strong class="text-yellow-400">${user.credits}クレジット</strong> を付与しました
+                    特別ボーナスとして <strong class="text-yellow-400">${user.initial_credits || 500}クレジット</strong> を付与しました
                 </p>
 
                 <!-- Stats Cards -->
@@ -84,17 +84,17 @@ export const demoPage = (user: any) => `
                             <svg class="w-10 h-10 text-yellow-400"><use href="#icon-credit"/></svg>
                         </div>
                         <div class="stat-value">${user.credits}</div>
-                        <div class="stat-label">クレジット</div>
-                        <div class="stat-badge bonus">事前登録特典</div>
+                        <div class="stat-label">現在のクレジット</div>
+                        <div class="stat-badge bonus">残高</div>
                     </div>
 
                     <div class="stat-card">
                         <div class="stat-icon">
-                            <div class="text-4xl">◈</div>
+                            <div class="text-4xl">🎁</div>
                         </div>
-                        <div class="stat-value">+200</div>
-                        <div class="stat-label">お得！</div>
-                        <div class="stat-badge">通常は300</div>
+                        <div class="stat-value">+${user.initial_credits || 500}</div>
+                        <div class="stat-label">付与クレジット</div>
+                        <div class="stat-badge">事前登録特典</div>
                     </div>
 
                     <div class="stat-card">
