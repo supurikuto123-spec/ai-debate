@@ -115,9 +115,9 @@ export const mainPage = (user: any) => `
                                 </div>
                             </div>
                         </div>
-                        <button class="match-watch-btn live">
+                        <a href="/watch/1" class="match-watch-btn live block text-center no-underline">
                             <i class="fas fa-eye mr-2"></i>今すぐ観戦
-                        </button>
+                        </a>
                     </div>
 
                     <!-- Match 2: Upcoming -->
@@ -357,9 +357,9 @@ export const mainPage = (user: any) => `
                                 </div>
                             </div>
                         </div>
-                        <button class="match-watch-btn live">
+                        <a href="/watch/2" class="match-watch-btn live block text-center no-underline">
                             <i class="fas fa-eye mr-2"></i>今すぐ観戦
-                        </button>
+                        </a>
                     </div>
                 </div>
             </div>

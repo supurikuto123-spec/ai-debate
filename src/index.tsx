@@ -6,6 +6,7 @@ import { homepage } from './pages/homepage'
 import { demoPage } from './pages/demo'
 import { registerPage } from './pages/register'
 import { mainPage } from './pages/main'
+import { watchPage } from './pages/watch'
 
 type Bindings = {
   DB: D1Database
@@ -194,7 +195,7 @@ app.get('/demo', async (c) => {
   return c.html(demoPage(user))
 })
 
-// Main page (Development Preview) - First access free, then 100 credits
+// Main page (Development Preview) - Always 100 credits (except dev users)
 app.get('/main', async (c) => {
   const userCookie = getCookie(c, 'user')
   if (!userCookie) {
@@ -203,16 +204,11 @@ app.get('/main', async (c) => {
   
   const user = JSON.parse(userCookie)
   
-  // Check if user has already accessed main page (check transactions)
-  const accessCheck = await c.env.DB.prepare(`
-    SELECT COUNT(*) as count FROM credit_transactions 
-    WHERE user_id = ? AND reason = 'main_page_access'
-  `).bind(user.user_id).first()
+  // Dev user (@sasasasa) has infinite credits - no charge
+  const isDevUser = user.user_id === 'sasasasa'
   
-  const hasAccessed = (accessCheck?.count || 0) > 0
-  
-  // If not first access, check credits and deduct
-  if (hasAccessed) {
+  if (!isDevUser) {
+    // Check if user has enough credits
     if (user.credits < 100) {
       return c.html(`
         <!DOCTYPE html>
@@ -228,8 +224,7 @@ app.get('/main', async (c) => {
           <div class="text-center">
             <h1 class="text-4xl font-bold mb-4 text-red-400">クレジット不足</h1>
             <p class="text-xl mb-6">メインページの閲覧には<strong class="text-yellow-400">100クレジット</strong>が必要です</p>
-            <p class="text-gray-400 mb-4">現在のクレジット: <strong>${user.credits}</strong></p>
-            <p class="text-sm text-cyan-400 mb-8">※ 初回アクセスは無料でした</p>
+            <p class="text-gray-400 mb-8">現在のクレジット: <strong>${user.credits}</strong></p>
             <a href="/demo" class="btn-primary inline-block px-8 py-3">マイページに戻る</a>
           </div>
         </body>
@@ -257,15 +252,32 @@ app.get('/main', async (c) => {
       sameSite: 'Lax',
       maxAge: 60 * 60 * 24 * 30
     })
-  } else {
-    // First access - free, but record it
-    await c.env.DB.prepare(`
-      INSERT INTO credit_transactions (id, user_id, amount, type, reason, created_at)
-      VALUES (?, ?, ?, 'free', 'main_page_access_first', datetime('now'))
-    `).bind(crypto.randomUUID(), user.user_id, 0).run()
+  }
+  
+  // Dev user - display infinity symbol
+  if (isDevUser) {
+    user.creditsDisplay = '∞'
   }
   
   return c.html(mainPage(user))
+})
+
+// Watch debate page (Development)
+app.get('/watch/:debateId', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  if (!userCookie) {
+    return c.redirect('/')
+  }
+  
+  const user = JSON.parse(userCookie)
+  const debateId = c.req.param('debateId')
+  
+  // Dev user - display infinity symbol
+  if (user.user_id === 'sasasasa') {
+    user.credits = 1000000
+  }
+  
+  return c.html(watchPage(user, debateId))
 })
 
 // Google OAuth authentication
