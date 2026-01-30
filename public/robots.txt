@@ -1,0 +1,13 @@
+# AI Debate - Robots.txt
+User-agent: *
+Allow: /
+Disallow: /register
+Disallow: /demo
+Disallow: /api/
+Disallow: /auth/
+
+# Sitemap
+Sitemap: https://ai-debate.jp/sitemap.xml
+
+# Crawl-delay
+Crawl-delay: 1

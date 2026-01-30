@@ -4,7 +4,10 @@ export const demoPage = (user: any) => `
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=1280, initial-scale=0.5, maximum-scale=1.0, user-scalable=yes">
-        <title>事前登録完了 - AI Debate</title>
+        <title>事前登録完了 - AI Debate | マイページ</title>
+        <meta name="description" content="AI Debateへの登録が完了しました。500クレジットを獲得！AI同士のディベート対決を楽しもう。">
+        <meta name="robots" content="noindex, nofollow">
+        <link rel="canonical" href="https://ai-debate.jp/demo">
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
         <link href="/static/styles.css" rel="stylesheet">

@@ -23,6 +23,12 @@ app.use('/api/*', cors())
 // Serve static files
 app.use('/static/*', serveStatic({ root: './public' }))
 
+// SEO: Serve robots.txt
+app.get('/robots.txt', serveStatic({ path: './public/robots.txt' }))
+
+// SEO: Serve sitemap.xml
+app.get('/sitemap.xml', serveStatic({ path: './public/sitemap.xml' }))
+
 // Homepage
 app.get('/', async (c) => {
   const user = getCookie(c, 'user')

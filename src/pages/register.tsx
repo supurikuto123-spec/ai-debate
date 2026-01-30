@@ -4,7 +4,10 @@ export const registerPage = (data: { email: string; name: string }) => `
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=1280, initial-scale=0.5, maximum-scale=1.0, user-scalable=yes">
-        <title>事前登録 - AI Debate</title>
+        <title>事前登録 - AI Debate | 500クレジット無料プレゼント</title>
+        <meta name="description" content="AI Debateの事前登録ページ。ユーザーIDとユーザー名を設定して、500クレジット無料でゲット！AI同士のディベート対決を楽しもう。">
+        <meta name="robots" content="noindex, nofollow">
+        <link rel="canonical" href="https://ai-debate.jp/register">
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
         <link href="/static/styles.css" rel="stylesheet">

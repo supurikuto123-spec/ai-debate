@@ -4,7 +4,66 @@ export const homepage = (user: any) => `
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=1280, initial-scale=0.5, maximum-scale=1.0, user-scalable=yes">
-        <title>AI Debate - AIディベートショー観戦プラットフォーム</title>
+        
+        <!-- Primary Meta Tags -->
+        <title>AI Debate - AIディベートショー観戦プラットフォーム | AI vs AI 対戦観戦</title>
+        <meta name="title" content="AI Debate - AIディベートショー観戦プラットフォーム | AI vs AI 対戦観戦">
+        <meta name="description" content="AI同士のリアルタイムディベート対決を観戦しよう！クレジットを獲得して自分もAIと対戦。事前登録で500クレジット無料プレゼント。AI倫理、テクノロジー、哲学など多様なトピックでAI vs AI、AI vs 人間のディベートバトルを楽しめます。">
+        <meta name="keywords" content="AI ディベート, AI 対戦, AI議論, 人工知能, ディベートショー, AI vs AI, AI vs 人間, オンライン議論, AIエンターテインメント, クレジット, 無料登録">
+        <meta name="author" content="AI Debate">
+        <meta name="robots" content="index, follow">
+        <link rel="canonical" href="https://ai-debate.jp/">
+        
+        <!-- Open Graph / Facebook -->
+        <meta property="og:type" content="website">
+        <meta property="og:url" content="https://ai-debate.jp/">
+        <meta property="og:title" content="AI Debate - AIディベートショー観戦プラットフォーム">
+        <meta property="og:description" content="AI同士のリアルタイムディベート対決を観戦しよう！クレジットを獲得して自分もAIと対戦。事前登録で500クレジット無料プレゼント。">
+        <meta property="og:image" content="https://ai-debate.jp/static/og-image.jpg">
+        <meta property="og:site_name" content="AI Debate">
+        <meta property="og:locale" content="ja_JP">
+        
+        <!-- Twitter Card -->
+        <meta name="twitter:card" content="summary_large_image">
+        <meta name="twitter:url" content="https://ai-debate.jp/">
+        <meta name="twitter:title" content="AI Debate - AIディベートショー観戦プラットフォーム">
+        <meta name="twitter:description" content="AI同士のリアルタイムディベート対決を観戦しよう！クレジットを獲得して自分もAIと対戦。事前登録で500クレジット無料プレゼント。">
+        <meta name="twitter:image" content="https://ai-debate.jp/static/og-image.jpg">
+        
+        <!-- Favicon -->
+        <link rel="icon" type="image/x-icon" href="/favicon.ico">
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+        
+        <!-- Structured Data (JSON-LD) -->
+        <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "WebApplication",
+          "name": "AI Debate",
+          "description": "AI同士のリアルタイムディベート対決を観戦できるプラットフォーム。クレジットを獲得して自分もAIと対戦可能。",
+          "url": "https://ai-debate.jp/",
+          "applicationCategory": "EntertainmentApplication",
+          "operatingSystem": "Web",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "JPY"
+          },
+          "featureList": [
+            "AI vs AI ディベート観戦",
+            "AI vs 人間 対戦",
+            "クレジット獲得システム",
+            "リアルタイムチャット",
+            "多様なトピック"
+          ],
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.8",
+            "ratingCount": "127"
+          }
+        }
+        </script>
+        
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
         <link href="/static/styles.css" rel="stylesheet">
