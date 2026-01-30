@@ -899,3 +899,311 @@ section {
         font-size: 0.75rem;
     }
 }
+
+/* ================================
+   MAIN PAGE STYLES
+   ================================ */
+
+/* Tab Buttons */
+.tab-button {
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(217, 70, 239, 0.1));
+    border: 2px solid rgba(6, 182, 212, 0.3);
+    color: #94a3b8;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.tab-button:hover {
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(217, 70, 239, 0.2));
+    border-color: rgba(6, 182, 212, 0.6);
+    color: #06b6d4;
+    transform: translateY(-2px);
+}
+
+.tab-button.active {
+    background: linear-gradient(135deg, #06b6d4, #d946ef);
+    border-color: #06b6d4;
+    color: white;
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
+}
+
+/* Match Cards */
+.match-card {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.9));
+    border: 2px solid rgba(6, 182, 212, 0.3);
+    border-radius: 16px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.match-card::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, #06b6d4, #d946ef);
+    opacity: 0;
+    border-radius: 16px;
+    transition: opacity 0.3s ease;
+    z-index: -1;
+}
+
+.match-card:hover::before {
+    opacity: 0.3;
+}
+
+.match-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 40px rgba(6, 182, 212, 0.3);
+}
+
+/* Match Status Badge */
+.match-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 1rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+}
+
+.match-status.live {
+    background: rgba(34, 197, 94, 0.2);
+    border: 2px solid #22c55e;
+    color: #22c55e;
+}
+
+.match-status.upcoming {
+    background: rgba(251, 146, 60, 0.2);
+    border: 2px solid #fb923c;
+    color: #fb923c;
+}
+
+.match-status.finished {
+    background: rgba(107, 114, 128, 0.2);
+    border: 2px solid #6b7280;
+    color: #9ca3af;
+}
+
+.match-status .pulse {
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Match Header */
+.match-header {
+    margin-bottom: 1rem;
+}
+
+.match-title {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: #e2e8f0;
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+}
+
+.match-type {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.match-type.ai-vs-ai {
+    background: rgba(139, 92, 246, 0.2);
+    border: 1px solid #8b5cf6;
+    color: #a78bfa;
+}
+
+.match-type.ai-vs-human {
+    background: rgba(59, 130, 246, 0.2);
+    border: 1px solid #3b82f6;
+    color: #60a5fa;
+}
+
+.match-type.human-vs-human {
+    background: rgba(236, 72, 153, 0.2);
+    border: 1px solid #ec4899;
+    color: #f472b6;
+}
+
+/* Match Details */
+.match-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+.match-time, .match-duration, .match-viewers, .match-result {
+    display: flex;
+    align-items: center;
+    color: #cbd5e1;
+}
+
+/* Match AIs */
+.match-ais {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+}
+
+.ai-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+}
+
+.ai-avatar {
+    font-size: 2rem;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(217, 70, 239, 0.2));
+    border-radius: 50%;
+    border: 2px solid rgba(6, 182, 212, 0.5);
+}
+
+.ai-card.winner .ai-avatar {
+    border-color: #fbbf24;
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+}
+
+.ai-info {
+    flex: 1;
+}
+
+.ai-name {
+    font-weight: bold;
+    color: #e2e8f0;
+    font-size: 0.95rem;
+}
+
+.ai-stance {
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+
+.ai-card.pro .ai-stance {
+    color: #22c55e;
+}
+
+.ai-card.con .ai-stance {
+    color: #ef4444;
+}
+
+.vs-divider {
+    font-weight: bold;
+    color: #d946ef;
+    font-size: 1.25rem;
+    padding: 0 0.5rem;
+}
+
+/* Watch Button */
+.match-watch-btn {
+    width: 100%;
+    padding: 0.875rem;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+.match-watch-btn.live {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: white;
+    box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
+}
+
+.match-watch-btn.live:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 25px rgba(34, 197, 94, 0.6);
+}
+
+.match-watch-btn.upcoming {
+    background: linear-gradient(135deg, #fb923c, #f97316);
+    color: white;
+    box-shadow: 0 4px 15px rgba(251, 146, 60, 0.4);
+}
+
+.match-watch-btn.upcoming:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 25px rgba(251, 146, 60, 0.6);
+}
+
+.match-watch-btn.finished {
+    background: linear-gradient(135deg, #6b7280, #4b5563);
+    color: white;
+    box-shadow: 0 4px 15px rgba(107, 114, 128, 0.4);
+}
+
+.match-watch-btn.finished:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 25px rgba(107, 114, 128, 0.6);
+}
+
+/* Toast Notification */
+.toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: linear-gradient(135deg, #06b6d4, #d946ef);
+    color: white;
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 8px 30px rgba(6, 182, 212, 0.4);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    z-index: 1000;
+    transform: translateY(150%);
+    transition: transform 0.3s ease;
+}
+
+.toast.show {
+    transform: translateY(0);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .match-ais {
+        flex-direction: column;
+    }
+    
+    .vs-divider {
+        transform: rotate(90deg);
+        margin: 0.5rem 0;
+    }
+}

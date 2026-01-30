@@ -140,6 +140,24 @@ export const demoPage = (user: any) => `
                     </div>
                 </div>
 
+                <!-- Access Main Page Button (Development) -->
+                <div class="max-w-3xl mx-auto mb-12">
+                    <div class="cta-box">
+                        <h3 class="text-3xl font-bold mb-4 cyber-text">🎮 開発中プレビュー</h3>
+                        <p class="text-lg text-gray-300 mb-6">
+                            現在開発中のメインページをご覧いただけます<br>
+                            <span class="text-yellow-400 font-bold">（閲覧権: 100クレジット消費）</span>
+                        </p>
+                        <a href="/main" class="btn-primary inline-block text-xl px-8 py-4">
+                            <i class="fas fa-eye mr-2"></i>
+                            メインページを見る
+                        </a>
+                        <p class="text-sm text-gray-500 mt-4">
+                            ※ 開発中のため、一部機能は動作しません
+                        </p>
+                    </div>
+                </div>
+
                 <!-- Countdown Section -->
                 <div class="max-w-3xl mx-auto mb-12">
                     <div class="countdown-box">

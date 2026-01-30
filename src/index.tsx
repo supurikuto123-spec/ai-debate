@@ -5,6 +5,7 @@ import { setCookie, getCookie, deleteCookie } from 'hono/cookie'
 import { homepage } from './pages/homepage'
 import { demoPage } from './pages/demo'
 import { registerPage } from './pages/register'
+import { mainPage } from './pages/main'
 
 type Bindings = {
   DB: D1Database
@@ -186,6 +187,63 @@ app.get('/demo', async (c) => {
   user.registration_number = result?.count || 1
   
   return c.html(demoPage(user))
+})
+
+// Main page (Development Preview) - Requires 100 credits
+app.get('/main', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  if (!userCookie) {
+    return c.redirect('/')
+  }
+  
+  const user = JSON.parse(userCookie)
+  
+  // Check if user has enough credits
+  if (user.credits < 100) {
+    return c.html(`
+      <!DOCTYPE html>
+      <html lang="ja">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=1280, initial-scale=0.5">
+        <title>クレジット不足 - AI Debate</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="/static/styles.css" rel="stylesheet">
+      </head>
+      <body class="bg-black text-white flex items-center justify-center min-h-screen">
+        <div class="text-center">
+          <h1 class="text-4xl font-bold mb-4 text-red-400">クレジット不足</h1>
+          <p class="text-xl mb-6">メインページの閲覧には<strong class="text-yellow-400">100クレジット</strong>が必要です</p>
+          <p class="text-gray-400 mb-8">現在のクレジット: <strong>${user.credits}</strong></p>
+          <a href="/demo" class="btn-primary inline-block px-8 py-3">マイページに戻る</a>
+        </div>
+      </body>
+      </html>
+    `)
+  }
+  
+  // Deduct 100 credits
+  const newCredits = user.credits - 100
+  await c.env.DB.prepare(`
+    UPDATE users SET credits = ? WHERE id = ?
+  `).bind(newCredits, user.id).run()
+  
+  // Record credit transaction
+  await c.env.DB.prepare(`
+    INSERT INTO credit_transactions (id, user_id, amount, type, reason, created_at)
+    VALUES (?, ?, ?, 'spend', 'main_page_access', datetime('now'))
+  `).bind(crypto.randomUUID(), user.user_id, -100).run()
+  
+  // Update user cookie with new credits
+  user.credits = newCredits
+  setCookie(c, 'user', JSON.stringify(user), {
+    httpOnly: true,
+    secure: false,
+    sameSite: 'Lax',
+    maxAge: 60 * 60 * 24 * 30
+  })
+  
+  return c.html(mainPage(user))
 })
 
 // Google OAuth authentication
