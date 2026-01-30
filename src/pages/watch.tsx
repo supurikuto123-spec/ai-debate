@@ -38,7 +38,24 @@ export const watchPage = (user: any, debateId: string) => `
                 }
             }
             .vote-bar {
-                transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+                transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+                position: relative;
+                overflow: hidden;
+                box-shadow: inset 0 2px 8px rgba(0,0,0,0.3);
+            }
+            .vote-bar::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: -100%;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+                animation: shimmer 3s infinite ease-in-out;
+            }
+            @keyframes shimmer {
+                0% { left: -100%; }
+                100% { left: 200%; }
             }
             .modal {
                 display: flex;
@@ -47,7 +64,8 @@ export const watchPage = (user: any, debateId: string) => `
                 left: 0;
                 right: 0;
                 bottom: 0;
-                background: rgba(0, 0, 0, 0.95);
+                background: rgba(0, 0, 0, 0.98);
+                backdrop-filter: blur(10px);
                 z-index: 9999;
                 align-items: center;
                 justify-content: center;
@@ -138,7 +156,7 @@ export const watchPage = (user: any, debateId: string) => `
                 <div class="flex items-center space-x-4">
                     <div class="credit-display">
                         <i class="fas fa-coins text-yellow-400"></i>
-                        <span class="text-sm font-bold">${user.user_id === 'sasasasa' ? '∞' : user.credits}</span>
+                        <span class="text-sm font-bold">${user.user_id === 'dev' ? '∞' : user.credits}</span>
                     </div>
                     <div class="text-sm text-gray-400">@${user.user_id}</div>
                     <a href="/main" class="btn-secondary text-sm px-4 py-2">
@@ -463,13 +481,10 @@ export const watchPage = (user: any, debateId: string) => `
                                 反対派: <span id="disagreePercent">--</span><span id="disagreePercentSymbol"></span> <i class="fas fa-users ml-1"></i>
                             </span>
                         </div>
-                        <div class="relative h-8 bg-gray-800 rounded-full overflow-hidden border-2 border-cyan-500">
-                            <div id="agreeBar" class="vote-bar absolute left-0 top-0 h-full bg-gradient-to-r from-green-500 to-green-400" style="width: 0%">
-                                <div class="gauge-shine"></div>
-                            </div>
-                            <div id="disagreeBar" class="vote-bar absolute right-0 top-0 h-full bg-gradient-to-l from-red-500 to-red-400" style="width: 0%">
-                                <div class="gauge-shine"></div>
-                            </div>
+                        <div class="relative h-10 bg-gray-900 rounded-full overflow-hidden border-2 border-cyan-500/50 shadow-lg">
+                            <div id="agreeBar" class="vote-bar absolute left-0 top-0 h-full bg-gradient-to-r from-green-600 via-green-500 to-emerald-400" style="width: 0%"></div>
+                            <div id="disagreeBar" class="vote-bar absolute right-0 top-0 h-full bg-gradient-to-l from-red-600 via-red-500 to-rose-400" style="width: 0%"></div>
+                            <div class="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none"></div>
                         </div>
                     </div>
 

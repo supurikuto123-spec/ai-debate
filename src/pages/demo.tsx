@@ -27,7 +27,7 @@ export const demoPage = (user: any) => `
                 <div class="flex items-center space-x-4">
                     <div class="credit-display">
                         <svg class="w-5 h-5 text-yellow-400"><use href="#icon-credit"/></svg>
-                        <span class="text-sm font-bold">${user.user_id === 'sasasasa' ? '∞' : user.credits}</span>
+                        <span class="text-sm font-bold">${user.user_id === 'dev' ? '∞' : user.credits}</span>
                     </div>
                     <div class="text-sm text-gray-400">@${user.user_id}</div>
                     <a href="/logout" class="btn-secondary text-sm px-4 py-2">ログアウト</a>

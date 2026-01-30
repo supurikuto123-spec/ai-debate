@@ -204,54 +204,63 @@ app.get('/main', async (c) => {
   
   const user = JSON.parse(userCookie)
   
-  // Dev user (@sasasasa) has infinite credits - no charge
-  const isDevUser = user.user_id === 'sasasasa'
+  // Dev user (user_id='dev') has infinite credits - no charge
+  const isDevUser = user.user_id === 'dev'
   
   if (!isDevUser) {
-    // Check if user has enough credits
-    if (user.credits < 100) {
-      return c.html(`
-        <!DOCTYPE html>
-        <html lang="ja">
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=1280, initial-scale=0.5">
-          <title>クレジット不足 - AI Debate</title>
-          <script src="https://cdn.tailwindcss.com"></script>
-          <link href="/static/styles.css" rel="stylesheet">
-        </head>
-        <body class="bg-black text-white flex items-center justify-center min-h-screen">
-          <div class="text-center">
-            <h1 class="text-4xl font-bold mb-4 text-red-400">クレジット不足</h1>
-            <p class="text-xl mb-6">メインページの閲覧には<strong class="text-yellow-400">100クレジット</strong>が必要です</p>
-            <p class="text-gray-400 mb-8">現在のクレジット: <strong>${user.credits}</strong></p>
-            <a href="/demo" class="btn-primary inline-block px-8 py-3">マイページに戻る</a>
-          </div>
-        </body>
-        </html>
-      `)
+    // Check if this is the first access to /main
+    const firstAccess = await c.env.DB.prepare(`
+      SELECT COUNT(*) as count FROM credit_transactions 
+      WHERE user_id = ? AND reason = 'main_page_access'
+    `).bind(user.user_id).first()
+    
+    if (!firstAccess || firstAccess.count === 0) {
+      // First time accessing /main - charge 100 credits
+      if (user.credits < 100) {
+        return c.html(`
+          <!DOCTYPE html>
+          <html lang="ja">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=1280, initial-scale=0.5">
+            <title>クレジット不足 - AI Debate</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+            <link href="/static/styles.css" rel="stylesheet">
+          </head>
+          <body class="bg-black text-white flex items-center justify-center min-h-screen">
+            <div class="text-center">
+              <h1 class="text-4xl font-bold mb-4 text-red-400">クレジット不足</h1>
+              <p class="text-xl mb-6">メインページの初回閲覧には<strong class="text-yellow-400">100クレジット</strong>が必要です</p>
+              <p class="text-gray-400 mb-8">現在のクレジット: <strong>${user.credits}</strong></p>
+              <a href="/demo" class="btn-primary inline-block px-8 py-3">マイページに戻る</a>
+            </div>
+          </body>
+          </html>
+        `)
+      }
+      
+      // Deduct 100 credits
+      const newCredits = user.credits - 100
+      await c.env.DB.prepare(`
+        UPDATE users SET credits = ? WHERE id = ?
+      `).bind(newCredits, user.id).run()
+      
+      // Record credit transaction
+      await c.env.DB.prepare(`
+        INSERT INTO credit_transactions (id, user_id, amount, type, reason, created_at)
+        VALUES (?, ?, ?, 'spend', 'main_page_access', datetime('now'))
+      `).bind(crypto.randomUUID(), user.user_id, -100).run()
+      
+      // Update user cookie with new credits
+      user.credits = newCredits
+      setCookie(c, 'user', JSON.stringify(user), {
+        httpOnly: true,
+        secure: false,
+        sameSite: 'Lax',
+        maxAge: 60 * 60 * 24 * 30
+      })
     }
-    
-    // Deduct 100 credits
-    const newCredits = user.credits - 100
-    await c.env.DB.prepare(`
-      UPDATE users SET credits = ? WHERE id = ?
-    `).bind(newCredits, user.id).run()
-    
-    // Record credit transaction
-    await c.env.DB.prepare(`
-      INSERT INTO credit_transactions (id, user_id, amount, type, reason, created_at)
-      VALUES (?, ?, ?, 'spend', 'main_page_access', datetime('now'))
-    `).bind(crypto.randomUUID(), user.user_id, -100).run()
-    
-    // Update user cookie with new credits
-    user.credits = newCredits
-    setCookie(c, 'user', JSON.stringify(user), {
-      httpOnly: true,
-      secure: false,
-      sameSite: 'Lax',
-      maxAge: 60 * 60 * 24 * 30
-    })
+    // Second time onwards - free access, no charge
   }
   
   // Dev user - display infinity symbol
@@ -273,7 +282,7 @@ app.get('/watch/:debateId', async (c) => {
   const debateId = c.req.param('debateId')
   
   // Dev user - display infinity symbol
-  if (user.user_id === 'sasasasa') {
+  if (user.user_id === 'dev') {
     user.credits = 1000000
   }
   
