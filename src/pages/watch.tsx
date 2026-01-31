@@ -508,7 +508,7 @@ export const watchPage = (user: any, debateId: string) => `
 
             // Vote state (with localStorage)
             const DEBATE_ID = '${debateId}';
-            const STORAGE_KEY = `debate_vote_\${DEBATE_ID}_\${currentUser.user_id}`;
+            const STORAGE_KEY = 'debate_vote_' + DEBATE_ID + '_' + currentUser.user_id;
             
             let userVote = localStorage.getItem(STORAGE_KEY) || null;
             let hasVoted = !!userVote;
