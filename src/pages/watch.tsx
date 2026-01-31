@@ -531,24 +531,43 @@ export const watchPage = (user: any, debateId: string) => `
             // Submit initial vote from modal
             function submitVote(side) {
                 console.log('submitVote called:', side);
+                console.log('Current voteData before:', JSON.stringify(voteData));
+                
                 userVote = side;
                 hasVoted = true;
                 voteData[side]++;
                 voteData.total++;
                 
+                console.log('Current voteData after:', JSON.stringify(voteData));
+                
                 // Save to localStorage
-                localStorage.setItem(STORAGE_KEY, side);
-                console.log('Vote saved to localStorage:', STORAGE_KEY, side);
+                try {
+                    localStorage.setItem(STORAGE_KEY, side);
+                    console.log('Vote saved to localStorage:', STORAGE_KEY, side);
+                } catch (e) {
+                    console.error('localStorage error:', e);
+                }
 
-                // Hide modal
-                document.getElementById('voteModal').classList.add('hidden');
+                // Hide modal - multiple methods to ensure it works
+                const modal = document.getElementById('voteModal');
+                if (modal) {
+                    modal.classList.add('hidden');
+                    modal.style.display = 'none';
+                    console.log('Modal hidden');
+                } else {
+                    console.error('Modal element not found!');
+                }
 
                 // Update UI
                 updateVoteDisplay();
                 highlightSelectedButton(side);
                 
                 showToast('投票が完了しました！観戦を開始します');
+                console.log('submitVote completed');
             }
+            
+            // Make submitVote globally accessible immediately
+            window.submitVote = submitVote;
 
             // Change vote
             function changeVote(side) {
@@ -577,6 +596,9 @@ export const watchPage = (user: any, debateId: string) => `
                 const message = side === 'opinionA' ? '意見Aに変更しました！' : '意見Bに変更しました！';
                 showToast(message);
             }
+            
+            // Make changeVote globally accessible immediately
+            window.changeVote = changeVote;
 
             // Highlight selected button
             function highlightSelectedButton(side) {
@@ -651,7 +673,7 @@ export const watchPage = (user: any, debateId: string) => `
                 const stanceColor = userVote === 'opinionA' ? 'green' : 'red';
                 const stanceIcon = userVote === 'opinionA' ? 'thumbs-up' : 'thumbs-down';
                 const stanceText = userVote === 'opinionA' ? '意見A支持' : '意見B支持';
-                const avatarGradient = userVote === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500';
+                const avatarGradient = userVote === 'opinionA' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500';
                 
                 commentDiv.className = 'comment-item ' + stanceClass + ' bg-gray-900/50 p-3 rounded border border-cyan-500/30';
                 
@@ -683,6 +705,9 @@ export const watchPage = (user: any, debateId: string) => `
                 input.value = '';
                 showToast('コメントを投稿しました！');
             }
+            
+            // Make postComment globally accessible immediately
+            window.postComment = postComment;
 
             // Show toast
             function showToast(message) {
@@ -824,11 +849,6 @@ export const watchPage = (user: any, debateId: string) => `
                 debateActive = false;
                 showToast('ディベートが終了しました');
             }
-
-            // Make functions globally accessible
-            window.submitVote = submitVote;
-            window.changeVote = changeVote;
-            window.postComment = postComment;
 
             // Initialize on page load
             window.addEventListener('DOMContentLoaded', () => {
