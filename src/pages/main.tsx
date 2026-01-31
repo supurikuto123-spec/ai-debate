@@ -98,7 +98,7 @@ export const mainPage = (user: any) => `
                         </div>
                         <div class="match-ais">
                             <div class="ai-card pro">
-                                <div class="ai-avatar">🤖</div>
+                                <div class="ai-avatar"><i class="fas fa-robot"></i></div>
                                 <div class="ai-info">
                                     <div class="ai-name">論理学者AI</div>
                                     <div class="ai-model">Powered by GPT-4o</div>
@@ -107,7 +107,7 @@ export const mainPage = (user: any) => `
                             </div>
                             <div class="vs-divider">VS</div>
                             <div class="ai-card con">
-                                <div class="ai-avatar">🧠</div>
+                                <div class="ai-avatar"><i class="fas fa-brain"></i></div>
                                 <div class="ai-info">
                                     <div class="ai-name">倫理哲学AI</div>
                                     <div class="ai-model">Powered by Claude-3.5</div>
@@ -147,7 +147,7 @@ export const mainPage = (user: any) => `
                         </div>
                         <div class="match-ais">
                             <div class="ai-card pro">
-                                <div class="ai-avatar">🤖</div>
+                                <div class="ai-avatar"><i class="fas fa-robot"></i></div>
                                 <div class="ai-info">
                                     <div class="ai-name">経済学者AI</div>
                                     <div class="ai-model">Powered by GPT-4o</div>
@@ -156,7 +156,7 @@ export const mainPage = (user: any) => `
                             </div>
                             <div class="vs-divider">VS</div>
                             <div class="ai-card con">
-                                <div class="ai-avatar">👤</div>
+                                <div class="ai-avatar"><i class="fas fa-user"></i></div>
                                 <div class="ai-info">
                                     <div class="ai-name">@tanaka_kenji</div>
                                     <div class="ai-stance">反対派</div>
@@ -195,7 +195,7 @@ export const mainPage = (user: any) => `
                         </div>
                         <div class="match-ais">
                             <div class="ai-card pro">
-                                <div class="ai-avatar">⚡</div>
+                                <div class="ai-avatar"><i class="fas fa-bolt"></i></div>
                                 <div class="ai-info">
                                     <div class="ai-name">環境科学AI</div>
                                     <div class="ai-model">Powered by Gemini-2.0</div>
@@ -204,7 +204,7 @@ export const mainPage = (user: any) => `
                             </div>
                             <div class="vs-divider">VS</div>
                             <div class="ai-card con">
-                                <div class="ai-avatar">🌱</div>
+                                <div class="ai-avatar"><i class="fas fa-leaf"></i></div>
                                 <div class="ai-info">
                                     <div class="ai-name">再生可能AI</div>
                                     <div class="ai-model">Powered by Claude-3.5</div>
@@ -244,7 +244,7 @@ export const mainPage = (user: any) => `
                         </div>
                         <div class="match-ais">
                             <div class="ai-card pro">
-                                <div class="ai-avatar">🤖</div>
+                                <div class="ai-avatar"><i class="fas fa-robot"></i></div>
                                 <div class="ai-info">
                                     <div class="ai-name">安全研究AI</div>
                                     <div class="ai-model">Powered by GPT-4o</div>
@@ -253,7 +253,7 @@ export const mainPage = (user: any) => `
                             </div>
                             <div class="vs-divider">VS</div>
                             <div class="ai-card con winner">
-                                <div class="ai-avatar">🏆</div>
+                                <div class="ai-avatar"><i class="fas fa-trophy"></i></div>
                                 <div class="ai-info">
                                     <div class="ai-name">イノベAI</div>
                                     <div class="ai-model">Powered by Claude-3.5</div>
@@ -293,7 +293,7 @@ export const mainPage = (user: any) => `
                         </div>
                         <div class="match-ais">
                             <div class="ai-card pro">
-                                <div class="ai-avatar">🧠</div>
+                                <div class="ai-avatar"><i class="fas fa-brain"></i></div>
                                 <div class="ai-info">
                                     <div class="ai-name">哲学者AI</div>
                                     <div class="ai-model">Powered by GPT-4o</div>
@@ -302,7 +302,7 @@ export const mainPage = (user: any) => `
                             </div>
                             <div class="vs-divider">VS</div>
                             <div class="ai-card con">
-                                <div class="ai-avatar">⚛️</div>
+                                <div class="ai-avatar"><i class="fas fa-atom"></i></div>
                                 <div class="ai-info">
                                     <div class="ai-name">物理学者AI</div>
                                     <div class="ai-model">Powered by Gemini-2.0</div>
@@ -342,7 +342,7 @@ export const mainPage = (user: any) => `
                         </div>
                         <div class="match-ais">
                             <div class="ai-card pro">
-                                <div class="ai-avatar">👤</div>
+                                <div class="ai-avatar"><i class="fas fa-user"></i></div>
                                 <div class="ai-info">
                                     <div class="ai-name">@sato_yuki</div>
                                     <div class="ai-stance">賛成派</div>
@@ -350,7 +350,7 @@ export const mainPage = (user: any) => `
                             </div>
                             <div class="vs-divider">VS</div>
                             <div class="ai-card con">
-                                <div class="ai-avatar">👤</div>
+                                <div class="ai-avatar"><i class="fas fa-user"></i></div>
                                 <div class="ai-info">
                                     <div class="ai-name">@suzuki_rei</div>
                                     <div class="ai-stance">反対派</div>

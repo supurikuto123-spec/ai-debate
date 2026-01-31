@@ -101,7 +101,7 @@ export const watchPage = (user: any, debateId: string) => `
             <div class="cyber-card max-w-2xl w-full mx-4">
                 <h2 class="text-3xl font-bold mb-6 text-center cyber-text">
                     <i class="fas fa-vote-yea mr-3 text-cyan-400"></i>
-                    まず、あなたの立場を選択してください
+                    どちらの意見を支持しますか？
                 </h2>
                 
                 <div class="mb-8">
@@ -110,13 +110,13 @@ export const watchPage = (user: any, debateId: string) => `
                     
                     <div class="grid grid-cols-2 gap-6 mb-8">
                         <div class="border-2 border-green-500 rounded p-4 bg-green-500/10">
-                            <h4 class="font-bold text-green-400 mb-2">賛成派の主張</h4>
+                            <h4 class="font-bold text-green-400 mb-2">意見A</h4>
                             <p class="text-sm text-gray-300">
                                 AIは人間の能力を拡張し、より創造的な仕事への移行を促進する。歴史的に技術革新は常に新しい職種を生み出してきた。
                             </p>
                         </div>
                         <div class="border-2 border-red-500 rounded p-4 bg-red-500/10">
-                            <h4 class="font-bold text-red-400 mb-2">反対派の主張</h4>
+                            <h4 class="font-bold text-red-400 mb-2">意見B</h4>
                             <p class="text-sm text-gray-300">
                                 AIによる雇用喪失は深刻な社会問題を引き起こす。自動化のスピードが速すぎて、労働者が適応する時間がない。
                             </p>
@@ -130,15 +130,13 @@ export const watchPage = (user: any, debateId: string) => `
                 </p>
 
                 <div class="grid grid-cols-2 gap-4">
-                    <button onclick="submitVote('agree')" class="vote-btn bg-green-500/20 border-2 border-green-500 hover:bg-green-500/40 p-6 rounded transition-all">
-                        <i class="fas fa-thumbs-up text-3xl mb-3"></i>
-                        <p class="font-bold text-xl">賛成派に投票</p>
-                        <p class="text-sm text-gray-400 mt-2">AIは仕事を奪わない</p>
+                    <button onclick="submitVote('opinionA')" class="vote-btn bg-green-500/20 border-2 border-green-500 hover:bg-green-500/40 p-6 rounded transition-all">
+                        <i class="fas fa-check-circle text-3xl mb-3"></i>
+                        <p class="font-bold text-xl">意見Aを支持</p>
                     </button>
-                    <button onclick="submitVote('disagree')" class="vote-btn bg-red-500/20 border-2 border-red-500 hover:bg-red-500/40 p-6 rounded transition-all">
-                        <i class="fas fa-thumbs-down text-3xl mb-3"></i>
-                        <p class="font-bold text-xl">反対派に投票</p>
-                        <p class="text-sm text-gray-400 mt-2">AIは仕事を奪う</p>
+                    <button onclick="submitVote('opinionB')" class="vote-btn bg-red-500/20 border-2 border-red-500 hover:bg-red-500/40 p-6 rounded transition-all">
+                        <i class="fas fa-check-circle text-3xl mb-3"></i>
+                        <p class="font-bold text-xl">意見Bを支持</p>
                     </button>
                 </div>
             </div>
@@ -238,8 +236,8 @@ export const watchPage = (user: any, debateId: string) => `
                         </h4>
                         <div class="grid grid-cols-3 gap-4 text-sm">
                             <div>
-                                <span class="text-gray-400">ターン数:</span>
-                                <span class="text-white font-bold ml-2">10ターン</span>
+                                <span class="text-gray-400">総時間:</span>
+                                <span class="text-white font-bold ml-2">30分</span>
                             </div>
                             <div>
                                 <span class="text-gray-400">1ターンの時間:</span>
@@ -472,18 +470,18 @@ export const watchPage = (user: any, debateId: string) => `
                     <div class="mb-4">
                         <div class="flex justify-between text-sm mb-2">
                             <span class="text-green-400 font-bold">
-                                <i class="fas fa-users mr-1"></i>賛成派: <span id="agreePercent">--</span><span id="agreePercentSymbol"></span>
+                                <i class="fas fa-users mr-1"></i>意見A: <span id="opinionAPercent">--</span><span id="opinionAPercentSymbol"></span>
                             </span>
                             <span class="text-gray-400" id="voteStatus">
                                 集計中...
                             </span>
                             <span class="text-red-400 font-bold">
-                                反対派: <span id="disagreePercent">--</span><span id="disagreePercentSymbol"></span> <i class="fas fa-users ml-1"></i>
+                                意見B: <span id="opinionBPercent">--</span><span id="opinionBPercentSymbol"></span> <i class="fas fa-users ml-1"></i>
                             </span>
                         </div>
                         <div class="relative h-10 bg-gray-900 rounded-full overflow-hidden border-2 border-cyan-500/50 shadow-lg">
-                            <div id="agreeBar" class="vote-bar absolute left-0 top-0 h-full bg-gradient-to-r from-green-600 via-green-500 to-emerald-400" style="width: 0%"></div>
-                            <div id="disagreeBar" class="vote-bar absolute right-0 top-0 h-full bg-gradient-to-l from-red-600 via-red-500 to-rose-400" style="width: 0%"></div>
+                            <div id="opinionABar" class="vote-bar absolute left-0 top-0 h-full bg-gradient-to-r from-green-600 via-green-500 to-emerald-400" style="width: 0%"></div>
+                            <div id="opinionBBar" class="vote-bar absolute right-0 top-0 h-full bg-gradient-to-l from-red-600 via-red-500 to-rose-400" style="width: 0%"></div>
                             <div class="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none"></div>
                         </div>
                     </div>
@@ -508,12 +506,15 @@ export const watchPage = (user: any, debateId: string) => `
                 credits: ${user.credits}
             };
 
-            // Vote state
-            let userVote = null;
-            let hasVoted = false;
+            // Vote state (with localStorage)
+            const DEBATE_ID = '${debateId}';
+            const STORAGE_KEY = `debate_vote_\${DEBATE_ID}_\${currentUser.user_id}`;
+            
+            let userVote = localStorage.getItem(STORAGE_KEY) || null;
+            let hasVoted = !!userVote;
             let voteData = {
-                agree: 0,
-                disagree: 0,
+                opinionA: 0,
+                opinionB: 0,
                 total: 0
             };
 
@@ -521,7 +522,7 @@ export const watchPage = (user: any, debateId: string) => `
             function initDemoVotes() {
                 // 4人のランダム投票者を生成
                 for (let i = 0; i < 4; i++) {
-                    const randomVote = Math.random() > 0.5 ? 'agree' : 'disagree';
+                    const randomVote = Math.random() > 0.5 ? 'opinionA' : 'opinionB';
                     voteData[randomVote]++;
                     voteData.total++;
                 }
@@ -533,6 +534,9 @@ export const watchPage = (user: any, debateId: string) => `
                 hasVoted = true;
                 voteData[side]++;
                 voteData.total++;
+                
+                // Save to localStorage
+                localStorage.setItem(STORAGE_KEY, side);
 
                 // Hide modal
                 document.getElementById('voteModal').classList.add('hidden');
@@ -560,26 +564,29 @@ export const watchPage = (user: any, debateId: string) => `
                 voteData[userVote]--;
                 voteData[side]++;
                 userVote = side;
+                
+                // Update localStorage
+                localStorage.setItem(STORAGE_KEY, side);
 
                 // Update UI
                 updateVoteDisplay();
                 highlightSelectedButton(side);
                 
-                const message = side === 'agree' ? '賛成派に変更しました！' : '反対派に変更しました！';
+                const message = side === 'opinionA' ? '意見Aに変更しました！' : '意見Bに変更しました！';
                 showToast(message);
             }
 
             // Highlight selected button
             function highlightSelectedButton(side) {
-                const agreeBtn = document.getElementById('voteAgreeBtn');
-                const disagreeBtn = document.getElementById('voteDisagreeBtn');
+                const opinionABtn = document.getElementById('voteOpinionABtn');
+                const opinionBBtn = document.getElementById('voteOpinionBBtn');
                 
-                if (side === 'agree') {
-                    agreeBtn.classList.add('ring-4', 'ring-green-400');
-                    disagreeBtn.classList.remove('ring-4', 'ring-red-400');
+                if (side === 'opinionA') {
+                    opinionABtn.classList.add('ring-4', 'ring-green-400');
+                    opinionBBtn.classList.remove('ring-4', 'ring-red-400');
                 } else {
-                    disagreeBtn.classList.add('ring-4', 'ring-red-400');
-                    agreeBtn.classList.remove('ring-4', 'ring-green-400');
+                    opinionBBtn.classList.add('ring-4', 'ring-red-400');
+                    opinionABtn.classList.remove('ring-4', 'ring-green-400');
                 }
             }
 
@@ -587,26 +594,24 @@ export const watchPage = (user: any, debateId: string) => `
             function updateVoteDisplay() {
                 if (voteData.total < 5) {
                     // Less than 5 votes - show "集計中"
-                    document.getElementById('agreePercent').textContent = '--';
-                    document.getElementById('disagreePercent').textContent = '--';
-                    document.getElementById('agreePercentSymbol').textContent = '';
-                    document.getElementById('disagreePercentSymbol').textContent = '';
+                    document.getElementById('opinionAPercent').textContent = '--';
+                    document.getElementById('opinionBPercent').textContent = '--';
+                    document.getElementById('opinionAPercentSymbol').textContent = '';
+                    document.getElementById('opinionBPercentSymbol').textContent = '';
                     document.getElementById('voteStatus').innerHTML = '<i class="fas fa-hourglass-half mr-2"></i>集計中... (' + voteData.total + '/5人)';
-                    document.getElementById('agreeBar').style.width = '50%';
-                    document.getElementById('disagreeBar').style.width = '50%';
+                    document.getElementById('opinionABar').style.width = '50%';
+                    document.getElementById('opinionBBar').style.width = '50%';
                 } else {
                     // 5 or more votes - show percentage
-                    const agreePercent = Math.round((voteData.agree / voteData.total) * 100);
-                    const disagreePercent = 100 - agreePercent;
-
-                    document.getElementById('agreePercent').textContent = agreePercent;
-                    document.getElementById('disagreePercent').textContent = disagreePercent;
-                    document.getElementById('agreePercentSymbol').textContent = '%';
-                    document.getElementById('disagreePercentSymbol').textContent = '%';
-                    document.getElementById('voteStatus').innerHTML = '<i class="fas fa-users mr-2"></i>総投票数: ' + voteData.total.toLocaleString() + '人';
-                    document.getElementById('agreeBar').style.width = agreePercent + '%';
-                    document.getElementById('disagreeBar').style.width = disagreePercent + '%';
-                }
+                    const opinionAPercent = Math.round((voteData.opinionA / voteData.total) * 100);
+                    const opinionBPercent = 100 - opinionAPercent;
+                    document.getElementById('opinionAPercent').textContent = opinionAPercent;
+                    document.getElementById('opinionBPercent').textContent = opinionBPercent;
+                    document.getElementById('opinionAPercentSymbol').textContent = '%';
+                    document.getElementById('opinionBPercentSymbol').textContent = '%';
+                    document.getElementById('voteStatus').innerHTML = '<i class="fas fa-users mr-2"></i>総投票数: ' + voteData.total + '人';
+                    document.getElementById('opinionABar').style.width = opinionAPercent + '%';
+                    document.getElementById('opinionBBar').style.width = opinionBPercent + '%';
             }
 
             // Post comment
@@ -624,6 +629,14 @@ export const watchPage = (user: any, debateId: string) => `
                     return;
                 }
 
+                // Check for !debate command (dev user only)
+                if (text === '!debate' && currentUser.user_id === 'dev') {
+                    startDebate();
+                    input.value = '';
+                    showToast('ディベートを開始します...');
+                    return;
+                }
+
                 if (text.length > 500) {
                     showToast('コメントは500文字以内で入力してください');
                     return;
@@ -632,10 +645,10 @@ export const watchPage = (user: any, debateId: string) => `
                 // Create comment element
                 const commentsList = document.getElementById('commentsList');
                 const commentDiv = document.createElement('div');
-                const stanceClass = userVote === 'agree' ? 'comment-agree' : 'comment-disagree';
-                const stanceColor = userVote === 'agree' ? 'green' : 'red';
-                const stanceIcon = userVote === 'agree' ? 'thumbs-up' : 'thumbs-down';
-                const stanceText = userVote === 'agree' ? '賛成派' : '反対派';
+                const stanceClass = userVote === 'opinionA' ? 'comment-agree' : 'comment-disagree';
+                const stanceColor = userVote === 'opinionA' ? 'green' : 'red';
+                const stanceIcon = userVote === 'opinionA' ? 'thumbs-up' : 'thumbs-down';
+                const stanceText = userVote === 'opinionA' ? '意見A支持' : '意見B支持';
                 const avatarGradient = userVote === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500';
                 
                 commentDiv.className = 'comment-item ' + stanceClass + ' bg-gray-900/50 p-3 rounded border border-cyan-500/30';
@@ -706,9 +719,122 @@ export const watchPage = (user: any, debateId: string) => `
                 document.getElementById('viewerCount').textContent = viewerCount.toLocaleString();
             }, 5000);
 
+            // Debate system
+            let debateActive = false;
+            let debateTurn = 0;
+            const MAX_DEBATE_TIME = 60; // 1 minute total
+            const MAX_CHARS = 150;
+
+            async function startDebate() {
+                if (debateActive) {
+                    showToast('ディベートは既に実行中です');
+                    return;
+                }
+                
+                debateActive = true;
+                debateTurn = 0;
+                
+                const debateMessages = document.getElementById('debateMessages');
+                debateMessages.innerHTML = '<div class="text-center text-cyan-300 p-4"><i class="fas fa-spinner fa-spin mr-2"></i>ディベート開始...</div>';
+                
+                // Set debate timer
+                let remainingTime = MAX_DEBATE_TIME;
+                const timerInterval = setInterval(() => {
+                    remainingTime--;
+                    document.getElementById('remainingTime').textContent = 
+                        \`0:\${remainingTime.toString().padStart(2, '0')}\`;
+                    
+                    if (remainingTime <= 0) {
+                        clearInterval(timerInterval);
+                        endDebate();
+                    }
+                }, 1000);
+                
+                // Start AI debate turns
+                await runDebateTurn('opinionA');
+            }
+
+            async function runDebateTurn(side) {
+                if (!debateActive || debateTurn >= 4) {
+                    return;
+                }
+                
+                debateTurn++;
+                
+                const prompt = side === 'opinionA' 
+                    ? 'AIは人類の仕事を奪うことはない。技術革新は常に新しい職種を生み出してきた。簡潔に150文字以内で意見を述べてください。'
+                    : 'AIは人類の仕事を奪う。自動化のスピードが速すぎて労働者が適応できない。簡潔に150文字以内で意見を述べてください。';
+                
+                try {
+                    const response = await fetch('/api/debate/generate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            prompt,
+                            maxTokens: 150
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.message) {
+                        addDebateMessage(side, data.message);
+                        
+                        // Next turn for opposite side
+                        setTimeout(() => {
+                            const nextSide = side === 'opinionA' ? 'opinionB' : 'opinionA';
+                            runDebateTurn(nextSide);
+                        }, 3000);
+                    }
+                } catch (error) {
+                    console.error('Debate error:', error);
+                    showToast('ディベート生成エラー');
+                }
+            }
+
+            function addDebateMessage(side, message) {
+                const container = document.getElementById('debateMessages');
+                const bubbleClass = side === 'opinionA' ? 'bubble-agree' : 'bubble-disagree';
+                const aiName = side === 'opinionA' ? '論理学者AI' : '倫理哲学AI';
+                const aiModel = side === 'opinionA' ? 'GPT-4o' : 'Claude-3.5';
+                
+                const bubbleHTML = \`
+                    <div class="bubble \${bubbleClass} p-4 text-white shadow-lg">
+                        <div class="flex items-center mb-2">
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br \${side === 'opinionA' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500'} flex items-center justify-center mr-3">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <div>
+                                <p class="font-bold">\${aiName}</p>
+                                <p class="text-xs opacity-75">Powered by \${aiModel}</p>
+                            </div>
+                        </div>
+                        <p class="text-sm leading-relaxed">\${message}</p>
+                        <p class="text-xs opacity-75 mt-2">たった今</p>
+                    </div>
+                \`;
+                
+                container.insertAdjacentHTML('beforeend', bubbleHTML);
+                container.scrollTop = container.scrollHeight;
+            }
+
+            function endDebate() {
+                debateActive = false;
+                showToast('ディベートが終了しました');
+            }
+
             // Initialize on page load
             window.addEventListener('DOMContentLoaded', () => {
                 initDemoVotes();
+                
+                // If user has already voted (from localStorage), restore state
+                if (hasVoted) {
+                    voteData[userVote]++;
+                    voteData.total++;
+                    document.getElementById('voteModal').classList.add('hidden');
+                    highlightSelectedButton(userVote);
+                }
+                
                 updateVoteDisplay();
             });
         </script>

@@ -15,6 +15,7 @@ type Bindings = {
   GOOGLE_CLIENT_SECRET?: string
   GOOGLE_REDIRECT_URI?: string
   SESSION_SECRET?: string
+  OPENAI_API_KEY?: string
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -287,6 +288,49 @@ app.get('/watch/:debateId', async (c) => {
   }
   
   return c.html(watchPage(user, debateId))
+})
+
+// API: Generate AI debate response
+app.post('/api/debate/generate', async (c) => {
+  try {
+    const { prompt, maxTokens } = await c.req.json()
+    const apiKey = c.env.OPENAI_API_KEY
+    
+    if (!apiKey) {
+      return c.json({ error: 'OpenAI API key not configured' }, 500)
+    }
+    
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'あなたは論理的なディベーターです。簡潔に150文字以内で意見を述べてください。' },
+          { role: 'user', content: prompt }
+        ],
+        max_tokens: maxTokens || 150,
+        temperature: 0.7
+      })
+    })
+    
+    if (!response.ok) {
+      const error = await response.text()
+      console.error('OpenAI API error:', error)
+      return c.json({ error: 'AI generation failed' }, 500)
+    }
+    
+    const data = await response.json()
+    const message = data.choices[0].message.content.trim()
+    
+    return c.json({ message })
+  } catch (error) {
+    console.error('Debate generation error:', error)
+    return c.json({ error: 'Internal server error' }, 500)
+  }
 })
 
 // Google OAuth authentication
