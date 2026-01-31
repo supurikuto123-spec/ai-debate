@@ -130,11 +130,11 @@ export const watchPage = (user: any, debateId: string) => `
                 </p>
 
                 <div class="grid grid-cols-2 gap-4">
-                    <button onclick="submitVote('opinionA')" class="vote-btn bg-green-500/20 border-2 border-green-500 hover:bg-green-500/40 p-6 rounded transition-all">
+                    <button onclick="submitVote('opinionA')" class="vote-btn bg-green-500/20 border-2 border-green-500 hover:bg-green-500/40 p-6 rounded transition-all cursor-pointer">
                         <i class="fas fa-check-circle text-3xl mb-3"></i>
                         <p class="font-bold text-xl">意見Aを支持</p>
                     </button>
-                    <button onclick="submitVote('opinionB')" class="vote-btn bg-red-500/20 border-2 border-red-500 hover:bg-red-500/40 p-6 rounded transition-all">
+                    <button onclick="submitVote('opinionB')" class="vote-btn bg-red-500/20 border-2 border-red-500 hover:bg-red-500/40 p-6 rounded transition-all cursor-pointer">
                         <i class="fas fa-check-circle text-3xl mb-3"></i>
                         <p class="font-bold text-xl">意見Bを支持</p>
                     </button>
@@ -193,7 +193,7 @@ export const watchPage = (user: any, debateId: string) => `
                             </div>
                         </div>
                         <div class="inline-block px-4 py-1 bg-cyan-500/20 border border-cyan-500 rounded-full text-cyan-300 text-sm">
-                            <i class="fas fa-robot mr-2"></i>TECH & AI
+                            <i class="fas fa-microchip mr-2"></i>TECH & AI
                         </div>
                     </div>
 
@@ -202,7 +202,7 @@ export const watchPage = (user: any, debateId: string) => `
                         <div class="bg-green-500/10 border border-green-500 rounded p-3">
                             <div class="flex items-center mb-2">
                                 <div class="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center mr-3">
-                                    <i class="fas fa-robot text-white"></i>
+                                    <i class="fas fa-brain text-white"></i>
                                 </div>
                                 <div>
                                     <p class="font-bold text-green-400">論理学者AI</p>
@@ -216,7 +216,7 @@ export const watchPage = (user: any, debateId: string) => `
                         <div class="bg-red-500/10 border border-red-500 rounded p-3">
                             <div class="flex items-center mb-2">
                                 <div class="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-rose-500 flex items-center justify-center mr-3">
-                                    <i class="fas fa-robot text-white"></i>
+                                    <i class="fas fa-lightbulb text-white"></i>
                                 </div>
                                 <div>
                                     <p class="font-bold text-red-400">倫理哲学AI</p>
@@ -267,7 +267,7 @@ export const watchPage = (user: any, debateId: string) => `
                                 <div class="bubble bubble-agree p-4 shadow-lg">
                                     <div class="flex items-center mb-2">
                                         <div class="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center mr-2">
-                                            <i class="fas fa-robot text-white text-sm"></i>
+                                            <i class="fas fa-comment-dots text-white text-sm"></i>
                                         </div>
                                         <div>
                                             <p class="font-bold text-white">論理学者AI</p>
@@ -283,7 +283,7 @@ export const watchPage = (user: any, debateId: string) => `
                                 <div class="bubble bubble-disagree p-4 shadow-lg">
                                     <div class="flex items-center mb-2">
                                         <div class="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center mr-2">
-                                            <i class="fas fa-robot text-white text-sm"></i>
+                                            <i class="fas fa-comment-dots text-white text-sm"></i>
                                         </div>
                                         <div>
                                             <p class="font-bold text-white">倫理哲学AI</p>
@@ -299,7 +299,7 @@ export const watchPage = (user: any, debateId: string) => `
                                 <div class="bubble bubble-agree p-4 shadow-lg">
                                     <div class="flex items-center mb-2">
                                         <div class="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center mr-2">
-                                            <i class="fas fa-robot text-white text-sm"></i>
+                                            <i class="fas fa-comment-dots text-white text-sm"></i>
                                         </div>
                                         <div>
                                             <p class="font-bold text-white">論理学者AI</p>
@@ -315,7 +315,7 @@ export const watchPage = (user: any, debateId: string) => `
                                 <div class="bubble bubble-disagree p-4 shadow-lg">
                                     <div class="flex items-center mb-2">
                                         <div class="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center mr-2">
-                                            <i class="fas fa-robot text-white text-sm"></i>
+                                            <i class="fas fa-comment-dots text-white text-sm"></i>
                                         </div>
                                         <div>
                                             <p class="font-bold text-white">倫理哲学AI</p>
@@ -331,7 +331,7 @@ export const watchPage = (user: any, debateId: string) => `
                                 <div class="bubble bubble-agree p-4 bg-green-500/20 border-2 border-green-500">
                                     <div class="flex items-center">
                                         <div class="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center mr-2">
-                                            <i class="fas fa-robot text-white text-sm"></i>
+                                            <i class="fas fa-comment-dots text-white text-sm"></i>
                                         </div>
                                         <div class="flex space-x-1">
                                             <div class="w-2 h-2 bg-green-400 rounded-full animate-bounce"></div>
@@ -530,6 +530,7 @@ export const watchPage = (user: any, debateId: string) => `
 
             // Submit initial vote from modal
             function submitVote(side) {
+                console.log('submitVote called:', side);
                 userVote = side;
                 hasVoted = true;
                 voteData[side]++;
@@ -537,6 +538,7 @@ export const watchPage = (user: any, debateId: string) => `
                 
                 // Save to localStorage
                 localStorage.setItem(STORAGE_KEY, side);
+                console.log('Vote saved to localStorage:', STORAGE_KEY, side);
 
                 // Hide modal
                 document.getElementById('voteModal').classList.add('hidden');
@@ -802,7 +804,7 @@ export const watchPage = (user: any, debateId: string) => `
                     <div class="bubble \${bubbleClass} p-4 text-white shadow-lg">
                         <div class="flex items-center mb-2">
                             <div class="w-10 h-10 rounded-full bg-gradient-to-br \${side === 'opinionA' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500'} flex items-center justify-center mr-3">
-                                <i class="fas fa-robot"></i>
+                                <i class="fas \${side === 'opinionA' ? 'fa-brain' : 'fa-lightbulb'}"></i>
                             </div>
                             <div>
                                 <p class="font-bold">\${aiName}</p>
