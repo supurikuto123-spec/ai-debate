@@ -825,6 +825,11 @@ export const watchPage = (user: any, debateId: string) => `
                 showToast('ディベートが終了しました');
             }
 
+            // Make functions globally accessible
+            window.submitVote = submitVote;
+            window.changeVote = changeVote;
+            window.postComment = postComment;
+
             // Initialize on page load
             window.addEventListener('DOMContentLoaded', () => {
                 initDemoVotes();
