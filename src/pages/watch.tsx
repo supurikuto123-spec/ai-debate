@@ -130,11 +130,11 @@ export const watchPage = (user: any, debateId: string) => `
                 </p>
 
                 <div class="grid grid-cols-2 gap-4">
-                    <button onclick="submitVote('opinionA')" class="vote-btn bg-green-500/20 border-2 border-green-500 hover:bg-green-500/40 p-6 rounded transition-all cursor-pointer">
+                    <button id="voteOpinionAModalBtn" class="vote-btn bg-green-500/20 border-2 border-green-500 hover:bg-green-500/40 p-6 rounded transition-all cursor-pointer">
                         <i class="fas fa-check-circle text-3xl mb-3"></i>
                         <p class="font-bold text-xl">意見Aを支持</p>
                     </button>
-                    <button onclick="submitVote('opinionB')" class="vote-btn bg-red-500/20 border-2 border-red-500 hover:bg-red-500/40 p-6 rounded transition-all cursor-pointer">
+                    <button id="voteOpinionBModalBtn" class="vote-btn bg-red-500/20 border-2 border-red-500 hover:bg-red-500/40 p-6 rounded transition-all cursor-pointer">
                         <i class="fas fa-check-circle text-3xl mb-3"></i>
                         <p class="font-bold text-xl">意見Bを支持</p>
                     </button>
@@ -363,7 +363,7 @@ export const watchPage = (user: any, debateId: string) => `
                                     class="w-full bg-gray-900 border-2 border-cyan-500 rounded p-3 text-white resize-none focus:outline-none focus:border-cyan-300"
                                     rows="3"
                                 ></textarea>
-                                <button onclick="postComment()" class="btn-primary w-full mt-2">
+                                <button id="commentSubmitBtn" class="btn-primary w-full mt-2">
                                     <i class="fas fa-paper-plane mr-2"></i>コメント送信
                                 </button>
                             </div>
@@ -456,13 +456,13 @@ export const watchPage = (user: any, debateId: string) => `
                     
                     <!-- Vote Buttons -->
                     <div class="grid grid-cols-2 gap-4 mb-6">
-                        <button onclick="changeVote('agree')" id="voteAgreeBtn" class="vote-prediction-btn bg-green-500/20 border-2 border-green-500 hover:bg-green-500/40 p-4 rounded transition-all">
+                        <button id="voteOpinionABtn" class="vote-prediction-btn bg-green-500/20 border-2 border-green-500 hover:bg-green-500/40 p-4 rounded transition-all cursor-pointer">
                             <i class="fas fa-check-circle text-2xl mb-2"></i>
-                            <p class="font-bold">賛成派が優勢</p>
+                            <p class="font-bold">意見Aが優勢</p>
                         </button>
-                        <button onclick="changeVote('disagree')" id="voteDisagreeBtn" class="vote-prediction-btn bg-red-500/20 border-2 border-red-500 hover:bg-red-500/40 p-4 rounded transition-all">
+                        <button id="voteOpinionBBtn" class="vote-prediction-btn bg-red-500/20 border-2 border-red-500 hover:bg-red-500/40 p-4 rounded transition-all cursor-pointer">
                             <i class="fas fa-times-circle text-2xl mb-2"></i>
-                            <p class="font-bold">反対派が優勢</p>
+                            <p class="font-bold">意見Bが優勢</p>
                         </button>
                     </div>
 
@@ -832,6 +832,64 @@ export const watchPage = (user: any, debateId: string) => `
 
             // Initialize on page load
             window.addEventListener('DOMContentLoaded', () => {
+                console.log('Page loaded, initializing...');
+                
+                // Add event listeners to vote modal buttons
+                const voteOpinionAModalBtn = document.getElementById('voteOpinionAModalBtn');
+                const voteOpinionBModalBtn = document.getElementById('voteOpinionBModalBtn');
+                
+                if (voteOpinionAModalBtn) {
+                    voteOpinionAModalBtn.addEventListener('click', () => {
+                        console.log('Opinion A button clicked');
+                        submitVote('opinionA');
+                    });
+                }
+                
+                if (voteOpinionBModalBtn) {
+                    voteOpinionBModalBtn.addEventListener('click', () => {
+                        console.log('Opinion B button clicked');
+                        submitVote('opinionB');
+                    });
+                }
+                
+                // Add event listeners to vote change buttons
+                const voteOpinionABtn = document.getElementById('voteOpinionABtn');
+                const voteOpinionBBtn = document.getElementById('voteOpinionBBtn');
+                
+                if (voteOpinionABtn) {
+                    voteOpinionABtn.addEventListener('click', () => {
+                        console.log('Change vote to Opinion A');
+                        changeVote('opinionA');
+                    });
+                }
+                
+                if (voteOpinionBBtn) {
+                    voteOpinionBBtn.addEventListener('click', () => {
+                        console.log('Change vote to Opinion B');
+                        changeVote('opinionB');
+                    });
+                }
+                
+                // Add event listener to comment submit button
+                const commentSubmitBtn = document.getElementById('commentSubmitBtn');
+                if (commentSubmitBtn) {
+                    commentSubmitBtn.addEventListener('click', () => {
+                        console.log('Comment submit button clicked');
+                        postComment();
+                    });
+                }
+                
+                // Add Enter key listener to comment input
+                const commentInput = document.getElementById('commentInput');
+                if (commentInput) {
+                    commentInput.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            postComment();
+                        }
+                    });
+                }
+                
                 initDemoVotes();
                 
                 // If user has already voted (from localStorage), restore state
