@@ -146,11 +146,11 @@ export const watchPage = (user: any, debateId: string) => `
                 </p>
 
                 <div class="grid grid-cols-2 gap-4">
-                    <button onclick="submitVote('agree')" class="vote-btn bg-green-500/20 border-2 border-green-500 hover:bg-green-500/40 p-6 rounded transition-all">
+                    <button id="voteAgreeModalBtn" class="vote-btn bg-green-500/20 border-2 border-green-500 hover:bg-green-500/40 p-6 rounded transition-all">
                         <i class="fas fa-check-circle text-3xl mb-3"></i>
                         <p class="font-bold text-xl">意見Aを支持</p>
                     </button>
-                    <button onclick="submitVote('disagree')" class="vote-btn bg-red-500/20 border-2 border-red-500 hover:bg-red-500/40 p-6 rounded transition-all">
+                    <button id="voteDisagreeModalBtn" class="vote-btn bg-red-500/20 border-2 border-red-500 hover:bg-red-500/40 p-6 rounded transition-all">
                         <i class="fas fa-check-circle text-3xl mb-3"></i>
                         <p class="font-bold text-xl">意見Bを支持</p>
                     </button>
@@ -334,11 +334,11 @@ export const watchPage = (user: any, debateId: string) => `
                     
                     <!-- Vote Buttons -->
                     <div class="grid grid-cols-2 gap-4 mb-6">
-                        <button onclick="changeVote('agree')" id="voteAgreeBtn" class="vote-prediction-btn bg-green-500/20 border-2 border-green-500 hover:bg-green-500/40 p-4 rounded transition-all">
+                        <button id="voteAgreeBtn" class="vote-prediction-btn bg-green-500/20 border-2 border-green-500 hover:bg-green-500/40 p-4 rounded transition-all">
                             <i class="fas fa-check-circle text-2xl mb-2"></i>
                             <p class="font-bold">意見Aが優勢</p>
                         </button>
-                        <button onclick="changeVote('disagree')" id="voteDisagreeBtn" class="vote-prediction-btn bg-red-500/20 border-2 border-red-500 hover:bg-red-500/40 p-4 rounded transition-all">
+                        <button id="voteDisagreeBtn" class="vote-prediction-btn bg-red-500/20 border-2 border-red-500 hover:bg-red-500/40 p-4 rounded transition-all">
                             <i class="fas fa-times-circle text-2xl mb-2"></i>
                             <p class="font-bold">意見Bが優勢</p>
                         </button>
@@ -871,6 +871,12 @@ export const watchPage = (user: any, debateId: string) => `
                     // 未投票 - モーダルを表示
                     document.getElementById('voteModal').classList.remove('hidden');
                 }
+                
+                // 投票ボタンのイベントリスナー
+                document.getElementById('voteAgreeModalBtn').addEventListener('click', () => submitVote('agree'));
+                document.getElementById('voteDisagreeModalBtn').addEventListener('click', () => submitVote('disagree'));
+                document.getElementById('voteAgreeBtn').addEventListener('click', () => changeVote('agree'));
+                document.getElementById('voteDisagreeBtn').addEventListener('click', () => changeVote('disagree'));
             });
         </script>
     </body>
