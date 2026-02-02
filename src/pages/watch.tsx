@@ -263,82 +263,10 @@ export const watchPage = (user: any, debateId: string) => `
                             </h3>
                             
                             <div id="debateMessages" class="flex flex-col space-y-4">
-                                <!-- Agree Bubble -->
-                                <div class="bubble bubble-agree p-4 shadow-lg">
-                                    <div class="flex items-center mb-2">
-                                        <div class="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center mr-2">
-                                            <i class="fas fa-comment-dots text-white text-sm"></i>
-                                        </div>
-                                        <div>
-                                            <p class="font-bold text-white">論理学者AI</p>
-                                            <p class="text-xs text-green-200">15:02</p>
-                                        </div>
-                                    </div>
-                                    <p class="text-white">
-                                        産業革命の歴史を見れば明らかです。技術革新は常に新しい職種を生み出してきました。AIも同様に、人間の創造性を必要とする新たな仕事の機会を創出します。例えば、AIトレーナーやプロンプトエンジニアなど、新しい職種が既に生まれています。
-                                    </p>
-                                </div>
-
-                                <!-- Disagree Bubble -->
-                                <div class="bubble bubble-disagree p-4 shadow-lg">
-                                    <div class="flex items-center mb-2">
-                                        <div class="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center mr-2">
-                                            <i class="fas fa-comment-dots text-white text-sm"></i>
-                                        </div>
-                                        <div>
-                                            <p class="font-bold text-white">倫理哲学AI</p>
-                                            <p class="text-xs text-red-200">15:04</p>
-                                        </div>
-                                    </div>
-                                    <p class="text-white">
-                                        しかし、今回のAI革命は過去とは根本的に異なります。自動化のスピードがあまりにも速く、多くの労働者が適応する時間がありません。短期的には大規模な失業が発生するリスクがあります。
-                                    </p>
-                                </div>
-
-                                <!-- Agree Bubble -->
-                                <div class="bubble bubble-agree p-4 shadow-lg">
-                                    <div class="flex items-center mb-2">
-                                        <div class="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center mr-2">
-                                            <i class="fas fa-comment-dots text-white text-sm"></i>
-                                        </div>
-                                        <div>
-                                            <p class="font-bold text-white">論理学者AI</p>
-                                            <p class="text-xs text-green-200">15:06</p>
-                                        </div>
-                                    </div>
-                                    <p class="text-white">
-                                        その懸念は理解できます。しかし、政府や企業が適切な教育プログラムとセーフティネットを整備すれば、移行期の問題は最小限に抑えられます。実際、多くの国で既にAI時代に向けた教育改革が進んでいます。
-                                    </p>
-                                </div>
-
-                                <!-- Disagree Bubble -->
-                                <div class="bubble bubble-disagree p-4 shadow-lg">
-                                    <div class="flex items-center mb-2">
-                                        <div class="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center mr-2">
-                                            <i class="fas fa-comment-dots text-white text-sm"></i>
-                                        </div>
-                                        <div>
-                                            <p class="font-bold text-white">倫理哲学AI</p>
-                                            <p class="text-xs text-red-200">15:08</p>
-                                        </div>
-                                    </div>
-                                    <p class="text-white">
-                                        教育改革は必要ですが、それだけでは不十分です。AIは医師、弁護士、エンジニアなど、高度な専門職にも影響を与えています。単純労働だけでなく、知的労働も自動化の対象となっており、社会全体の雇用構造が根本的に変わる可能性があります。
-                                    </p>
-                                </div>
-
-                                <!-- Typing Indicator -->
-                                <div class="bubble bubble-agree p-4 bg-green-500/20 border-2 border-green-500">
-                                    <div class="flex items-center">
-                                        <div class="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center mr-2">
-                                            <i class="fas fa-comment-dots text-white text-sm"></i>
-                                        </div>
-                                        <div class="flex space-x-1">
-                                            <div class="w-2 h-2 bg-green-400 rounded-full animate-bounce"></div>
-                                            <div class="w-2 h-2 bg-green-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
-                                            <div class="w-2 h-2 bg-green-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
-                                        </div>
-                                    </div>
+                                <!-- ディベート開始後にメッセージが動的に追加されます -->
+                                <div class="text-center text-gray-400 p-8">
+                                    <i class="fas fa-info-circle text-4xl mb-4 text-cyan-400"></i>
+                                    <p class="text-lg">devユーザーでコメント欄に <span class="text-cyan-300 font-bold">!debate</span> と入力してディベートを開始</p>
                                 </div>
                             </div>
                         </div>
@@ -359,89 +287,23 @@ export const watchPage = (user: any, debateId: string) => `
                             <div class="mb-4">
                                 <textarea 
                                     id="commentInput" 
-                                    placeholder="コメントを入力..." 
+                                    placeholder="コメントを入力... (@でユーザー名をメンション可能)" 
                                     class="w-full bg-gray-900 border-2 border-cyan-500 rounded p-3 text-white resize-none focus:outline-none focus:border-cyan-300"
-                                    rows="3"
+                                    rows="4"
                                 ></textarea>
-                                <button onclick="postComment()" class="btn-primary w-full mt-2">
-                                    <i class="fas fa-paper-plane mr-2"></i>コメント送信
-                                </button>
+                                <div class="flex gap-2 mt-2">
+                                    <button onclick="postComment()" class="btn-primary flex-1">
+                                        <i class="fas fa-paper-plane mr-2"></i>コメント送信
+                                    </button>
+                                    <button onclick="clearCommentInput()" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
                             </div>
 
-                            <!-- Comments List -->
-                            <div id="commentsList" class="space-y-3" style="max-height: calc(100vh - 480px); overflow-y: auto;">
-                                <!-- Sample Comments with stance -->
-                                <div class="comment-item comment-agree bg-gray-900/50 p-3 rounded border border-cyan-500/30">
-                                    <div class="flex items-center mb-2">
-                                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center text-xs font-bold mr-2">
-                                            U
-                                        </div>
-                                        <div class="flex-1">
-                                            <p class="text-sm font-bold">@user_123</p>
-                                            <p class="text-xs text-green-400">
-                                                <i class="fas fa-thumbs-up mr-1"></i>賛成派
-                                            </p>
-                                        </div>
-                                        <p class="text-xs text-gray-400">2分前</p>
-                                    </div>
-                                    <p class="text-sm text-gray-200">
-                                        両方の意見とも説得力がありますね。特に教育改革の話は重要だと思います。
-                                    </p>
-                                </div>
-
-                                <div class="comment-item comment-agree bg-gray-900/50 p-3 rounded border border-cyan-500/30">
-                                    <div class="flex items-center mb-2">
-                                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center text-xs font-bold mr-2">
-                                            T
-                                        </div>
-                                        <div class="flex-1">
-                                            <p class="text-sm font-bold">@tanaka_kenji</p>
-                                            <p class="text-xs text-green-400">
-                                                <i class="fas fa-thumbs-up mr-1"></i>賛成派
-                                            </p>
-                                        </div>
-                                        <p class="text-xs text-gray-400">5分前</p>
-                                    </div>
-                                    <p class="text-sm text-gray-200">
-                                        賛成派に一票！AIは人間の能力を拡張するツールだと思います。
-                                    </p>
-                                </div>
-
-                                <div class="comment-item comment-disagree bg-gray-900/50 p-3 rounded border border-cyan-500/30">
-                                    <div class="flex items-center mb-2">
-                                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-rose-500 flex items-center justify-center text-xs font-bold mr-2">
-                                            S
-                                        </div>
-                                        <div class="flex-1">
-                                            <p class="text-sm font-bold">@suzuki_ai</p>
-                                            <p class="text-xs text-red-400">
-                                                <i class="fas fa-thumbs-down mr-1"></i>反対派
-                                            </p>
-                                        </div>
-                                        <p class="text-xs text-gray-400">8分前</p>
-                                    </div>
-                                    <p class="text-sm text-gray-200">
-                                        反対派の意見も無視できないですね。短期的な失業問題は深刻です。
-                                    </p>
-                                </div>
-
-                                <div class="comment-item comment-disagree bg-gray-900/50 p-3 rounded border border-cyan-500/30">
-                                    <div class="flex items-center mb-2">
-                                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-rose-500 flex items-center justify-center text-xs font-bold mr-2">
-                                            Y
-                                        </div>
-                                        <div class="flex-1">
-                                            <p class="text-sm font-bold">@yamada_tech</p>
-                                            <p class="text-xs text-red-400">
-                                                <i class="fas fa-thumbs-down mr-1"></i>反対派
-                                            </p>
-                                        </div>
-                                        <p class="text-xs text-gray-400">12分前</p>
-                                    </div>
-                                    <p class="text-sm text-gray-200">
-                                        このディベート、めちゃくちゃ面白い！AIの議論のレベルが高い！
-                                    </p>
-                                </div>
+                            <!-- Comments List (拡大版) -->
+                            <div id="commentsList" class="space-y-3" style="max-height: calc(100vh - 400px); min-height: 400px; overflow-y: auto; scroll-behavior: smooth;">
+                                <!-- コメントはここに動的に追加される -->
                             </div>
                         </div>
                     </div>
@@ -642,6 +504,31 @@ export const watchPage = (user: any, debateId: string) => `
                     return;
                 }
 
+                // Check for !delc command (dev user only) - 全コメント削除
+                if (text === '!delc' && currentUser.user_id === 'dev') {
+                    input.value = '';
+                    const commentsList = document.getElementById('commentsList');
+                    commentsList.innerHTML = '';
+                    showToast('全コメントを削除しました');
+                    return;
+                }
+
+                // Check for !deld command (dev user only) - 全ディベート履歴削除
+                if (text === '!deld' && currentUser.user_id === 'dev') {
+                    input.value = '';
+                    const debateMessages = document.getElementById('debateMessages');
+                    debateMessages.innerHTML = \`
+                        <div class="text-center text-gray-400 p-8">
+                            <i class="fas fa-info-circle text-4xl mb-4 text-cyan-400"></i>
+                            <p class="text-lg">devユーザーでコメント欄に <span class="text-cyan-300 font-bold">!debate</span> と入力してディベートを開始</p>
+                        </div>
+                    \`;
+                    conversationHistory = []; // 会話履歴もクリア
+                    debateActive = false; // ディベート停止
+                    showToast('全ディベート履歴を削除しました');
+                    return;
+                }
+
                 if (text.length > 500) {
                     showToast('コメントは500文字以内で入力してください');
                     return;
@@ -655,6 +542,9 @@ export const watchPage = (user: any, debateId: string) => `
                 const stanceIcon = userVote === 'agree' ? 'thumbs-up' : 'thumbs-down';
                 const stanceText = userVote === 'agree' ? '意見A支持' : '意見B支持';
                 const avatarGradient = userVote === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500';
+                
+                // @メンションを強調表示
+                const formattedText = text.replace(/@(\w+)/g, '<span class="text-cyan-400 font-bold">@$1</span>');
                 
                 commentDiv.className = 'comment-item ' + stanceClass + ' bg-gray-900/50 p-3 rounded border border-cyan-500/30';
                 
@@ -672,7 +562,7 @@ export const watchPage = (user: any, debateId: string) => `
                         </div>
                         <p class="text-xs text-gray-400">たった今</p>
                     </div>
-                    <p class="text-sm text-gray-200">\${text}</p>
+                    <p class="text-sm text-gray-200">\${formattedText}</p>
                 \`;
 
                 // Add to top
@@ -685,6 +575,12 @@ export const watchPage = (user: any, debateId: string) => `
                 // Clear input
                 input.value = '';
                 showToast('コメントを投稿しました！');
+            }
+
+            // コメント入力をクリアする関数
+            function clearCommentInput() {
+                const input = document.getElementById('commentInput');
+                input.value = '';
             }
 
             // Show toast
@@ -729,6 +625,7 @@ export const watchPage = (user: any, debateId: string) => `
             let debateStartTime = 0;
             const MAX_DEBATE_TIME = 60; // 1 minute in seconds
             const MAX_CHARS = 150;
+            let conversationHistory = []; // 会話履歴を保持
 
             async function startDebate() {
                 if (debateActive) {
@@ -738,6 +635,7 @@ export const watchPage = (user: any, debateId: string) => `
                 
                 debateActive = true;
                 debateStartTime = Date.now();
+                conversationHistory = []; // 会話履歴をリセット
                 
                 const debateMessages = document.getElementById('debateMessages');
                 debateMessages.innerHTML = '<div class="text-center text-cyan-300 p-4"><i class="fas fa-spinner fa-spin mr-2"></i>ディベート開始...</div>';
@@ -772,7 +670,7 @@ export const watchPage = (user: any, debateId: string) => `
             async function generateAIResponse(side) {
                 if (!debateActive) return;
                 
-                const prompt = side === 'agree' 
+                const systemPrompt = side === 'agree' 
                     ? 'あなたは「AIは人類の仕事を奪わない」という立場です。具体的な統計データ、歴史的事例、専門家の見解を引用し、論理的に主張してください。相手の意見に反論しながら、建設的な議論を展開してください。150文字以内。'
                     : 'あなたは「AIは人類の仕事を奪う」という立場です。具体的な統計データ、実例、労働市場の変化を示し、論理的に主張してください。相手の意見に反論しながら、建設的な議論を展開してください。150文字以内。';
                 
@@ -781,7 +679,8 @@ export const watchPage = (user: any, debateId: string) => `
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 
-                            prompt, 
+                            systemPrompt,
+                            conversationHistory, // 会話履歴を送信
                             maxTokens: 200,
                             temperature: 0.8
                         })
@@ -794,7 +693,14 @@ export const watchPage = (user: any, debateId: string) => `
                     const data = await response.json();
                     
                     if (data.message && debateActive) {
-                        addDebateMessage(side, data.message);
+                        // 会話履歴に追加
+                        conversationHistory.push({
+                            role: side === 'agree' ? 'assistant' : 'user',
+                            content: data.message,
+                            side: side
+                        });
+                        
+                        addDebateMessageWithTyping(side, data.message); // タイピング演出版を使用
                         
                         // Continue with opposite side after 3 seconds
                         setTimeout(() => {
@@ -835,6 +741,49 @@ export const watchPage = (user: any, debateId: string) => `
                 
                 container.insertAdjacentHTML('beforeend', bubbleHTML);
                 container.scrollTop = container.scrollHeight;
+            }
+
+            // タイピング演出版のメッセージ追加関数
+            function addDebateMessageWithTyping(side, message) {
+                const container = document.getElementById('debateMessages');
+                const bubbleClass = side === 'agree' ? 'bubble-agree' : 'bubble-disagree';
+                const aiModel = side === 'agree' ? 'GPT-4o' : 'Claude-3.5';
+                const iconClass = side === 'agree' ? 'fa-brain' : 'fa-lightbulb';
+                
+                // 空のバブルを作成
+                const bubbleHTML = \`
+                    <div class="bubble \${bubbleClass} p-4 text-white shadow-lg">
+                        <div class="flex items-center mb-2">
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br \${side === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500'} flex items-center justify-center mr-3">
+                                <i class="fas \${iconClass}"></i>
+                            </div>
+                            <div>
+                                <p class="font-bold">\${aiModel}</p>
+                                <p class="text-xs opacity-75">\${side === 'agree' ? '意見A' : '意見B'}</p>
+                            </div>
+                        </div>
+                        <p class="text-sm leading-relaxed typing-text"></p>
+                        <p class="text-xs opacity-75 mt-2">たった今</p>
+                    </div>
+                \`;
+                
+                container.insertAdjacentHTML('beforeend', bubbleHTML);
+                const typingElement = container.querySelector('.bubble:last-child .typing-text');
+                
+                // タイピング演出
+                let index = 0;
+                const typingSpeed = 30; // ms per character
+                
+                function typeNextChar() {
+                    if (index < message.length && debateActive) {
+                        typingElement.textContent += message[index];
+                        index++;
+                        container.scrollTop = container.scrollHeight;
+                        setTimeout(typeNextChar, typingSpeed);
+                    }
+                }
+                
+                typeNextChar();
             }
 
             // Initialize on page load

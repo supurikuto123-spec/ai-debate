@@ -293,12 +293,30 @@ app.get('/watch/:debateId', async (c) => {
 // API: Generate AI debate response
 app.post('/api/debate/generate', async (c) => {
   try {
-    const { prompt, maxTokens, temperature } = await c.req.json()
+    const { systemPrompt, conversationHistory, maxTokens, temperature } = await c.req.json()
     const apiKey = c.env.OPENAI_API_KEY
     
     if (!apiKey) {
       return c.json({ error: 'OpenAI API key not configured' }, 500)
     }
+    
+    // 会話履歴をOpenAI形式のメッセージに変換
+    const messages: any[] = [
+      { role: 'system', content: 'あなたは専門知識を持つディベーターです。論理的根拠、具体的データ、専門家の見解を示しながら、建設的な議論を展開してください。相手の主張に対する反論も含めてください。' }
+    ]
+    
+    // 会話履歴を追加
+    if (conversationHistory && conversationHistory.length > 0) {
+      for (const msg of conversationHistory) {
+        messages.push({
+          role: msg.side === 'agree' ? 'assistant' : 'user',
+          content: msg.content
+        })
+      }
+    }
+    
+    // 現在のプロンプトを追加
+    messages.push({ role: 'user', content: systemPrompt })
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -308,10 +326,7 @@ app.post('/api/debate/generate', async (c) => {
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: 'あなたは専門知識を持つディベーターです。論理的根拠、具体的データ、専門家の見解を示しながら、建設的な議論を展開してください。相手の主張に対する反論も含めてください。' },
-          { role: 'user', content: prompt }
-        ],
+        messages: messages,
         max_tokens: maxTokens || 200,
         temperature: temperature || 0.8
       })
@@ -330,6 +345,111 @@ app.post('/api/debate/generate', async (c) => {
   } catch (error) {
     console.error('Debate generation error:', error)
     return c.json({ error: 'Internal server error' }, 500)
+  }
+})
+
+// API: 投票を保存
+app.post('/api/vote', async (c) => {
+  try {
+    const { debateId, userId, vote } = await c.req.json()
+    const { DB } = c.env
+    
+    // 既存の投票を更新または新規追加
+    await DB.prepare(`
+      INSERT INTO debate_votes (debate_id, user_id, vote)
+      VALUES (?, ?, ?)
+      ON CONFLICT(debate_id, user_id) DO UPDATE SET vote = excluded.vote
+    `).bind(debateId, userId, vote).run()
+    
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('Vote save error:', error)
+    return c.json({ error: 'Failed to save vote' }, 500)
+  }
+})
+
+// API: 投票結果を取得
+app.get('/api/votes/:debateId', async (c) => {
+  try {
+    const debateId = c.req.param('debateId')
+    const { DB } = c.env
+    
+    const result = await DB.prepare(`
+      SELECT vote, COUNT(*) as count
+      FROM debate_votes
+      WHERE debate_id = ?
+      GROUP BY vote
+    `).bind(debateId).all()
+    
+    const votes = { agree: 0, disagree: 0, total: 0 }
+    for (const row of result.results) {
+      votes[row.vote as 'agree' | 'disagree'] = row.count as number
+      votes.total += row.count as number
+    }
+    
+    return c.json(votes)
+  } catch (error) {
+    console.error('Vote fetch error:', error)
+    return c.json({ error: 'Failed to fetch votes' }, 500)
+  }
+})
+
+// API: コメントを保存
+app.post('/api/comment', async (c) => {
+  try {
+    const { debateId, userId, username, vote, content } = await c.req.json()
+    const { DB } = c.env
+    
+    await DB.prepare(`
+      INSERT INTO debate_comments (debate_id, user_id, username, vote, content)
+      VALUES (?, ?, ?, ?, ?)
+    `).bind(debateId, userId, username, vote, content).run()
+    
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('Comment save error:', error)
+    return c.json({ error: 'Failed to save comment' }, 500)
+  }
+})
+
+// API: コメントを取得
+app.get('/api/comments/:debateId', async (c) => {
+  try {
+    const debateId = c.req.param('debateId')
+    const { DB } = c.env
+    
+    const result = await DB.prepare(`
+      SELECT *
+      FROM debate_comments
+      WHERE debate_id = ?
+      ORDER BY created_at DESC
+      LIMIT 50
+    `).bind(debateId).all()
+    
+    return c.json({ comments: result.results })
+  } catch (error) {
+    console.error('Comments fetch error:', error)
+    return c.json({ error: 'Failed to fetch comments' }, 500)
+  }
+})
+
+// API: ディベートメッセージを取得
+app.get('/api/debate/:debateId/messages', async (c) => {
+  try {
+    const debateId = c.req.param('debateId')
+    const { DB } = c.env
+    
+    const result = await DB.prepare(`
+      SELECT *
+      FROM debate_messages
+      WHERE debate_id = ?
+      ORDER BY created_at ASC
+    `).bind(debateId).all()
+    
+    return c.json({ messages: result.results })
+  } catch (error) {
+    console.error('Messages fetch error:', error)
+    return c.json({ error: 'Failed to fetch messages' }, 500)
   }
 })
 
