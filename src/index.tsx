@@ -302,21 +302,31 @@ app.post('/api/debate/generate', async (c) => {
     
     // 会話履歴をOpenAI形式のメッセージに変換
     const messages: any[] = [
-      { role: 'system', content: 'あなたは専門知識を持つディベーターです。論理的根拠、具体的データ、専門家の見解を示しながら、建設的な議論を展開してください。相手の主張に対する反論も含めてください。' }
+      { role: 'system', content: systemPrompt }
     ]
     
-    // 会話履歴を追加
+    // 会話履歴を全て追加（相手の発言を読めるように）
     if (conversationHistory && conversationHistory.length > 0) {
       for (const msg of conversationHistory) {
+        // 両方のAIの発言をassistantとして記録
         messages.push({
-          role: msg.side === 'agree' ? 'assistant' : 'user',
-          content: msg.content
+          role: 'assistant',
+          content: `[${msg.side === 'agree' ? '意見A' : '意見B'}]: ${msg.content}`
         })
       }
+      
+      // 最後に「相手の発言を踏まえて反論してください」を追加
+      messages.push({
+        role: 'user',
+        content: '上記の議論を踏まえ、新しい視点から反論してください。130文字以内。'
+      })
+    } else {
+      // 初回は通常通り
+      messages.push({
+        role: 'user',
+        content: '130文字以内で簡潔に主張してください。'
+      })
     }
-    
-    // 現在のプロンプトを追加
-    messages.push({ role: 'user', content: systemPrompt })
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -327,8 +337,8 @@ app.post('/api/debate/generate', async (c) => {
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: messages,
-        max_tokens: 100, // 150文字制限を厳守
-        temperature: temperature || 0.8
+        max_tokens: maxTokens || 80,
+        temperature: temperature || 0.9
       })
     })
     

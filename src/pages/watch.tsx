@@ -599,6 +599,9 @@ export const watchPage = (user: any, debateId: string) => `
                 // Add to top
                 commentsList.insertBefore(commentDiv, commentsList.firstChild);
 
+                // D1に保存
+                saveCommentToD1(text);
+
                 // Update count
                 const count = parseInt(document.getElementById('commentCount').textContent);
                 document.getElementById('commentCount').textContent = count + 1;
@@ -608,6 +611,25 @@ export const watchPage = (user: any, debateId: string) => `
                 showToast('コメントを投稿しました！');
             }
             window.postComment = postComment;
+
+            // コメントをD1に保存
+            async function saveCommentToD1(content) {
+                try {
+                    await fetch('/api/comment', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            debateId: DEBATE_ID,
+                            userId: currentUser.user_id,
+                            username: currentUser.user_id,
+                            vote: userVote,
+                            content: content
+                        })
+                    });
+                } catch (error) {
+                    console.error('Failed to save comment:', error);
+                }
+            }
 
             // コメント入力をクリアする関数
             function clearCommentInput() {
@@ -848,22 +870,87 @@ export const watchPage = (user: any, debateId: string) => `
             }
 
             // ディベートメッセージをD1から読み込み
+            let lastMessageCount = 0;
             async function loadDebateMessagesFromD1() {
                 try {
                     const response = await fetch('/api/debate/' + DEBATE_ID + '/messages');
                     const data = await response.json();
                     
                     if (data.messages && data.messages.length > 0) {
-                        const container = document.getElementById('debateMessages');
-                        container.innerHTML = ''; // クリア
-                        
-                        for (const msg of data.messages) {
-                            addDebateMessage(msg.side, msg.content);
+                        // 新しいメッセージがある場合のみ更新
+                        if (data.messages.length !== lastMessageCount) {
+                            const container = document.getElementById('debateMessages');
+                            container.innerHTML = ''; // クリア
+                            
+                            for (const msg of data.messages) {
+                                addDebateMessage(msg.side, msg.content);
+                            }
+                            
+                            lastMessageCount = data.messages.length;
                         }
                     }
                 } catch (error) {
                     console.error('Failed to load debate messages:', error);
                 }
+            }
+
+            // コメントをD1から読み込み
+            let lastCommentCount = 0;
+            async function loadCommentsFromD1() {
+                try {
+                    const response = await fetch('/api/comments/' + DEBATE_ID);
+                    const data = await response.json();
+                    
+                    if (data.comments && data.comments.length > 0) {
+                        // 新しいコメントがある場合のみ更新
+                        if (data.comments.length !== lastCommentCount) {
+                            const commentsList = document.getElementById('commentsList');
+                            commentsList.innerHTML = ''; // クリア
+                            
+                            for (const comment of data.comments) {
+                                const stanceClass = comment.vote === 'agree' ? 'comment-agree' : 'comment-disagree';
+                                const stanceColor = comment.vote === 'agree' ? 'green' : 'red';
+                                const stanceIcon = comment.vote === 'agree' ? 'thumbs-up' : 'thumbs-down';
+                                const stanceText = comment.vote === 'agree' ? '意見A支持' : '意見B支持';
+                                const avatarGradient = comment.vote === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500';
+                                const initial = comment.username.charAt(0).toUpperCase();
+                                const formattedContent = comment.content.replace(/@(\w+)/g, '<span class="text-cyan-400 font-bold">@$1</span>');
+                                
+                                const commentDiv = document.createElement('div');
+                                commentDiv.className = 'comment-item ' + stanceClass + ' bg-gray-900/50 p-3 rounded border border-cyan-500/30';
+                                commentDiv.innerHTML = \`
+                                    <div class="flex items-center mb-2">
+                                        <div class="w-8 h-8 rounded-full bg-gradient-to-br \${avatarGradient} flex items-center justify-center text-xs font-bold mr-2">
+                                            \${initial}
+                                        </div>
+                                        <div class="flex-1">
+                                            <p class="text-sm font-bold">@\${comment.username}</p>
+                                            <p class="text-xs text-\${stanceColor}-400">
+                                                <i class="fas fa-\${stanceIcon} mr-1"></i>\${stanceText}
+                                            </p>
+                                        </div>
+                                        <p class="text-xs text-gray-400">たった今</p>
+                                    </div>
+                                    <p class="text-sm text-gray-200">\${formattedContent}</p>
+                                \`;
+                                
+                                commentsList.insertBefore(commentDiv, commentsList.firstChild);
+                            }
+                            
+                            lastCommentCount = data.comments.length;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Failed to load comments:', error);
+                }
+            }
+
+            // リアルタイム同期（2秒ごとにポーリング）
+            function startRealtimeSync() {
+                setInterval(() => {
+                    loadDebateMessagesFromD1();
+                    loadCommentsFromD1();
+                }, 2000);
             }
 
             // Initialize on page load
@@ -924,6 +1011,10 @@ export const watchPage = (user: any, debateId: string) => `
                 initDemoVotes();
                 updateVoteDisplay();
                 loadDebateMessagesFromD1(); // ディベートメッセージを読み込み
+                loadCommentsFromD1(); // コメントを読み込み
+                
+                // リアルタイム同期を開始
+                startRealtimeSync();
                 
                 // localStorageから投票を復元
                 const storageKey = 'debate_vote_' + DEBATE_ID + '_' + currentUser.user_id;
