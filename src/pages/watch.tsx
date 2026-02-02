@@ -423,6 +423,7 @@ export const watchPage = (user: any, debateId: string) => `
                 
                 showToast('投票が完了しました！観戦を開始します');
             }
+            window.submitVote = submitVote;
 
             // Change vote
             function changeVote(side) {
@@ -448,6 +449,7 @@ export const watchPage = (user: any, debateId: string) => `
                 const message = side === 'agree' ? '意見Aに変更しました！' : '意見Bに変更しました！';
                 showToast(message);
             }
+            window.changeVote = changeVote;
 
             // Highlight selected button
             function highlightSelectedButton(side) {
@@ -596,12 +598,14 @@ export const watchPage = (user: any, debateId: string) => `
                 input.value = '';
                 showToast('コメントを投稿しました！');
             }
+            window.postComment = postComment;
 
             // コメント入力をクリアする関数
             function clearCommentInput() {
                 const input = document.getElementById('commentInput');
                 input.value = '';
             }
+            window.clearCommentInput = clearCommentInput;
 
             // Show toast
             function showToast(message) {
