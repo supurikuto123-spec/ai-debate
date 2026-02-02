@@ -386,7 +386,8 @@ export const watchPage = (user: any, debateId: string) => `
         </div>
 
         <script>
-            // User data
+            // Debate and User data
+            const DEBATE_ID = '${debateId}';
             const currentUser = {
                 user_id: '${user.user_id}',
                 credits: ${user.credits}
