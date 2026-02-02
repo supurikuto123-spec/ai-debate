@@ -464,6 +464,12 @@ app.post('/api/debate/message', async (c) => {
     const { debateId, side, model, content } = await c.req.json()
     const { DB } = c.env
     
+    // パラメータ検証
+    if (!debateId || !side || !model || !content) {
+      console.error('Invalid parameters:', { debateId, side, model, content })
+      return c.json({ error: 'Invalid parameters' }, 400)
+    }
+    
     await DB.prepare(`
       INSERT INTO debate_messages (debate_id, side, model, content)
       VALUES (?, ?, ?, ?)

@@ -816,6 +816,12 @@ export const watchPage = (user: any, debateId: string) => `
             // ディベートメッセージをD1に保存
             async function saveDebateMessageToD1(side, model, content) {
                 try {
+                    // パラメータ検証
+                    if (!side || !model || !content) {
+                        console.error('Invalid parameters:', { side, model, content });
+                        return;
+                    }
+                    
                     await fetch('/api/debate/message', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
