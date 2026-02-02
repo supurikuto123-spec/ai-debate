@@ -104,18 +104,36 @@ export const watchPage = (user: any, debateId: string) => `
             /* 派手なゲージアニメーション */
             .vote-bar {
                 transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
-                box-shadow: 0 0 20px rgba(255,255,255,0.5);
-                animation: pulse-glow 2s infinite;
+                box-shadow: 0 0 30px rgba(255,255,255,0.6), 0 0 50px currentColor;
+                animation: pulse-glow 1.5s infinite, shimmer 3s infinite;
+                position: relative;
+                overflow: hidden;
+            }
+            .vote-bar::after {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: -100%;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+                animation: shimmer-slide 2s infinite;
             }
             @keyframes pulse-glow {
                 0%, 100% {
-                    box-shadow: 0 0 20px rgba(255,255,255,0.5), 0 0 40px currentColor;
-                    filter: brightness(1);
+                    box-shadow: 0 0 30px rgba(255,255,255,0.6), 0 0 50px currentColor, inset 0 0 20px rgba(255,255,255,0.3);
+                    filter: brightness(1) saturate(1.2);
+                    transform: scaleY(1);
                 }
                 50% {
-                    box-shadow: 0 0 30px rgba(255,255,255,0.8), 0 0 60px currentColor;
-                    filter: brightness(1.2);
+                    box-shadow: 0 0 50px rgba(255,255,255,1), 0 0 80px currentColor, inset 0 0 40px rgba(255,255,255,0.6);
+                    filter: brightness(1.4) saturate(1.5);
+                    transform: scaleY(1.05);
                 }
+            }
+            @keyframes shimmer-slide {
+                0% { left: -100%; }
+                100% { left: 200%; }
             }
         </style>
     </head>
@@ -325,8 +343,8 @@ export const watchPage = (user: any, debateId: string) => `
                                 </div>
                             </div>
 
-                            <!-- Comments List (拡大版) -->
-                            <div id="commentsList" class="space-y-3" style="max-height: calc(100vh - 400px); min-height: 400px; overflow-y: auto; scroll-behavior: smooth;">
+                            <!-- Comments List (固定高さ、新着が下) -->
+                            <div id="commentsList" class="space-y-3" style="height: 500px; overflow-y: auto; scroll-behavior: smooth; display: flex; flex-direction: column-reverse;">
                                 <!-- コメントはここに動的に追加される -->
                             </div>
                         </div>
@@ -401,11 +419,18 @@ export const watchPage = (user: any, debateId: string) => `
                 disagree: 0,
                 total: 0
             };
+            
+            // AI評価システム用グローバル変数
+            let ai1Votes = { agree: 0, disagree: 0 };  // 評価AI #1
+            let ai2Votes = { agree: 0, disagree: 0 };  // 評価AI #2
+            let ai3Votes = { agree: 0, disagree: 0 };  // 評価AI #3
+            let fogMode = false;  // ゲージ霧モード（残り10%で有効）
+            let finalVotingMode = false;  // 最終投票モード（1分猶予）
 
-            // Initialize demo votes (4 random voters)
+            // Initialize demo votes (10 random voters)
             function initDemoVotes() {
-                // 4人のランダム投票者を生成
-                for (let i = 0; i < 4; i++) {
+                // 10人のランダム投票者を生成
+                for (let i = 0; i < 10; i++) {
                     const randomVote = Math.random() > 0.5 ? 'agree' : 'disagree';
                     voteData[randomVote]++;
                     voteData.total++;
@@ -574,8 +599,8 @@ export const watchPage = (user: any, debateId: string) => `
                 const stanceText = userVote === 'agree' ? '意見A支持' : '意見B支持';
                 const avatarGradient = userVote === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500';
                 
-                // @メンションを強調表示
-                const formattedText = text.replace(/@(\w+)/g, '<span class="text-cyan-400 font-bold">@$1</span>');
+                // @メンション機能削除（そのまま表示）
+                const formattedText = text;
                 
                 commentDiv.className = 'comment-item ' + stanceClass + ' bg-gray-900/50 p-3 rounded border border-cyan-500/30';
                 
@@ -591,7 +616,6 @@ export const watchPage = (user: any, debateId: string) => `
                                 <i class="fas fa-\${stanceIcon} mr-1"></i>\${stanceText}
                             </p>
                         </div>
-                        <p class="text-xs text-gray-400">たった今</p>
                     </div>
                     <p class="text-sm text-gray-200">\${formattedText}</p>
                 \`;
@@ -648,6 +672,284 @@ export const watchPage = (user: any, debateId: string) => `
                     toast.classList.add('hidden');
                 }, 3000);
             }
+            
+            // AI評価システム（3つのAIが評価）
+            async function getAIEvaluations(message, side) {
+                try {
+                    // 3つのAI評価を並列取得
+                    const evaluations = await Promise.all([
+                        getAIEvaluation(message, side, 'AI-1', 0.7),
+                        getAIEvaluation(message, side, 'AI-2', 0.8),
+                        getAIEvaluation(message, side, 'AI-3', 0.9)
+                    ]);
+                    
+                    // 評価を集計
+                    const totalUsers = voteData.total;
+                    const votesPerAI = Math.floor(totalUsers / 3);
+                    
+                    evaluations.forEach((evaluation, index) => {
+                        if (evaluation && evaluation.support) {
+                            if (evaluation.support === 'agree') {
+                                ai1Votes.agree += votesPerAI;
+                            } else {
+                                ai1Votes.disagree += votesPerAI;
+                            }
+                        }
+                    });
+                    
+                    // 評価表示エリアを更新
+                    displayAIEvaluation(evaluations[0], side);
+                    
+                    // ゲージを更新
+                    updateVoteDisplay();
+                } catch (error) {
+                    console.error('AI evaluation error:', error);
+                }
+            }
+            
+            async function getAIEvaluation(message, side, aiName, temperature) {
+                try {
+                    const prompt = `この発言を評価してください：「${message}」
+あなたは${aiName}です。この発言の説得力を評価し、評価記号（!!:優秀、!:良い、?:疑問、??:問題）と短い一言コメント（20文字以内）を返してください。
+フォーマット: { "symbol": "!!", "comment": "データに基づく説得力", "support": "agree or disagree" }`;
+
+                    const response = await fetch('/api/debate/generate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            systemPrompt: 'あなたはディベート評価の専門家です。客観的に評価してください。',
+                            conversationHistory: [{ role: 'user', content: prompt }],
+                            maxTokens: 50,
+                            temperature: temperature
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    try {
+                        return JSON.parse(data.message);
+                    } catch {
+                        return { symbol: '?', comment: '評価中...', support: side };
+                    }
+                } catch (error) {
+                    return null;
+                }
+            }
+            
+            function displayAIEvaluation(evaluation, side) {
+                if (!evaluation) return;
+                
+                const container = document.getElementById('debateMessages');
+                const evalHTML = `
+                    <div class="text-xs text-gray-400 italic text-right px-4 py-1">
+                        <span class="font-bold text-cyan-400">${evaluation.symbol}</span> ${evaluation.comment}
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', evalHTML);
+            }
+            
+            // 最終投票モーダルを表示
+            function showFinalVotingModal() {
+                finalVotingMode = true;
+                
+                // モーダル作成
+                const modalHTML = `
+                    <div id="finalVoteModal" class="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center z-50">
+                        <div class="bg-gray-900 border-4 border-cyan-500 rounded-lg p-8 max-w-lg w-full mx-4 shadow-2xl">
+                            <h2 class="text-3xl font-bold text-cyan-400 mb-4 text-center">
+                                <i class="fas fa-gavel mr-2"></i>最終判定
+                            </h2>
+                            <p class="text-white text-center mb-6">
+                                ディベート終了！<br>
+                                <span class="text-cyan-300">1分以内</span>に最終的な支持を決定してください。
+                            </p>
+                            <div class="grid grid-cols-2 gap-4">
+                                <button id="finalVoteAgree" class="bg-green-500/20 border-2 border-green-500 hover:bg-green-500/40 p-6 rounded transition-all">
+                                    <i class="fas fa-check-circle text-4xl mb-2"></i>
+                                    <p class="font-bold">意見Aを支持</p>
+                                </button>
+                                <button id="finalVoteDisagree" class="bg-red-500/20 border-2 border-red-500 hover:bg-red-500/40 p-6 rounded transition-all">
+                                    <i class="fas fa-times-circle text-4xl mb-2"></i>
+                                    <p class="font-bold">意見Bを支持</p>
+                                </button>
+                            </div>
+                            <p class="text-xs text-gray-400 text-center mt-4">
+                                未選択の場合、現在の投票がそのまま反映されます
+                            </p>
+                        </div>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', modalHTML);
+                
+                // イベントリスナー
+                document.getElementById('finalVoteAgree').addEventListener('click', () => {
+                    submitFinalVote('agree');
+                });
+                document.getElementById('finalVoteDisagree').addEventListener('click', () => {
+                    submitFinalVote('disagree');
+                });
+                
+                // 60秒後に自動終了
+                setTimeout(() => {
+                    finalizeFinalVote();
+                }, 60000);
+            }
+            
+            function submitFinalVote(side) {
+                // 既存の投票を変更
+                if (hasVoted && userVote !== side) {
+                    voteData[userVote]--;
+                    voteData[side]++;
+                    userVote = side;
+                    
+                    // localStorageに保存
+                    const storageKey = 'debate_vote_' + DEBATE_ID + '_' + currentUser.user_id;
+                    localStorage.setItem(storageKey, side);
+                }
+                
+                // モーダルを閉じる
+                const modal = document.getElementById('finalVoteModal');
+                if (modal) modal.remove();
+                
+                showToast('最終投票を受け付けました！');
+                
+                // AI最終評価へ
+                setTimeout(() => {
+                    performFinalAIJudgment();
+                }, 2000);
+            }
+            
+            function finalizeFinalVote() {
+                // 時間切れ：現在の投票をそのまま確定
+                const modal = document.getElementById('finalVoteModal');
+                if (modal) modal.remove();
+                
+                showToast('時間切れ！現在の投票で確定しました。');
+                
+                // AI最終評価へ
+                setTimeout(() => {
+                    performFinalAIJudgment();
+                }, 2000);
+            }
+            
+            // AI最終評価・投票・結果表示
+            async function performFinalAIJudgment() {
+                showToast('AIによる最終評価を実施中...');
+                
+                // 全会話を再評価
+                const fullDebate = conversationHistory.map(msg => msg.content).join('\n');
+                
+                try {
+                    // 3つのAIによる最終評価
+                    const judgments = await Promise.all([
+                        getFinalJudgment(fullDebate, 'AI-Judge-1', 0.7),
+                        getFinalJudgment(fullDebate, 'AI-Judge-2', 0.8),
+                        getFinalJudgment(fullDebate, 'AI-Judge-3', 0.9)
+                    ]);
+                    
+                    // AI投票を集計
+                    const totalUsers = voteData.total;
+                    const votesPerAI = Math.floor(totalUsers / 3);
+                    
+                    judgments.forEach(judgment => {
+                        if (judgment && judgment.winner) {
+                            if (judgment.winner === 'agree') {
+                                voteData.agree += votesPerAI;
+                            } else {
+                                voteData.disagree += votesPerAI;
+                            }
+                            voteData.total += votesPerAI;
+                        }
+                    });
+                    
+                    // 最終結果を表示
+                    displayFinalResults(judgments);
+                } catch (error) {
+                    console.error('Final judgment error:', error);
+                    showToast('AI評価エラー');
+                }
+            }
+            
+            async function getFinalJudgment(debate, aiName, temperature) {
+                try {
+                    const prompt = `以下のディベート全体を評価してください：\n${debate}\n\nあなたは${aiName}です。どちらが説得力があったか判定し、理由を簡潔に述べてください（50文字以内）。\nフォーマット: { "winner": "agree or disagree", "reason": "理由" }`;
+                    
+                    const response = await fetch('/api/debate/generate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            systemPrompt: 'あなたは公平なディベート審査員です。',
+                            conversationHistory: [{ role: 'user', content: prompt }],
+                            maxTokens: 100,
+                            temperature: temperature
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    try {
+                        return JSON.parse(data.message);
+                    } catch {
+                        return { winner: 'agree', reason: '評価中...' };
+                    }
+                } catch (error) {
+                    return null;
+                }
+            }
+            
+            function displayFinalResults(judgments) {
+                // ゲージの霧を解除
+                document.getElementById('agreeBar').style.filter = 'none';
+                document.getElementById('disagreeBar').style.filter = 'none';
+                
+                // 結果を更新
+                updateVoteDisplay();
+                
+                // 勝者を決定
+                const winner = voteData.agree > voteData.disagree ? '意見A' : '意見B';
+                const winnerColor = voteData.agree > voteData.disagree ? 'text-green-400' : 'text-red-400';
+                
+                // AI評価コメントを表示
+                const judgmentComments = judgments.map((j, i) => 
+                    `<div class="mb-2"><span class="text-cyan-400 font-bold">AI-Judge-${i+1}:</span> ${j?.reason || '評価中...'}</div>`
+                ).join('');
+                
+                // 結果モーダル
+                const resultHTML = `
+                    <div id="resultModal" class="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center z-50">
+                        <div class="bg-gray-900 border-4 border-cyan-500 rounded-lg p-8 max-w-2xl w-full mx-4 shadow-2xl">
+                            <h2 class="text-4xl font-bold text-cyan-400 mb-6 text-center">
+                                <i class="fas fa-trophy mr-2"></i>ディベート結果
+                            </h2>
+                            <div class="text-center mb-6">
+                                <p class="text-2xl mb-2">勝者:</p>
+                                <p class="text-5xl font-bold ${winnerColor}">${winner}</p>
+                            </div>
+                            <div class="bg-gray-800 p-4 rounded mb-6">
+                                <h3 class="text-xl font-bold text-cyan-400 mb-4">最終投票結果</h3>
+                                <div class="grid grid-cols-2 gap-4 text-center">
+                                    <div>
+                                        <p class="text-3xl font-bold text-green-400">${voteData.agree}</p>
+                                        <p class="text-sm text-gray-400">意見A支持</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-3xl font-bold text-red-400">${voteData.disagree}</p>
+                                        <p class="text-sm text-gray-400">意見B支持</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-gray-800 p-4 rounded mb-6">
+                                <h3 class="text-xl font-bold text-cyan-400 mb-4">AI審査員の評価</h3>
+                                <div class="text-sm text-white">
+                                    ${judgmentComments}
+                                </div>
+                            </div>
+                            <button onclick="location.href='/main'" class="w-full bg-cyan-500 hover:bg-cyan-600 text-black font-bold py-3 rounded">
+                                <i class="fas fa-home mr-2"></i>メインに戻る
+                            </button>
+                        </div>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', resultHTML);
+            }
 
             // Auto-scroll debate messages
             setInterval(() => {
@@ -681,6 +983,9 @@ export const watchPage = (user: any, debateId: string) => `
             const MAX_DEBATE_TIME = 60; // 1 minute in seconds
             const MAX_CHARS = 150;
             let conversationHistory = []; // 会話履歴を保持
+            let fogMode = false; // 霧モード（残り10%以下）
+            let aiVotes = { agree: 0, disagree: 0 }; // AI投票数
+            let aiJudges = []; // 3つのAI評価者
 
             async function startDebate() {
                 if (debateActive) {
@@ -708,9 +1013,24 @@ export const watchPage = (user: any, debateId: string) => `
                 const elapsed = Math.floor((Date.now() - debateStartTime) / 1000);
                 const remaining = MAX_DEBATE_TIME - elapsed;
                 
+                // 残り10%で霧モードオン（ゲージ非公開）
+                if (remaining <= MAX_DEBATE_TIME * 0.1 && !fogMode) {
+                    fogMode = true;
+                    showToast('⚠️ ゲージ非公開化！残り時間わずか。');
+                    document.getElementById('agreePercent').textContent = '???';
+                    document.getElementById('disagreePercent').textContent = '???';
+                    document.getElementById('voteStatus').textContent = '❓ 集計中...';
+                    // ゲージを霧状に
+                    document.getElementById('agreeBar').style.filter = 'blur(15px)';
+                    document.getElementById('disagreeBar').style.filter = 'blur(15px)';
+                }
+                
                 if (remaining <= 0) {
                     debateActive = false;
-                    showToast('ディベート終了（制限時間）');
+                    fogMode = false;
+                    
+                    // 最終投票モード（1分猶予）
+                    showFinalVotingModal();
                     return;
                 }
                 
@@ -791,7 +1111,6 @@ export const watchPage = (user: any, debateId: string) => `
                             </div>
                         </div>
                         <p class="text-sm leading-relaxed">\${message}</p>
-                        <p class="text-xs opacity-75 mt-2">たった今</p>
                     </div>
                 \`;
                 
@@ -799,14 +1118,14 @@ export const watchPage = (user: any, debateId: string) => `
                 container.scrollTop = container.scrollHeight;
             }
 
-            // タイピング演出版のメッセージ追加関数
+            // メッセージ追加関数（瞬時表示 + AI評価）
             function addDebateMessageWithTyping(side, message) {
                 const container = document.getElementById('debateMessages');
                 const bubbleClass = side === 'agree' ? 'bubble-agree' : 'bubble-disagree';
                 const aiModel = side === 'agree' ? 'GPT-4o' : 'Claude-3.5';
                 const iconClass = side === 'agree' ? 'fa-brain' : 'fa-lightbulb';
                 
-                // 空のバブルを作成
+                // 瞬時表示（タイピングなし）
                 const bubbleHTML = \`
                     <div class="bubble \${bubbleClass} p-4 text-white shadow-lg">
                         <div class="flex items-center mb-2">
@@ -818,31 +1137,20 @@ export const watchPage = (user: any, debateId: string) => `
                                 <p class="text-xs opacity-75">\${side === 'agree' ? '意見A' : '意見B'}</p>
                             </div>
                         </div>
-                        <p class="text-sm leading-relaxed typing-text"></p>
-                        <p class="text-xs opacity-75 mt-2">たった今</p>
+                        <p class="text-sm leading-relaxed">\${message}</p>
                     </div>
                 \`;
                 
                 container.insertAdjacentHTML('beforeend', bubbleHTML);
-                const typingElement = container.querySelector('.bubble:last-child .typing-text');
+                container.scrollTop = container.scrollHeight;
                 
                 // D1に保存
                 saveDebateMessageToD1(side, aiModel, message);
                 
-                // タイピング演出
-                let index = 0;
-                const typingSpeed = 30; // ms per character
-                
-                function typeNextChar() {
-                    if (index < message.length && debateActive) {
-                        typingElement.textContent += message[index];
-                        index++;
-                        container.scrollTop = container.scrollHeight;
-                        setTimeout(typeNextChar, typingSpeed);
-                    }
+                // AI評価を取得して表示
+                if (!fogMode) {
+                    getAIEvaluations(message, side);
                 }
-                
-                typeNextChar();
             }
 
             // ディベートメッセージをD1に保存
@@ -914,7 +1222,8 @@ export const watchPage = (user: any, debateId: string) => `
                                 const stanceText = comment.vote === 'agree' ? '意見A支持' : '意見B支持';
                                 const avatarGradient = comment.vote === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500';
                                 const initial = comment.username.charAt(0).toUpperCase();
-                                const formattedContent = comment.content.replace(/@(\w+)/g, '<span class="text-cyan-400 font-bold">@$1</span>');
+                                // メンション機能削除
+                                const formattedContent = comment.content;
                                 
                                 const commentDiv = document.createElement('div');
                                 commentDiv.className = 'comment-item ' + stanceClass + ' bg-gray-900/50 p-3 rounded border border-cyan-500/30';
@@ -929,7 +1238,6 @@ export const watchPage = (user: any, debateId: string) => `
                                                 <i class="fas fa-\${stanceIcon} mr-1"></i>\${stanceText}
                                             </p>
                                         </div>
-                                        <p class="text-xs text-gray-400">たった今</p>
                                     </div>
                                     <p class="text-sm text-gray-200">\${formattedContent}</p>
                                 \`;
