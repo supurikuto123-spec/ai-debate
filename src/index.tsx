@@ -327,7 +327,7 @@ app.post('/api/debate/generate', async (c) => {
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: messages,
-        max_tokens: maxTokens || 200,
+        max_tokens: 100, // 150文字制限を厳守
         temperature: temperature || 0.8
       })
     })
@@ -339,7 +339,12 @@ app.post('/api/debate/generate', async (c) => {
     }
     
     const data = await response.json()
-    const message = data.choices[0].message.content.trim()
+    let message = data.choices[0].message.content.trim()
+    
+    // 150文字制限を強制
+    if (message.length > 150) {
+      message = message.substring(0, 147) + '...'
+    }
     
     return c.json({ message })
   } catch (error) {
@@ -450,6 +455,24 @@ app.get('/api/debate/:debateId/messages', async (c) => {
   } catch (error) {
     console.error('Messages fetch error:', error)
     return c.json({ error: 'Failed to fetch messages' }, 500)
+  }
+})
+
+// API: ディベートメッセージを保存
+app.post('/api/debate/message', async (c) => {
+  try {
+    const { debateId, side, model, content } = await c.req.json()
+    const { DB } = c.env
+    
+    await DB.prepare(`
+      INSERT INTO debate_messages (debate_id, side, model, content)
+      VALUES (?, ?, ?, ?)
+    `).bind(debateId, side, model, content).run()
+    
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('Message save error:', error)
+    return c.json({ error: 'Failed to save message' }, 500)
   }
 })
 

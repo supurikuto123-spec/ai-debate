@@ -93,6 +93,22 @@ export const watchPage = (user: any, debateId: string) => `
                     left: 100%;
                 }
             }
+            /* 派手なゲージアニメーション */
+            .vote-bar {
+                transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+                box-shadow: 0 0 20px rgba(255,255,255,0.5);
+                animation: pulse-glow 2s infinite;
+            }
+            @keyframes pulse-glow {
+                0%, 100% {
+                    box-shadow: 0 0 20px rgba(255,255,255,0.5), 0 0 40px currentColor;
+                    filter: brightness(1);
+                }
+                50% {
+                    box-shadow: 0 0 30px rgba(255,255,255,0.8), 0 0 60px currentColor;
+                    filter: brightness(1.2);
+                }
+            }
         </style>
     </head>
     <body class="bg-black text-white overflow-x-hidden">
@@ -393,6 +409,10 @@ export const watchPage = (user: any, debateId: string) => `
                 hasVoted = true;
                 voteData[side]++;
                 voteData.total++;
+
+                // localStorageに保存
+                const storageKey = 'debate_vote_' + DEBATE_ID + '_' + currentUser.user_id;
+                localStorage.setItem(storageKey, side);
 
                 // Hide modal
                 document.getElementById('voteModal').classList.add('hidden');
@@ -770,6 +790,9 @@ export const watchPage = (user: any, debateId: string) => `
                 container.insertAdjacentHTML('beforeend', bubbleHTML);
                 const typingElement = container.querySelector('.bubble:last-child .typing-text');
                 
+                // D1に保存
+                saveDebateMessageToD1(side, aiModel, message);
+                
                 // タイピング演出
                 let index = 0;
                 const typingSpeed = 30; // ms per character
@@ -786,10 +809,64 @@ export const watchPage = (user: any, debateId: string) => `
                 typeNextChar();
             }
 
+            // ディベートメッセージをD1に保存
+            async function saveDebateMessageToD1(side, model, content) {
+                try {
+                    await fetch('/api/debate/message', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            debateId: DEBATE_ID,
+                            side: side,
+                            model: model,
+                            content: content
+                        })
+                    });
+                } catch (error) {
+                    console.error('Failed to save debate message:', error);
+                }
+            }
+
+            // ディベートメッセージをD1から読み込み
+            async function loadDebateMessagesFromD1() {
+                try {
+                    const response = await fetch('/api/debate/' + DEBATE_ID + '/messages');
+                    const data = await response.json();
+                    
+                    if (data.messages && data.messages.length > 0) {
+                        const container = document.getElementById('debateMessages');
+                        container.innerHTML = ''; // クリア
+                        
+                        for (const msg of data.messages) {
+                            addDebateMessage(msg.side, msg.content);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Failed to load debate messages:', error);
+                }
+            }
+
             // Initialize on page load
             window.addEventListener('DOMContentLoaded', () => {
                 initDemoVotes();
                 updateVoteDisplay();
+                loadDebateMessagesFromD1(); // ディベートメッセージを読み込み
+                
+                // localStorageから投票を復元
+                const storageKey = 'debate_vote_' + DEBATE_ID + '_' + currentUser.user_id;
+                const savedVote = localStorage.getItem(storageKey);
+                
+                if (savedVote) {
+                    // 既に投票済み - モーダルをスキップ
+                    userVote = savedVote;
+                    hasVoted = true;
+                    document.getElementById('voteModal').classList.add('hidden');
+                    highlightSelectedButton(savedVote);
+                    console.log('Restored vote from localStorage:', savedVote);
+                } else {
+                    // 未投票 - モーダルを表示
+                    document.getElementById('voteModal').classList.remove('hidden');
+                }
             });
         </script>
     </body>
