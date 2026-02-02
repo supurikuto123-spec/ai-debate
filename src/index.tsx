@@ -293,7 +293,7 @@ app.get('/watch/:debateId', async (c) => {
 // API: Generate AI debate response
 app.post('/api/debate/generate', async (c) => {
   try {
-    const { prompt, maxTokens } = await c.req.json()
+    const { prompt, maxTokens, temperature } = await c.req.json()
     const apiKey = c.env.OPENAI_API_KEY
     
     if (!apiKey) {
@@ -309,11 +309,11 @@ app.post('/api/debate/generate', async (c) => {
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: 'あなたは論理的なディベーターです。簡潔に150文字以内で意見を述べてください。' },
+          { role: 'system', content: 'あなたは専門知識を持つディベーターです。論理的根拠、具体的データ、専門家の見解を示しながら、建設的な議論を展開してください。相手の主張に対する反論も含めてください。' },
           { role: 'user', content: prompt }
         ],
-        max_tokens: maxTokens || 150,
-        temperature: 0.7
+        max_tokens: maxTokens || 200,
+        temperature: temperature || 0.8
       })
     })
     

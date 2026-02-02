@@ -630,6 +630,18 @@ export const watchPage = (user: any, debateId: string) => `
                     return;
                 }
 
+                // Check for !stop command (dev user only)
+                if (text === '!stop' && currentUser.user_id === 'dev') {
+                    input.value = '';
+                    if (debateActive) {
+                        debateActive = false;
+                        showToast('ディベートを停止しました');
+                    } else {
+                        showToast('ディベートは実行されていません');
+                    }
+                    return;
+                }
+
                 if (text.length > 500) {
                     showToast('コメントは500文字以内で入力してください');
                     return;
@@ -761,14 +773,18 @@ export const watchPage = (user: any, debateId: string) => `
                 if (!debateActive) return;
                 
                 const prompt = side === 'agree' 
-                    ? 'AIは人類の仕事を奪わない。技術革新は常に新しい職種を生み出してきた。簡潔に150文字以内で意見を述べてください。'
-                    : 'AIは人類の仕事を奪う。自動化のスピードが速すぎて労働者が適応できない。簡潔に150文字以内で意見を述べてください。';
+                    ? 'あなたは「AIは人類の仕事を奪わない」という立場です。具体的な統計データ、歴史的事例、専門家の見解を引用し、論理的に主張してください。相手の意見に反論しながら、建設的な議論を展開してください。150文字以内。'
+                    : 'あなたは「AIは人類の仕事を奪う」という立場です。具体的な統計データ、実例、労働市場の変化を示し、論理的に主張してください。相手の意見に反論しながら、建設的な議論を展開してください。150文字以内。';
                 
                 try {
                     const response = await fetch('/api/debate/generate', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ prompt, maxTokens: 150 })
+                        body: JSON.stringify({ 
+                            prompt, 
+                            maxTokens: 200,
+                            temperature: 0.8
+                        })
                     });
                     
                     if (!response.ok) {
@@ -780,13 +796,13 @@ export const watchPage = (user: any, debateId: string) => `
                     if (data.message && debateActive) {
                         addDebateMessage(side, data.message);
                         
-                        // Continue with opposite side after 2 seconds
+                        // Continue with opposite side after 3 seconds
                         setTimeout(() => {
                             if (debateActive) {
                                 const nextSide = side === 'agree' ? 'disagree' : 'agree';
                                 generateAIResponse(nextSide);
                             }
-                        }, 2000);
+                        }, 3000);
                     }
                 } catch (error) {
                     console.error('Debate error:', error);
