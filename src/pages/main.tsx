@@ -77,9 +77,9 @@ export const mainPage = (user: any) => `
                             <i class="fas fa-circle pulse"></i> LIVE
                         </div>
                         <div class="match-header">
-                            <h3 class="match-title">AI倫理：自律兵器は許されるか</h3>
+                            <h3 class="match-title">AIは人類の仕事を奪うのか</h3>
                             <div class="match-type ai-vs-ai">
-                                <i class="fas fa-robot"></i> AI vs AI
+                                <i class="fas fa-microchip"></i> AI vs AI
                             </div>
                         </div>
                         <div class="match-details">
@@ -98,20 +98,18 @@ export const mainPage = (user: any) => `
                         </div>
                         <div class="match-ais">
                             <div class="ai-card pro">
-                                <div class="ai-avatar"><i class="fas fa-robot"></i></div>
+                                <div class="ai-avatar"><i class="fas fa-brain"></i></div>
                                 <div class="ai-info">
-                                    <div class="ai-name">論理学者AI</div>
-                                    <div class="ai-model">Powered by GPT-4o</div>
-                                    <div class="ai-stance">賛成派</div>
+                                    <div class="ai-name">GPT-4o</div>
+                                    <div class="ai-model">意見A</div>
                                 </div>
                             </div>
                             <div class="vs-divider">VS</div>
                             <div class="ai-card con">
-                                <div class="ai-avatar"><i class="fas fa-brain"></i></div>
+                                <div class="ai-avatar"><i class="fas fa-lightbulb"></i></div>
                                 <div class="ai-info">
-                                    <div class="ai-name">倫理哲学AI</div>
-                                    <div class="ai-model">Powered by Claude-3.5</div>
-                                    <div class="ai-stance">反対派</div>
+                                    <div class="ai-name">Claude-3.5</div>
+                                    <div class="ai-model">意見B</div>
                                 </div>
                             </div>
                         </div>
@@ -128,7 +126,7 @@ export const mainPage = (user: any) => `
                         <div class="match-header">
                             <h3 class="match-title">ベーシックインカムは実現可能か</h3>
                             <div class="match-type ai-vs-human">
-                                <i class="fas fa-robot"></i> AI vs 人間
+                                <i class="fas fa-microchip"></i> AI vs 人間
                             </div>
                         </div>
                         <div class="match-details">
@@ -176,7 +174,7 @@ export const mainPage = (user: any) => `
                         <div class="match-header">
                             <h3 class="match-title">気候変動：原子力は必要か</h3>
                             <div class="match-type ai-vs-ai">
-                                <i class="fas fa-robot"></i> AI vs AI
+                                <i class="fas fa-microchip"></i> AI vs AI
                             </div>
                         </div>
                         <div class="match-details">
@@ -225,7 +223,7 @@ export const mainPage = (user: any) => `
                         <div class="match-header">
                             <h3 class="match-title">AGI開発：規制すべきか</h3>
                             <div class="match-type ai-vs-ai">
-                                <i class="fas fa-robot"></i> AI vs AI
+                                <i class="fas fa-microchip"></i> AI vs AI
                             </div>
                         </div>
                         <div class="match-details">
@@ -274,7 +272,7 @@ export const mainPage = (user: any) => `
                         <div class="match-header">
                             <h3 class="match-title">自由意志は存在するか</h3>
                             <div class="match-type ai-vs-ai">
-                                <i class="fas fa-robot"></i> AI vs AI
+                                <i class="fas fa-microchip"></i> AI vs AI
                             </div>
                         </div>
                         <div class="match-details">
@@ -313,53 +311,6 @@ export const mainPage = (user: any) => `
                         <button class="match-watch-btn finished">
                             <i class="fas fa-play mr-2"></i>リプレイ視聴
                         </button>
-                    </div>
-
-                    <!-- Match 6: Live -->
-                    <div class="match-card live" data-category="live">
-                        <div class="match-status live">
-                            <i class="fas fa-circle pulse"></i> LIVE
-                        </div>
-                        <div class="match-header">
-                            <h3 class="match-title">SNS規制：表現の自由 vs 社会秩序</h3>
-                            <div class="match-type human-vs-human">
-                                <i class="fas fa-users"></i> 人間 vs 人間
-                            </div>
-                        </div>
-                        <div class="match-details">
-                            <div class="match-time">
-                                <i class="fas fa-calendar-alt text-cyan-400 mr-2"></i>
-                                2026/01/28 14:45
-                            </div>
-                            <div class="match-duration">
-                                <i class="fas fa-hourglass-half text-magenta-400 mr-2"></i>
-                                残り 27分
-                            </div>
-                            <div class="match-viewers">
-                                <i class="fas fa-users text-green-400 mr-2"></i>
-                                95人 観戦中
-                            </div>
-                        </div>
-                        <div class="match-ais">
-                            <div class="ai-card pro">
-                                <div class="ai-avatar"><i class="fas fa-user"></i></div>
-                                <div class="ai-info">
-                                    <div class="ai-name">@sato_yuki</div>
-                                    <div class="ai-stance">賛成派</div>
-                                </div>
-                            </div>
-                            <div class="vs-divider">VS</div>
-                            <div class="ai-card con">
-                                <div class="ai-avatar"><i class="fas fa-user"></i></div>
-                                <div class="ai-info">
-                                    <div class="ai-name">@suzuki_rei</div>
-                                    <div class="ai-stance">反対派</div>
-                                </div>
-                            </div>
-                        </div>
-                        <a href="/watch/2" class="match-watch-btn live block text-center no-underline">
-                            <i class="fas fa-eye mr-2"></i>今すぐ観戦
-                        </a>
                     </div>
                 </div>
             </div>

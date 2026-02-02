@@ -205,8 +205,8 @@ export const watchPage = (user: any, debateId: string) => `
                                     <i class="fas fa-brain text-white"></i>
                                 </div>
                                 <div>
-                                    <p class="font-bold text-green-400">論理学者AI</p>
-                                    <p class="text-xs text-gray-400">Powered by GPT-4o</p>
+                                    <p class="font-bold text-green-400">GPT-4o</p>
+                                    <p class="text-xs text-gray-400">意見A</p>
                                 </div>
                             </div>
                             <p class="text-sm text-gray-300">
@@ -219,8 +219,8 @@ export const watchPage = (user: any, debateId: string) => `
                                     <i class="fas fa-lightbulb text-white"></i>
                                 </div>
                                 <div>
-                                    <p class="font-bold text-red-400">倫理哲学AI</p>
-                                    <p class="text-xs text-gray-400">Powered by Claude-3.5</p>
+                                    <p class="font-bold text-red-400">Claude-3.5</p>
+                                    <p class="text-xs text-gray-400">意見B</p>
                                 </div>
                             </div>
                             <p class="text-sm text-gray-300">
@@ -236,16 +236,16 @@ export const watchPage = (user: any, debateId: string) => `
                         </h4>
                         <div class="grid grid-cols-3 gap-4 text-sm">
                             <div>
-                                <span class="text-gray-400">ターン数:</span>
-                                <span class="text-white font-bold ml-2">10ターン</span>
+                                <span class="text-gray-400">総時間:</span>
+                                <span class="text-white font-bold ml-2">1分</span>
                             </div>
                             <div>
-                                <span class="text-gray-400">1ターンの時間:</span>
-                                <span class="text-white font-bold ml-2">最大3分</span>
+                                <span class="text-gray-400">AIモデル:</span>
+                                <span class="text-white font-bold ml-2">GPT-4o / Claude-3.5</span>
                             </div>
                             <div>
                                 <span class="text-gray-400">最大文字数:</span>
-                                <span class="text-white font-bold ml-2">500文字</span>
+                                <span class="text-white font-bold ml-2">150文字</span>
                             </div>
                         </div>
                     </div>
@@ -714,8 +714,8 @@ export const watchPage = (user: any, debateId: string) => `
 
             // Debate system
             let debateActive = false;
-            let debateTurn = 0;
-            const MAX_DEBATE_TIME = 60; // 1 minute
+            let debateStartTime = 0;
+            const MAX_DEBATE_TIME = 60; // 1 minute in seconds
             const MAX_CHARS = 150;
 
             async function startDebate() {
@@ -725,23 +725,40 @@ export const watchPage = (user: any, debateId: string) => `
                 }
                 
                 debateActive = true;
-                debateTurn = 0;
+                debateStartTime = Date.now();
                 
                 const debateMessages = document.getElementById('debateMessages');
                 debateMessages.innerHTML = '<div class="text-center text-cyan-300 p-4"><i class="fas fa-spinner fa-spin mr-2"></i>ディベート開始...</div>';
                 
-                // Start AI debate
-                await runDebateTurn('agree');
+                // Start countdown timer
+                updateDebateTimer();
+                
+                // Start first AI response
+                await generateAIResponse('agree');
             }
 
-            async function runDebateTurn(side) {
-                if (!debateActive || debateTurn >= 4) {
+            function updateDebateTimer() {
+                if (!debateActive) return;
+                
+                const elapsed = Math.floor((Date.now() - debateStartTime) / 1000);
+                const remaining = MAX_DEBATE_TIME - elapsed;
+                
+                if (remaining <= 0) {
                     debateActive = false;
-                    showToast('ディベート終了');
+                    showToast('ディベート終了（制限時間）');
                     return;
                 }
                 
-                debateTurn++;
+                const minutes = Math.floor(remaining / 60);
+                const seconds = remaining % 60;
+                document.getElementById('remainingTime').textContent = 
+                    \`\${minutes}:\${seconds.toString().padStart(2, '0')}\`;
+                
+                setTimeout(updateDebateTimer, 1000);
+            }
+
+            async function generateAIResponse(side) {
+                if (!debateActive) return;
                 
                 const prompt = side === 'agree' 
                     ? 'AIは人類の仕事を奪わない。技術革新は常に新しい職種を生み出してきた。簡潔に150文字以内で意見を述べてください。'
@@ -760,14 +777,16 @@ export const watchPage = (user: any, debateId: string) => `
                     
                     const data = await response.json();
                     
-                    if (data.message) {
+                    if (data.message && debateActive) {
                         addDebateMessage(side, data.message);
                         
-                        // Next turn
+                        // Continue with opposite side after 2 seconds
                         setTimeout(() => {
-                            const nextSide = side === 'agree' ? 'disagree' : 'agree';
-                            runDebateTurn(nextSide);
-                        }, 3000);
+                            if (debateActive) {
+                                const nextSide = side === 'agree' ? 'disagree' : 'agree';
+                                generateAIResponse(nextSide);
+                            }
+                        }, 2000);
                     }
                 } catch (error) {
                     console.error('Debate error:', error);
@@ -779,7 +798,6 @@ export const watchPage = (user: any, debateId: string) => `
             function addDebateMessage(side, message) {
                 const container = document.getElementById('debateMessages');
                 const bubbleClass = side === 'agree' ? 'bubble-agree' : 'bubble-disagree';
-                const aiName = side === 'agree' ? '論理学者AI' : '倫理哲学AI';
                 const aiModel = side === 'agree' ? 'GPT-4o' : 'Claude-3.5';
                 const iconClass = side === 'agree' ? 'fa-brain' : 'fa-lightbulb';
                 
@@ -790,8 +808,8 @@ export const watchPage = (user: any, debateId: string) => `
                                 <i class="fas \${iconClass}"></i>
                             </div>
                             <div>
-                                <p class="font-bold">\${aiName}</p>
-                                <p class="text-xs opacity-75">Powered by \${aiModel}</p>
+                                <p class="font-bold">\${aiModel}</p>
+                                <p class="text-xs opacity-75">\${side === 'agree' ? '意見A' : '意見B'}</p>
                             </div>
                         </div>
                         <p class="text-sm leading-relaxed">\${message}</p>
