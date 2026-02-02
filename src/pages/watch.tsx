@@ -941,8 +941,18 @@ export const watchPage = (user: any, debateId: string) => `
                 }
                 
                 // コメントボタンのイベントリスナー
-                document.getElementById('postCommentBtn').addEventListener('click', postComment);
-                document.getElementById('clearCommentBtn').addEventListener('click', clearCommentInput);
+                const postCommentBtn = document.getElementById('postCommentBtn');
+                const clearCommentBtn = document.getElementById('clearCommentBtn');
+                
+                if (postCommentBtn) {
+                    postCommentBtn.addEventListener('click', postComment);
+                }
+                
+                if (clearCommentBtn) {
+                    clearCommentBtn.addEventListener('click', clearCommentInput);
+                }
+                
+                console.log('Initialization complete!');
             });
         </script>
     </body>
