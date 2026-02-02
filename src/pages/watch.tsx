@@ -269,7 +269,7 @@ export const watchPage = (user: any, debateId: string) => `
                             </div>
                             <div>
                                 <span class="text-gray-400">最大文字数:</span>
-                                <span class="text-white font-bold ml-2">150文字</span>
+                                <span class="text-white font-bold ml-2">130文字</span>
                             </div>
                         </div>
                     </div>
@@ -703,9 +703,10 @@ export const watchPage = (user: any, debateId: string) => `
             async function generateAIResponse(side) {
                 if (!debateActive) return;
                 
+                const turnNumber = conversationHistory.length + 1;
                 const systemPrompt = side === 'agree' 
-                    ? 'あなたは「AIは人類の仕事を奪わない」という立場です。具体的な統計データ、歴史的事例、専門家の見解を引用し、論理的に主張してください。相手の意見に反論しながら、建設的な議論を展開してください。150文字以内。'
-                    : 'あなたは「AIは人類の仕事を奪う」という立場です。具体的な統計データ、実例、労働市場の変化を示し、論理的に主張してください。相手の意見に反論しながら、建設的な議論を展開してください。150文字以内。';
+                    ? \`ターン\${turnNumber}: AIは仕事を創出する立場。前回の議論を踏まえ、新しい角度から主張。データや事例を1つ挙げ、簡潔に反論。130文字厳守。\`
+                    : \`ターン\${turnNumber}: AIは仕事を奪う立場。前回の議論を踏まえ、新しい角度から主張。データや事例を1つ挙げ、簡潔に反論。130文字厳守。\`;
                 
                 try {
                     const response = await fetch('/api/debate/generate', {
@@ -714,8 +715,8 @@ export const watchPage = (user: any, debateId: string) => `
                         body: JSON.stringify({ 
                             systemPrompt,
                             conversationHistory, // 会話履歴を送信
-                            maxTokens: 200,
-                            temperature: 0.8
+                            maxTokens: 80,  // 短くする
+                            temperature: 0.9  // 多様性を増やす
                         })
                     });
                     

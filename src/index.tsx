@@ -341,9 +341,9 @@ app.post('/api/debate/generate', async (c) => {
     const data = await response.json()
     let message = data.choices[0].message.content.trim()
     
-    // 150文字制限を強制
-    if (message.length > 150) {
-      message = message.substring(0, 147) + '...'
+    // 130文字制限を厳格に実施
+    if (message.length > 130) {
+      message = message.substring(0, 130)
     }
     
     return c.json({ message })
