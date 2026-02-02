@@ -308,10 +308,10 @@ export const watchPage = (user: any, debateId: string) => `
                                     rows="4"
                                 ></textarea>
                                 <div class="flex gap-2 mt-2">
-                                    <button onclick="postComment()" class="btn-primary flex-1">
+                                    <button id="postCommentBtn" class="btn-primary flex-1">
                                         <i class="fas fa-paper-plane mr-2"></i>コメント送信
                                     </button>
-                                    <button onclick="clearCommentInput()" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded">
+                                    <button id="clearCommentBtn" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded">
                                         <i class="fas fa-times"></i>
                                     </button>
                                 </div>
@@ -852,6 +852,42 @@ export const watchPage = (user: any, debateId: string) => `
 
             // Initialize on page load
             window.addEventListener('DOMContentLoaded', () => {
+                console.log('Page loaded, initializing...');
+                
+                // 投票ボタンのイベントリスナーを先に設定
+                const agreeModalBtn = document.getElementById('voteAgreeModalBtn');
+                const disagreeModalBtn = document.getElementById('voteDisagreeModalBtn');
+                const agreeBtn = document.getElementById('voteAgreeBtn');
+                const disagreeBtn = document.getElementById('voteDisagreeBtn');
+                
+                if (agreeModalBtn) {
+                    agreeModalBtn.addEventListener('click', () => {
+                        console.log('Agree modal button clicked');
+                        submitVote('agree');
+                    });
+                }
+                
+                if (disagreeModalBtn) {
+                    disagreeModalBtn.addEventListener('click', () => {
+                        console.log('Disagree modal button clicked');
+                        submitVote('disagree');
+                    });
+                }
+                
+                if (agreeBtn) {
+                    agreeBtn.addEventListener('click', () => {
+                        console.log('Agree button clicked');
+                        changeVote('agree');
+                    });
+                }
+                
+                if (disagreeBtn) {
+                    disagreeBtn.addEventListener('click', () => {
+                        console.log('Disagree button clicked');
+                        changeVote('disagree');
+                    });
+                }
+                
                 initDemoVotes();
                 updateVoteDisplay();
                 loadDebateMessagesFromD1(); // ディベートメッセージを読み込み
@@ -870,13 +906,12 @@ export const watchPage = (user: any, debateId: string) => `
                 } else {
                     // 未投票 - モーダルを表示
                     document.getElementById('voteModal').classList.remove('hidden');
+                    console.log('No saved vote, showing modal');
                 }
                 
-                // 投票ボタンのイベントリスナー
-                document.getElementById('voteAgreeModalBtn').addEventListener('click', () => submitVote('agree'));
-                document.getElementById('voteDisagreeModalBtn').addEventListener('click', () => submitVote('disagree'));
-                document.getElementById('voteAgreeBtn').addEventListener('click', () => changeVote('agree'));
-                document.getElementById('voteDisagreeBtn').addEventListener('click', () => changeVote('disagree'));
+                // コメントボタンのイベントリスナー
+                document.getElementById('postCommentBtn').addEventListener('click', postComment);
+                document.getElementById('clearCommentBtn').addEventListener('click', clearCommentInput);
             });
         </script>
     </body>
