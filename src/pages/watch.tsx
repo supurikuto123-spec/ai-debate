@@ -73,6 +73,14 @@ export const watchPage = (user: any, debateId: string) => `
             .modal.hidden {
                 display: none;
             }
+            .vote-btn {
+                cursor: pointer;
+                position: relative;
+                z-index: 10000;
+            }
+            .vote-btn:hover {
+                transform: scale(1.05);
+            }
             .comment-agree {
                 border-left: 3px solid #10b981;
             }
@@ -866,11 +874,21 @@ export const watchPage = (user: any, debateId: string) => `
                 const agreeBtn = document.getElementById('voteAgreeBtn');
                 const disagreeBtn = document.getElementById('voteDisagreeBtn');
                 
+                console.log('Button elements found:', {
+                    agreeModalBtn: !!agreeModalBtn,
+                    disagreeModalBtn: !!disagreeModalBtn,
+                    agreeBtn: !!agreeBtn,
+                    disagreeBtn: !!disagreeBtn
+                });
+                
                 if (agreeModalBtn) {
                     agreeModalBtn.addEventListener('click', () => {
                         console.log('Agree modal button clicked');
                         submitVote('agree');
                     });
+                    console.log('Agree modal button listener added');
+                } else {
+                    console.error('Agree modal button not found!');
                 }
                 
                 if (disagreeModalBtn) {
@@ -878,6 +896,9 @@ export const watchPage = (user: any, debateId: string) => `
                         console.log('Disagree modal button clicked');
                         submitVote('disagree');
                     });
+                    console.log('Disagree modal button listener added');
+                } else {
+                    console.error('Disagree modal button not found!');
                 }
                 
                 if (agreeBtn) {
@@ -885,6 +906,8 @@ export const watchPage = (user: any, debateId: string) => `
                         console.log('Agree button clicked');
                         changeVote('agree');
                     });
+                } else {
+                    console.error('Agree button not found!');
                 }
                 
                 if (disagreeBtn) {
@@ -892,6 +915,8 @@ export const watchPage = (user: any, debateId: string) => `
                         console.log('Disagree button clicked');
                         changeVote('disagree');
                     });
+                } else {
+                    console.error('Disagree button not found!');
                 }
                 
                 initDemoVotes();
