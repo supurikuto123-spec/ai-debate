@@ -700,7 +700,25 @@ export const watchPage = (user: any, debateId: string) => `
                         return '[' + sideName + ']: ' + msg.content;
                     }).join('\n');
                     
-                    const prompt = '以下のディベート全体を評価してください：\n' + fullDebate + '\n\n最新の発言「' + message + '」を評価してください。\n\n評価基準：\n- !! : とても良い（形勢が一気に変わるような決定的な発言）\n- ! : 優れた意見（有利に働く発言）\n- それ未満の優れた意見 : 符号なし（評価は必要だが表示不要）\n- ? : 悪手（相手の意見に飲まれている、形勢が逆転しそう）\n- ?? : 意図不明（何が目的かわからないほど的外れor致命的な失言）\n\n!! ! ? ?? に当てはまる場合のみ、符号と短いコメント（15文字以内）を返してください。\nそれ以外の場合は符号なしで返してください。\n\nフォーマット: { "symbol": "!!" or "!" or "?" or "??" or null, "comment": "短いコメント" or "" }';
+                    const promptParts = [
+                        '以下のディベート全体を評価してください：',
+                        fullDebate,
+                        '',
+                        '最新の発言「' + message + '」を評価してください。',
+                        '',
+                        '評価基準：',
+                        '- !! : とても良い（形勢が一気に変わるような決定的な発言）',
+                        '- ! : 優れた意見（有利に働く発言）',
+                        '- それ未満の優れた意見 : 符号なし（評価は必要だが表示不要）',
+                        '- ? : 悪手（相手の意見に飲まれている、形勢が逆転しそう）',
+                        '- ?? : 意図不明（何が目的かわからないほど的外れor致命的な失言）',
+                        '',
+                        '!! ! ? ?? に当てはまる場合のみ、符号と短いコメント（15文字以内）を返してください。',
+                        'それ以外の場合は符号なしで返してください。',
+                        '',
+                        'フォーマット: { "symbol": "!!" or "!" or "?" or "??" or null, "comment": "短いコメント" or "" }'
+                    ];
+                    const prompt = promptParts.join('\n');
 
                     const response = await fetch('/api/debate/generate', {
                         method: 'POST',
@@ -804,7 +822,14 @@ export const watchPage = (user: any, debateId: string) => `
             
             async function getAIJudgment(fullDebate, aiName, temperature) {
                 try {
-                    const prompt = '以下のディベート全体を評価してください：\n' + fullDebate + '\n\nどちらが現時点で優勢か判定してください。\nフォーマット: { "winner": "agree" または "disagree" }';
+                    const promptParts = [
+                        '以下のディベート全体を評価してください：',
+                        fullDebate,
+                        '',
+                        'どちらが現時点で優勢か判定してください。',
+                        'フォーマット: { "winner": "agree" または "disagree" }'
+                    ];
+                    const prompt = promptParts.join('\n');
                     
                     const response = await fetch('/api/debate/generate', {
                         method: 'POST',
@@ -987,7 +1012,14 @@ export const watchPage = (user: any, debateId: string) => `
             
             async function getFinalJudgment(debate, aiName, temperature) {
                 try {
-                    const prompt = '以下のディベート全体を評価してください：\n' + debate + '\n\nあなたは' + aiName + 'です。どちらが説得力があったか判定し、理由を簡潔に述べてください（50文字以内）。\nフォーマット: { "winner": "agree or disagree", "reason": "理由" }';
+                    const promptParts = [
+                        '以下のディベート全体を評価してください：',
+                        debate,
+                        '',
+                        'あなたは' + aiName + 'です。どちらが説得力があったか判定し、理由を簡潔に述べてください（50文字以内）。',
+                        'フォーマット: { "winner": "agree or disagree", "reason": "理由" }'
+                    ];
+                    const prompt = promptParts.join('\n');
                     
                     const response = await fetch('/api/debate/generate', {
                         method: 'POST',
