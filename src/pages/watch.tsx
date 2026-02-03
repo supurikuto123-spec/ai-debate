@@ -403,12 +403,19 @@ export const watchPage = (user: any, debateId: string) => `
             <span id="toastMessage"></span>
         </div>
 
+        <div id="app-data" 
+             data-debate-id="${debateId}" 
+             data-user-id="${user.user_id}" 
+             data-user-credits="${user.credits}"
+             style="display:none;"></div>
+        
         <script>
             // Debate and User data
-            const DEBATE_ID = '${debateId}';
+            const appData = document.getElementById('app-data');
+            const DEBATE_ID = appData.dataset.debateId;
             const currentUser = {
-                user_id: '${user.user_id}',
-                credits: ${user.credits}
+                user_id: appData.dataset.userId,
+                credits: parseInt(appData.dataset.userCredits)
             };
 
             // Vote state
