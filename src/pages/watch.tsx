@@ -421,9 +421,8 @@ export const watchPage = (user: any, debateId: string) => `
             };
             
             // AI評価システム用グローバル変数
-            let ai1Votes = { agree: 0, disagree: 0 };  // 評価AI #1
-            let ai2Votes = { agree: 0, disagree: 0 };  // 評価AI #2
-            let ai3Votes = { agree: 0, disagree: 0 };  // 評価AI #3
+            let aiVotesDistribution = { agree: 0, disagree: 0 };  // 3つのAIの投票配分
+            let lastUserCount = 0;  // 前回のユーザー総数（差分計算用）
             let fogMode = false;  // ゲージ霧モード（残り10%で有効）
             let finalVotingMode = false;  // 最終投票モード（1分猶予）
 
@@ -674,100 +673,185 @@ export const watchPage = (user: any, debateId: string) => `
             }
             
             // AI評価システム（3つのAIが評価）
+            // AI評価システム：符号出現時のみ評価・投票
             async function getAIEvaluations(message, side) {
                 try {
-                    // 3つのAI評価を並列取得
-                    const evaluations = await Promise.all([
-                        getAIEvaluation(message, side, 'AI-1', 0.7),
-                        getAIEvaluation(message, side, 'AI-2', 0.8),
-                        getAIEvaluation(message, side, 'AI-3', 0.9)
-                    ]);
+                    // 1つのAI評価を取得（符号判定）
+                    const evaluation = await getAIEvaluation(message, side);
                     
-                    // 評価を集計
-                    const totalUsers = voteData.total;
-                    const votesPerAI = Math.floor(totalUsers / 3);
-                    
-                    evaluations.forEach((evaluation, index) => {
-                        if (evaluation && evaluation.support) {
-                            if (evaluation.support === 'agree') {
-                                ai1Votes.agree += votesPerAI;
-                            } else {
-                                ai1Votes.disagree += votesPerAI;
-                            }
-                        }
-                    });
-                    
-                    // 評価表示エリアを更新
-                    displayAIEvaluation(evaluations[0], side);
-                    
-                    // ゲージを更新
-                    updateVoteDisplay();
+                    // 符号がある場合のみ処理
+                    if (evaluation.shouldVote) {
+                        // 評価を表示
+                        displayAIEvaluation(evaluation, side);
+                        
+                        // 全ディベート内容を送って3つのAIに再評価させる
+                        await performAIVoting(side);
+                    }
                 } catch (error) {
                     console.error('AI evaluation error:', error);
                 }
             }
             
-            async function getAIEvaluation(message, side, aiName, temperature) {
+            async function getAIEvaluation(message, side) {
                 try {
-                    // シンプルなルールベース評価でチェス符号を決定
-                    const hasData = /\d+|%|統計|調査|研究|データ|報告/.test(message);
-                    const hasLogic = /例えば|なぜなら|したがって|その結果|つまり/.test(message);
-                    const hasCounter = /しかし|一方|ただし|とはいえ|むしろ/.test(message);
+                    // 厳格な判定：!!、?、?? のみ表示、それ以外は評価のみ（表示なし）
+                    const hasStrongData = /(\d{2,}|\d+%|\d+人|\d+億|OECD|WHO|国連|政府|研究所)/.test(message);
+                    const hasMultipleLogic = (message.match(/例えば|なぜなら|したがって|その結果|つまり|事実/g) || []).length >= 2;
+                    const hasStrongCounter = /しかし|反論|誤り|間違い|逆に/.test(message);
+                    const hasWeakLogic = !(/例えば|なぜなら|したがって|その結果|つまり/.test(message));
                     const messageLength = message.length;
                     
-                    let symbol = '!';
+                    let symbol = null;  // デフォルトは表示なし
                     let comment = '';
                     
-                    // 符号の決定
-                    if (hasData && hasLogic && messageLength > 100) {
-                        symbol = '!!';  // 優秀：データ + 論理 + 十分な長さ
-                        comment = 'データと論理的根拠あり';
-                    } else if (hasData || (hasLogic && messageLength > 80)) {
-                        symbol = '!';   // 良い：データまたは論理的
-                        comment = '説得力のある主張';
-                    } else if (messageLength < 50 || !hasLogic) {
-                        symbol = '?';   // 疑問：短すぎるか論理不足
-                        comment = '根拠がやや不足';
-                    } else if (hasCounter && !hasData) {
-                        symbol = '??';  // 問題：反論のみでデータなし
-                        comment = '具体性が不足';
+                    // !! - とても良い（形勢が一気に変わるような発言）
+                    if (hasStrongData && hasMultipleLogic && messageLength >= 100) {
+                        symbol = '!!';
+                        const comments = [
+                            '決定的な論拠！形勢変化',
+                            '圧倒的な説得力',
+                            'データと論理が完璧',
+                            '議論を制する一手'
+                        ];
+                        comment = comments[Math.floor(Math.random() * comments.length)];
+                    }
+                    // ! - 優れた意見（有利に働く発言）
+                    else if ((hasStrongData && messageLength >= 80) || (hasMultipleLogic && hasStrongData)) {
+                        symbol = '!';
+                        const comments = [
+                            '有力な主張',
+                            '形勢を優位に',
+                            '説得力のある論理',
+                            '優れた反論'
+                        ];
+                        comment = comments[Math.floor(Math.random() * comments.length)];
+                    }
+                    // ? - 悪手（相手の意見に飲まれている）
+                    else if ((hasStrongCounter && !hasStrongData && messageLength < 80) || (hasWeakLogic && messageLength < 60)) {
+                        symbol = '?';
+                        const comments = [
+                            '根拠不足で劣勢',
+                            '反論が弱い',
+                            '形勢が傾く',
+                            '説得力に欠ける'
+                        ];
+                        comment = comments[Math.floor(Math.random() * comments.length)];
+                    }
+                    // ?? - 意図不明（的外れor失言）
+                    else if (messageLength < 40 || (hasStrongCounter && !hasStrongData && !hasMultipleLogic)) {
+                        symbol = '??';
+                        const comments = [
+                            '論点がずれている',
+                            '致命的な失言',
+                            '意図が不明確',
+                            '大きく形勢を損なう'
+                        ];
+                        comment = comments[Math.floor(Math.random() * comments.length)];
                     }
                     
-                    // ランダムに少し変化させる（AI感を出す）
-                    const rand = Math.random();
-                    if (rand < 0.15 && symbol === '!') symbol = '!!';
-                    if (rand < 0.15 && symbol === '?') symbol = '!';
-                    
-                    // 支持判定（発言内容から判断）
-                    const support = side;
-                    
-                    // 短いコメントをランダム生成
-                    const comments = {
-                        '!!': ['データ重視で優秀', '論理的で説得力大', '具体例が明確', '根拠が充実'],
-                        '!': ['説得力あり', '論理的主張', '一定の根拠あり', 'バランス良好'],
-                        '?': ['根拠がやや弱い', '具体性不足', '論理展開に疑問', '証拠不十分'],
-                        '??': ['主張が不明確', '根拠が欠如', '論理が弱い', '再考が必要']
-                    };
-                    
-                    const randomComment = comments[symbol][Math.floor(Math.random() * comments[symbol].length)];
-                    
-                    return { 
-                        symbol: symbol, 
-                        comment: randomComment,
-                        support: support 
-                    };
+                    // 符号がある場合のみ返す
+                    if (symbol) {
+                        return { symbol, comment, support: side, shouldVote: true };
+                    } else {
+                        return { symbol: null, comment: '', support: side, shouldVote: false };
+                    }
                 } catch (error) {
-                    return { symbol: '?', comment: '評価中...', support: side };
+                    return { symbol: null, comment: '', support: side, shouldVote: false };
+                }
+            }
+            
+            // AI投票：符号出現時のみ、全文を送って3つのAIが再評価
+            async function performAIVoting(currentSide) {
+                try {
+                    // 全ディベート内容を結合
+                    const fullDebate = conversationHistory.map(msg => 
+                        `[${msg.side === 'agree' ? '意見A' : '意見B'}]: ${msg.content}`
+                    ).join('\n');
+                    
+                    // 3つのAIに並列で評価させる
+                    const judgments = await Promise.all([
+                        getAIJudgment(fullDebate, 'AI-Judge-1', 0.7),
+                        getAIJudgment(fullDebate, 'AI-Judge-2', 0.8),
+                        getAIJudgment(fullDebate, 'AI-Judge-3', 0.9)
+                    ]);
+                    
+                    // 現在のユーザー総数を取得
+                    const currentUserCount = voteData.total;
+                    
+                    // 増加分のユーザー数を計算
+                    const newUsers = currentUserCount - lastUserCount;
+                    
+                    // 3つのAIに均等配分（増加分のみ）
+                    const votesPerAI = Math.floor(newUsers / 3);
+                    
+                    if (votesPerAI > 0) {
+                        // 各AIの判定に基づいて投票
+                        judgments.forEach(judgment => {
+                            if (judgment && judgment.winner) {
+                                if (judgment.winner === 'agree') {
+                                    aiVotesDistribution.agree += votesPerAI;
+                                    voteData.agree += votesPerAI;
+                                } else {
+                                    aiVotesDistribution.disagree += votesPerAI;
+                                    voteData.disagree += votesPerAI;
+                                }
+                                voteData.total += votesPerAI;
+                            }
+                        });
+                        
+                        // 最後のユーザー数を更新
+                        lastUserCount = currentUserCount;
+                        
+                        // ゲージを更新
+                        updateVoteDisplay();
+                    }
+                } catch (error) {
+                    console.error('AI voting error:', error);
+                }
+            }
+            
+            async function getAIJudgment(fullDebate, aiName, temperature) {
+                try {
+                    const prompt = `以下のディベート全体を評価してください：\n${fullDebate}\n\nどちらが現時点で優勢か判定してください。\nフォーマット: { "winner": "agree" または "disagree" }`;
+                    
+                    const response = await fetch('/api/debate/generate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            systemPrompt: 'あなたは公平なディベート審査員です。',
+                            conversationHistory: [{ role: 'user', content: prompt }],
+                            maxTokens: 50,
+                            temperature: temperature
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    try {
+                        // JSONパース試行
+                        const result = JSON.parse(data.message);
+                        return result;
+                    } catch {
+                        // パース失敗時は文字列から判定
+                        if (data.message.includes('agree') || data.message.includes('意見A')) {
+                            return { winner: 'agree' };
+                        } else {
+                            return { winner: 'disagree' };
+                        }
+                    }
+                } catch (error) {
+                    return { winner: 'agree' };  // デフォルト
                 }
             }
             
             function displayAIEvaluation(evaluation, side) {
-                if (!evaluation) return;
+                if (!evaluation || !evaluation.symbol) return;  // 符号がない場合は表示しない
                 
                 const container = document.getElementById('debateMessages');
+                const symbolColor = evaluation.symbol === '!!' || evaluation.symbol === '!' ? 'text-green-400' : 'text-red-400';
                 const evalHTML = `
-                    <div class="text-xs text-gray-400 italic text-right px-4 py-1">
-                        <span class="font-bold text-cyan-400">${evaluation.symbol}</span> ${evaluation.comment}
+                    <div class="text-xs text-gray-400 italic text-right px-4 py-1 animate-fade-in">
+                        <span class="font-bold ${symbolColor} text-lg">${evaluation.symbol}</span> 
+                        <span class="text-gray-300">${evaluation.comment}</span>
                     </div>
                 `;
                 container.insertAdjacentHTML('beforeend', evalHTML);
@@ -1151,32 +1235,47 @@ export const watchPage = (user: any, debateId: string) => `
                 const aiModel = side === 'agree' ? 'GPT-4o' : 'Claude-3.5';
                 const iconClass = side === 'agree' ? 'fa-brain' : 'fa-lightbulb';
                 
-                // 瞬時表示（タイピングなし）
-                const bubbleHTML = \`
-                    <div class="bubble \${bubbleClass} p-4 text-white shadow-lg">
-                        <div class="flex items-center mb-2">
-                            <div class="w-10 h-10 rounded-full bg-gradient-to-br \${side === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500'} flex items-center justify-center mr-3">
-                                <i class="fas \${iconClass}"></i>
-                            </div>
-                            <div>
-                                <p class="font-bold">\${aiModel}</p>
-                                <p class="text-xs opacity-75">\${side === 'agree' ? '意見A' : '意見B'}</p>
-                            </div>
+                // 枠を先に生成
+                const bubbleDiv = document.createElement('div');
+                bubbleDiv.className = `bubble ${bubbleClass} p-4 text-white shadow-lg`;
+                bubbleDiv.innerHTML = \`
+                    <div class="flex items-center mb-2">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br \${side === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500'} flex items-center justify-center mr-3">
+                            <i class="fas \${iconClass}"></i>
                         </div>
-                        <p class="text-sm leading-relaxed">\${message}</p>
+                        <div>
+                            <p class="font-bold">\${aiModel}</p>
+                            <p class="text-xs opacity-75">\${side === 'agree' ? '意見A' : '意見B'}</p>
+                        </div>
                     </div>
+                    <p class="text-sm leading-relaxed typing-text"></p>
                 \`;
                 
-                container.insertAdjacentHTML('beforeend', bubbleHTML);
+                container.appendChild(bubbleDiv);
                 container.scrollTop = container.scrollHeight;
                 
-                // D1に保存
-                saveDebateMessageToD1(side, aiModel, message);
+                // タイピング演出（1文字ずつ）
+                const textElement = bubbleDiv.querySelector('.typing-text');
+                let charIndex = 0;
+                const typingSpeed = 30; // 30ms per character
                 
-                // AI評価を取得して表示
-                if (!fogMode) {
-                    getAIEvaluations(message, side);
+                function typeChar() {
+                    if (charIndex < message.length && debateActive) {
+                        textElement.textContent += message.charAt(charIndex);
+                        charIndex++;
+                        container.scrollTop = container.scrollHeight;
+                        setTimeout(typeChar, typingSpeed);
+                    } else {
+                        // タイピング完了後にD1保存とAI評価
+                        saveDebateMessageToD1(side, aiModel, message);
+                        
+                        if (!fogMode) {
+                            getAIEvaluations(message, side);
+                        }
+                    }
                 }
+                
+                typeChar();
             }
 
             // ディベートメッセージをD1に保存
