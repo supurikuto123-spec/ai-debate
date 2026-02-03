@@ -737,7 +737,7 @@
             const MAX_DEBATE_TIME = 60; // 1 minute in seconds
             const MAX_CHARS = 150;
             let conversationHistory = []; // 会話履歴を保持
-            let fogMode = false; // 霧モード（残り10%以下）
+            // fogMode is already declared at line 32
             let aiVotes = { agree: 0, disagree: 0 }; // AI投票数
             let aiJudges = []; // 3つのAI評価者
 
