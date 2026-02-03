@@ -64,10 +64,11 @@
             }
             window.submitVote = submitVote;
 
-            // Change vote
+            // Change vote (also works as initial vote)
             function changeVote(side) {
                 if (!hasVoted) {
-                    showToast('エラー: 初回投票が必要です');
+                    // 初回投票として扱う
+                    submitVote(side);
                     return;
                 }
 
@@ -80,6 +81,10 @@
                 voteData[userVote]--;
                 voteData[side]++;
                 userVote = side;
+
+                // Update localStorage
+                const storageKey = 'debate_vote_' + DEBATE_ID + '_' + currentUser.user_id;
+                localStorage.setItem(storageKey, side);
 
                 // Update UI
                 updateVoteDisplay();
@@ -122,8 +127,8 @@
 
                     document.getElementById('agreePercent').textContent = agreePercent;
                     document.getElementById('disagreePercent').textContent = disagreePercent;
-                    document.getElementById('agreePercentSymbol').textContent = '%';
-                    document.getElementById('disagreePercentSymbol').textContent = '%';
+                    document.getElementById('agreePercentSymbol').textContent = '% (' + voteData.agree + '票)';
+                    document.getElementById('disagreePercentSymbol').textContent = '% (' + voteData.disagree + '票)';
                     document.getElementById('voteStatus').innerHTML = '<i class="fas fa-users mr-2"></i>総投票数: ' + voteData.total.toLocaleString() + '人';
                     document.getElementById('agreeBar').style.width = agreePercent + '%';
                     document.getElementById('disagreeBar').style.width = disagreePercent + '%';
@@ -288,16 +293,13 @@
             // AI評価システム：符号出現時のみ評価・投票
             async function getAIEvaluations(message, side) {
                 try {
-                    // 1つのAI評価を取得（符号判定）
-                    const evaluation = await getAIEvaluation(message, side);
+                    // 全ディベート内容を送って3つのAIに常に評価させる
+                    await performAIVoting(side);
                     
-                    // 符号がある場合のみ処理
+                    // 符号判定も並行して実行
+                    const evaluation = await getAIEvaluation(message, side);
                     if (evaluation.shouldVote) {
-                        // 評価を表示
                         displayAIEvaluation(evaluation, side);
-                        
-                        // 全ディベート内容を送って3つのAIに再評価させる
-                        await performAIVoting(side);
                     }
                 } catch (error) {
                     console.error('AI evaluation error:', error);
@@ -396,6 +398,18 @@
                         getAIJudgment(fullDebate, 'AI-Judge-2', 0.8),
                         getAIJudgment(fullDebate, 'AI-Judge-3', 0.9)
                     ]);
+                    
+                    // UI更新：各審査員の評価を表示
+                    judgments.forEach((judgment, index) => {
+                        const judgeId = 'judge' + (index + 1) + '-eval';
+                        const elem = document.getElementById(judgeId);
+                        if (elem && judgment && judgment.winner) {
+                            const winner = judgment.winner === 'agree' ? '意見A' : '意見B';
+                            const color = judgment.winner === 'agree' ? 'text-green-400' : 'text-red-400';
+                            elem.className = 'text-sm ' + color;
+                            elem.textContent = winner + ' が優勢';
+                        }
+                    });
                     
                     // 現在のユーザー総数を取得
                     const currentUserCount = voteData.total;
@@ -785,9 +799,13 @@
                     document.getElementById('agreePercent').textContent = '???';
                     document.getElementById('disagreePercent').textContent = '???';
                     document.getElementById('voteStatus').textContent = '❓ 集計中...';
-                    // ゲージを霧状に
-                    document.getElementById('agreeBar').style.filter = 'blur(15px)';
-                    document.getElementById('disagreeBar').style.filter = 'blur(15px)';
+                    // ゲージを完全に隠す（blur + グラデーション）
+                    const agreeBar = document.getElementById('agreeBar');
+                    const disagreeBar = document.getElementById('disagreeBar');
+                    agreeBar.style.filter = 'blur(20px)';
+                    disagreeBar.style.filter = 'blur(20px)';
+                    agreeBar.style.background = 'linear-gradient(90deg, #333, #555, #333)';
+                    disagreeBar.style.background = 'linear-gradient(90deg, #333, #555, #333)';
                 }
                 
                 if (remaining <= 0) {
@@ -909,7 +927,7 @@
                 container.appendChild(bubbleDiv);
                 container.scrollTop = container.scrollHeight;
                 
-                // 枠が完全に表示されるまで待つ（200ms）
+                // 枠が完全に表示されるまで待つ（500ms）
                 setTimeout(() => {
                     // タイピング演出（1文字ずつ）
                     const textElement = bubbleDiv.querySelector('.typing-text');
@@ -933,7 +951,7 @@
                     }
                     
                     typeChar();
-                }, 200);
+                }, 500);
             }
 
             // ディベートメッセージをD1に保存

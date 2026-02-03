@@ -325,6 +325,28 @@ export const watchPage = (user: any, debateId: string) => `
                     </div>
                 </div>
 
+                <!-- AI Judges Evaluation Section -->
+                <div class="cyber-card mt-6">
+                    <h3 class="text-xl font-bold mb-4 flex items-center">
+                        <i class="fas fa-gavel mr-3 text-cyan-400"></i>
+                        AI審査員の評価
+                    </h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between bg-gray-900/50 p-3 rounded">
+                            <span class="text-sm font-bold">AI-Judge-1:</span>
+                            <span id="judge1-eval" class="text-sm text-gray-400">評価中...</span>
+                        </div>
+                        <div class="flex items-center justify-between bg-gray-900/50 p-3 rounded">
+                            <span class="text-sm font-bold">AI-Judge-2:</span>
+                            <span id="judge2-eval" class="text-sm text-gray-400">評価中...</span>
+                        </div>
+                        <div class="flex items-center justify-between bg-gray-900/50 p-3 rounded">
+                            <span class="text-sm font-bold">AI-Judge-3:</span>
+                            <span id="judge3-eval" class="text-sm text-gray-400">評価中...</span>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Winner Prediction Section -->
                 <div class="cyber-card mt-6">
                     <h3 class="text-2xl font-bold mb-4 flex items-center">
