@@ -695,9 +695,10 @@ export const watchPage = (user: any, debateId: string) => `
             async function getAIEvaluation(message, side) {
                 try {
                     // AIに評価させる（毎ターン）
-                    const fullDebate = conversationHistory.map(msg => 
-                        `[${msg.side === 'agree' ? '意見A' : '意見B'}]: ${msg.content}`
-                    ).join('\n');
+                    const fullDebate = conversationHistory.map(msg => {
+                        const sideName = msg.side === 'agree' ? '意見A' : '意見B';
+                        return `[${sideName}]: ${msg.content}`;
+                    }).join('\n');
                     
                     const prompt = `以下のディベート全体を評価してください：
 ${fullDebate}
@@ -712,6 +713,9 @@ ${fullDebate}
 - ?? : 意図不明（何が目的かわからないほど的外れor致命的な失言）
 
 !! ! ? ?? に当てはまる場合のみ、符号と短いコメント（15文字以内）を返してください。
+それ以外の場合は符号なしで返してください。
+
+フォーマット: { "symbol": "!!" or "!" or "?" or "??" or null, "comment": "短いコメント" or "" }`;
 それ以外の場合は符号なしで返してください。
 
 フォーマット: { "symbol": "!!" or "!" or "?" or "??" or null, "comment": "短いコメント" or "" }`;
@@ -769,9 +773,10 @@ ${fullDebate}
             async function performAIVoting(currentSide) {
                 try {
                     // 全ディベート内容を結合
-                    const fullDebate = conversationHistory.map(msg => 
-                        `[${msg.side === 'agree' ? '意見A' : '意見B'}]: ${msg.content}`
-                    ).join('\n');
+                    const fullDebate = conversationHistory.map(msg => {
+                        const sideName = msg.side === 'agree' ? '意見A' : '意見B';
+                        return `[${sideName}]: ${msg.content}`;
+                    }).join('\n');
                     
                     // 3つのAIに並列で評価させる
                     const judgments = await Promise.all([
