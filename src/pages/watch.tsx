@@ -843,9 +843,22 @@ export const watchPage = (user: any, debateId: string) => `
                 
                 const container = document.getElementById('debateMessages');
                 const symbolColor = evaluation.symbol === '!!' || evaluation.symbol === '!' ? 'text-green-400' : 'text-red-400';
+                
+                // 符号を絵文字/アイコンに変換
+                let symbolIcon = '';
+                if (evaluation.symbol === '!!') {
+                    symbolIcon = '<i class="fas fa-star text-yellow-400"></i><i class="fas fa-star text-yellow-400"></i>';
+                } else if (evaluation.symbol === '!') {
+                    symbolIcon = '<i class="fas fa-star text-yellow-400"></i>';
+                } else if (evaluation.symbol === '?') {
+                    symbolIcon = '<i class="fas fa-question-circle text-orange-400"></i>';
+                } else if (evaluation.symbol === '??') {
+                    symbolIcon = '<i class="fas fa-exclamation-triangle text-red-400"></i>';
+                }
+                
                 const evalHTML = `
                     <div class="text-xs text-gray-400 italic text-right px-4 py-1 animate-fade-in">
-                        <span class="font-bold ${symbolColor} text-lg">${evaluation.symbol}</span> 
+                        <span class="font-bold ${symbolColor} text-lg">${symbolIcon}</span> 
                         <span class="text-gray-300">${evaluation.comment}</span>
                     </div>
                 `;
