@@ -698,7 +698,7 @@ export const watchPage = (user: any, debateId: string) => `
                     const fullDebate = conversationHistory.map(msg => {
                         const sideName = msg.side === 'agree' ? '意見A' : '意見B';
                         return '[' + sideName + ']: ' + msg.content;
-                    }).join('\n');
+                    }).join(String.fromCharCode(10));
                     
                     const promptParts = [
                         '以下のディベート全体を評価してください：',
@@ -718,7 +718,7 @@ export const watchPage = (user: any, debateId: string) => `
                         '',
                         'フォーマット: { "symbol": "!!" or "!" or "?" or "??" or null, "comment": "短いコメント" or "" }'
                     ];
-                    const prompt = promptParts.join('\n');
+                    const prompt = promptParts.join(String.fromCharCode(10));
 
                     const response = await fetch('/api/debate/generate', {
                         method: 'POST',
@@ -776,7 +776,7 @@ export const watchPage = (user: any, debateId: string) => `
                     const fullDebate = conversationHistory.map(msg => {
                         const sideName = msg.side === 'agree' ? '意見A' : '意見B';
                         return '[' + sideName + ']: ' + msg.content;
-                    }).join('\n');
+                    }).join(String.fromCharCode(10));
                     
                     // 3つのAIに並列で評価させる
                     const judgments = await Promise.all([
@@ -829,7 +829,7 @@ export const watchPage = (user: any, debateId: string) => `
                         'どちらが現時点で優勢か判定してください。',
                         'フォーマット: { "winner": "agree" または "disagree" }'
                     ];
-                    const prompt = promptParts.join('\n');
+                    const prompt = promptParts.join(String.fromCharCode(10));
                     
                     const response = await fetch('/api/debate/generate', {
                         method: 'POST',
@@ -977,7 +977,7 @@ export const watchPage = (user: any, debateId: string) => `
                 showToast('AIによる最終評価を実施中...');
                 
                 // 全会話を再評価
-                const fullDebate = conversationHistory.map(msg => msg.content).join('\n');
+                const fullDebate = conversationHistory.map(msg => msg.content).join(String.fromCharCode(10));
                 
                 try {
                     // 3つのAIによる最終評価
@@ -1019,7 +1019,7 @@ export const watchPage = (user: any, debateId: string) => `
                         'あなたは' + aiName + 'です。どちらが説得力があったか判定し、理由を簡潔に述べてください（50文字以内）。',
                         'フォーマット: { "winner": "agree or disagree", "reason": "理由" }'
                     ];
-                    const prompt = promptParts.join('\n');
+                    const prompt = promptParts.join(String.fromCharCode(10));
                     
                     const response = await fetch('/api/debate/generate', {
                         method: 'POST',
