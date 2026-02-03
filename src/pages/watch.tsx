@@ -412,11 +412,17 @@ export const watchPage = (user: any, debateId: string) => `
         <script>
             // Debate and User data
             const appData = document.getElementById('app-data');
-            const DEBATE_ID = appData.dataset.debateId;
+            console.log('App data element:', appData);
+            console.log('Dataset:', appData ? appData.dataset : 'NULL');
+            
+            const DEBATE_ID = appData ? appData.dataset.debateId : '${debateId}';
             const currentUser = {
-                user_id: appData.dataset.userId,
-                credits: parseInt(appData.dataset.userCredits)
+                user_id: appData ? appData.dataset.userId : '${user.user_id}',
+                credits: appData ? parseInt(appData.dataset.userCredits) : ${user.credits}
             };
+            
+            console.log('DEBATE_ID:', DEBATE_ID);
+            console.log('currentUser:', currentUser);
 
             // Vote state
             let userVote = null;
