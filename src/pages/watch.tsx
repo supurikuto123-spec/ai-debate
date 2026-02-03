@@ -1240,22 +1240,22 @@ export const watchPage = (user: any, debateId: string) => `
                 const bubbleClass = side === 'agree' ? 'bubble-agree' : 'bubble-disagree';
                 const aiModel = side === 'agree' ? 'GPT-4o' : 'Claude-3.5';
                 const iconClass = side === 'agree' ? 'fa-brain' : 'fa-lightbulb';
+                const gradientClass = side === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500';
+                const opinionLabel = side === 'agree' ? '意見A' : '意見B';
                 
                 // 枠を先に生成
                 const bubbleDiv = document.createElement('div');
-                bubbleDiv.className = `bubble ${bubbleClass} p-4 text-white shadow-lg`;
-                bubbleDiv.innerHTML = \`
-                    <div class="flex items-center mb-2">
-                        <div class="w-10 h-10 rounded-full bg-gradient-to-br \${side === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500'} flex items-center justify-center mr-3">
-                            <i class="fas \${iconClass}"></i>
-                        </div>
-                        <div>
-                            <p class="font-bold">\${aiModel}</p>
-                            <p class="text-xs opacity-75">\${side === 'agree' ? '意見A' : '意見B'}</p>
-                        </div>
-                    </div>
-                    <p class="text-sm leading-relaxed typing-text"></p>
-                \`;
+                bubbleDiv.className = 'bubble ' + bubbleClass + ' p-4 text-white shadow-lg';
+                bubbleDiv.innerHTML = '<div class="flex items-center mb-2">' +
+                    '<div class="w-10 h-10 rounded-full bg-gradient-to-br ' + gradientClass + ' flex items-center justify-center mr-3">' +
+                        '<i class="fas ' + iconClass + '"></i>' +
+                    '</div>' +
+                    '<div>' +
+                        '<p class="font-bold">' + aiModel + '</p>' +
+                        '<p class="text-xs opacity-75">' + opinionLabel + '</p>' +
+                    '</div>' +
+                '</div>' +
+                '<p class="text-sm leading-relaxed typing-text"></p>';
                 
                 container.appendChild(bubbleDiv);
                 container.scrollTop = container.scrollHeight;
