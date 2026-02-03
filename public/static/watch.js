@@ -178,12 +178,12 @@
                 if (text === '!deld' && currentUser.user_id === 'dev') {
                     input.value = '';
                     const debateMessages = document.getElementById('debateMessages');
-                    debateMessages.innerHTML = \`
+                    debateMessages.innerHTML = `
                         <div class="text-center text-gray-400 p-8">
                             <i class="fas fa-info-circle text-4xl mb-4 text-cyan-400"></i>
                             <p class="text-lg">devユーザーでコメント欄に <span class="text-cyan-300 font-bold">!debate</span> と入力してディベートを開始</p>
                         </div>
-                    \`;
+                    `;
                     conversationHistory = []; // 会話履歴もクリア
                     debateActive = false; // ディベート停止
                     showToast('全ディベート履歴を削除しました');
@@ -210,7 +210,7 @@
                 commentDiv.className = 'comment-item ' + stanceClass + ' bg-gray-900/50 p-3 rounded border border-cyan-500/30';
                 
                 const initial = currentUser.user_id.charAt(0).toUpperCase();
-                commentDiv.innerHTML = \`
+                commentDiv.innerHTML = `
                     <div class="flex items-center mb-2">
                         <div class="w-8 h-8 rounded-full bg-gradient-to-br \${avatarGradient} flex items-center justify-center text-xs font-bold mr-2">
                             \${initial}
@@ -223,7 +223,7 @@
                         </div>
                     </div>
                     <p class="text-sm text-gray-200">\${formattedText}</p>
-                \`;
+                `;
 
                 // Add to top
                 commentsList.insertBefore(commentDiv, commentsList.firstChild);
@@ -720,7 +720,7 @@
                 const minutes = Math.floor(remainingSeconds / 60);
                 const seconds = remainingSeconds % 60;
                 document.getElementById('remainingTime').textContent = 
-                    \`\${minutes}:\${seconds.toString().padStart(2, '0')}\`;
+                    `\${minutes}:\${seconds.toString().padStart(2, '0')}`;
             }, 1000);
 
             // Simulate viewer count changes
@@ -791,7 +791,7 @@
                 const minutes = Math.floor(remaining / 60);
                 const seconds = remaining % 60;
                 document.getElementById('remainingTime').textContent = 
-                    \`\${minutes}:\${seconds.toString().padStart(2, '0')}\`;
+                    `\${minutes}:\${seconds.toString().padStart(2, '0')}`;
                 
                 setTimeout(updateDebateTimer, 1000);
             }
@@ -801,8 +801,8 @@
                 
                 const turnNumber = conversationHistory.length + 1;
                 const systemPrompt = side === 'agree' 
-                    ? \`ターン\${turnNumber}: AIは仕事を創出する立場。前回の議論を踏まえ、新しい角度から主張。データや事例を1つ挙げ、簡潔に反論。130文字厳守。\`
-                    : \`ターン\${turnNumber}: AIは仕事を奪う立場。前回の議論を踏まえ、新しい角度から主張。データや事例を1つ挙げ、簡潔に反論。130文字厳守。\`;
+                    ? `ターン\${turnNumber}: AIは仕事を創出する立場。前回の議論を踏まえ、新しい角度から主張。データや事例を1つ挙げ、簡潔に反論。130文字厳守。`
+                    : `ターン\${turnNumber}: AIは仕事を奪う立場。前回の議論を踏まえ、新しい角度から主張。データや事例を1つ挙げ、簡潔に反論。130文字厳守。`;
                 
                 try {
                     const response = await fetch('/api/debate/generate', {
@@ -853,7 +853,7 @@
                 const aiModel = side === 'agree' ? 'GPT-4o' : 'Claude-3.5';
                 const iconClass = side === 'agree' ? 'fa-brain' : 'fa-lightbulb';
                 
-                const bubbleHTML = \`
+                const bubbleHTML = `
                     <div class="bubble \${bubbleClass} p-4 text-white shadow-lg">
                         <div class="flex items-center mb-2">
                             <div class="w-10 h-10 rounded-full bg-gradient-to-br \${side === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500'} flex items-center justify-center mr-3">
@@ -866,7 +866,7 @@
                         </div>
                         <p class="text-sm leading-relaxed">\${message}</p>
                     </div>
-                \`;
+                `;
                 
                 container.insertAdjacentHTML('beforeend', bubbleHTML);
                 container.scrollTop = container.scrollHeight;
@@ -996,7 +996,7 @@
                                 
                                 const commentDiv = document.createElement('div');
                                 commentDiv.className = 'comment-item ' + stanceClass + ' bg-gray-900/50 p-3 rounded border border-cyan-500/30';
-                                commentDiv.innerHTML = \`
+                                commentDiv.innerHTML = `
                                     <div class="flex items-center mb-2">
                                         <div class="w-8 h-8 rounded-full bg-gradient-to-br \${avatarGradient} flex items-center justify-center text-xs font-bold mr-2">
                                             \${initial}
@@ -1009,7 +1009,7 @@
                                         </div>
                                     </div>
                                     <p class="text-sm text-gray-200">\${formattedContent}</p>
-                                \`;
+                                `;
                                 
                                 commentsList.insertBefore(commentDiv, commentsList.firstChild);
                             }
