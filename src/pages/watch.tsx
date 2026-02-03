@@ -13,7 +13,6 @@ export const watchPage = (user: any, debateId: string) => `
             .bubble {
                 max-width: 70%;
                 margin-bottom: 16px;
-                animation: slideIn 0.3s ease-out;
             }
             .bubble-agree {
                 align-self: flex-start;
@@ -26,16 +25,6 @@ export const watchPage = (user: any, debateId: string) => `
                 background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
                 border-radius: 16px 0 16px 16px;
                 border-right: 4px solid #f87171;
-            }
-            @keyframes slideIn {
-                from {
-                    opacity: 0;
-                    transform: translateY(10px);
-                }
-                to {
-                    opacity: 1;
-                    transform: translateY(0);
-                }
             }
             .vote-bar {
                 transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
@@ -264,7 +253,7 @@ export const watchPage = (user: any, debateId: string) => `
                         <div class="grid grid-cols-3 gap-4 text-sm">
                             <div>
                                 <span class="text-gray-400">総時間:</span>
-                                <span class="text-white font-bold ml-2">1分</span>
+                                <span class="text-white font-bold ml-2" id="debateTimeLimit">60秒</span>
                             </div>
                             <div>
                                 <span class="text-gray-400">AIモデル:</span>
@@ -272,7 +261,7 @@ export const watchPage = (user: any, debateId: string) => `
                             </div>
                             <div>
                                 <span class="text-gray-400">最大文字数:</span>
-                                <span class="text-white font-bold ml-2">130文字</span>
+                                <span class="text-white font-bold ml-2" id="debateCharLimit">150文字</span>
                             </div>
                         </div>
                     </div>

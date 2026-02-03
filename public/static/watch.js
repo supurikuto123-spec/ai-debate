@@ -740,8 +740,13 @@
             // Debate system
             let debateActive = false;
             let debateStartTime = 0;
-            const MAX_DEBATE_TIME = 60; // 1 minute in seconds
+            const MAX_DEBATE_TIME = 60; // 60 seconds
             const MAX_CHARS = 150;
+            
+            // Update UI with actual values
+            document.getElementById('debateTimeLimit').textContent = MAX_DEBATE_TIME + '秒';
+            document.getElementById('debateCharLimit').textContent = MAX_CHARS + '文字';
+            
             let conversationHistory = []; // 会話履歴を保持
             // fogMode is already declared at line 32
             let aiVotes = { agree: 0, disagree: 0 }; // AI投票数
@@ -904,33 +909,31 @@
                 container.appendChild(bubbleDiv);
                 container.scrollTop = container.scrollHeight;
                 
-                // 枠が描画されるまで少し待つ（ブラウザの次のフレーム）
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        // タイピング演出（1文字ずつ）
-                        const textElement = bubbleDiv.querySelector('.typing-text');
-                        let charIndex = 0;
-                        const typingSpeed = 30; // 30ms per character
-                        
-                        function typeChar() {
-                            if (charIndex < message.length && debateActive) {
-                                textElement.textContent += message.charAt(charIndex);
-                                charIndex++;
-                                container.scrollTop = container.scrollHeight;
-                                setTimeout(typeChar, typingSpeed);
-                            } else {
-                                // タイピング完了後にD1保存とAI評価
-                                saveDebateMessageToD1(side, aiModel, message);
-                                
-                                if (!fogMode) {
-                                    getAIEvaluations(message, side);
-                                }
+                // 枠が完全に表示されるまで待つ（200ms）
+                setTimeout(() => {
+                    // タイピング演出（1文字ずつ）
+                    const textElement = bubbleDiv.querySelector('.typing-text');
+                    let charIndex = 0;
+                    const typingSpeed = 30; // 30ms per character
+                    
+                    function typeChar() {
+                        if (charIndex < message.length && debateActive) {
+                            textElement.textContent += message.charAt(charIndex);
+                            charIndex++;
+                            container.scrollTop = container.scrollHeight;
+                            setTimeout(typeChar, typingSpeed);
+                        } else {
+                            // タイピング完了後にD1保存とAI評価
+                            saveDebateMessageToD1(side, aiModel, message);
+                            
+                            if (!fogMode) {
+                                getAIEvaluations(message, side);
                             }
                         }
-                        
-                        typeChar();
-                    });
-                });
+                    }
+                    
+                    typeChar();
+                }, 200);
             }
 
             // ディベートメッセージをD1に保存
@@ -990,19 +993,19 @@
                     const data = await response.json();
                     
                     if (data.comments && data.comments.length > 0) {
-                        // 新しいコメントがある場合のみ更新
-                        if (data.comments.length !== lastCommentCount) {
-                            const commentsList = document.getElementById('commentsList');
-                            commentsList.innerHTML = ''; // クリア
+                        const commentsList = document.getElementById('commentsList');
+                        
+                        // 新しいコメントのみ追加（増分更新）
+                        if (data.comments.length > lastCommentCount) {
+                            const newComments = data.comments.slice(lastCommentCount);
                             
-                            for (const comment of data.comments) {
+                            for (const comment of newComments) {
                                 const stanceClass = comment.vote === 'agree' ? 'comment-agree' : 'comment-disagree';
                                 const stanceColor = comment.vote === 'agree' ? 'green' : 'red';
                                 const stanceIcon = comment.vote === 'agree' ? 'thumbs-up' : 'thumbs-down';
                                 const stanceText = comment.vote === 'agree' ? '意見A支持' : '意見B支持';
                                 const avatarGradient = comment.vote === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500';
                                 const initial = comment.username.charAt(0).toUpperCase();
-                                // メンション機能削除
                                 const formattedContent = comment.content;
                                 
                                 const commentDiv = document.createElement('div');
@@ -1023,9 +1026,10 @@
                                 `;
                                 
                                 commentsList.appendChild(commentDiv);
-                commentsList.scrollTop = commentsList.scrollHeight; // 最下部にスクロール
                             }
                             
+                            // 最下部にスクロール
+                            commentsList.scrollTop = commentsList.scrollHeight;
                             lastCommentCount = data.comments.length;
                         }
                     }

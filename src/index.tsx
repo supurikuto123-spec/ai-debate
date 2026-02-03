@@ -468,6 +468,24 @@ app.get('/api/debate/:debateId/messages', async (c) => {
   }
 })
 
+// API: ディベートメッセージを削除
+app.delete('/api/debate/:debateId/messages', async (c) => {
+  try {
+    const debateId = c.req.param('debateId')
+    const { DB } = c.env
+    
+    await DB.prepare(`
+      DELETE FROM debate_messages
+      WHERE debate_id = ?
+    `).bind(debateId).run()
+    
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('Messages delete error:', error)
+    return c.json({ error: 'Failed to delete messages' }, 500)
+  }
+})
+
 // API: ディベートメッセージを保存
 app.post('/api/debate/message', async (c) => {
   try {
