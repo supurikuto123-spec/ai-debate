@@ -40,23 +40,7 @@ export const watchPage = (user: any, debateId: string) => `
             .vote-bar {
                 transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
                 position: relative;
-                overflow: hidden;
                 box-shadow: inset 0 2px 8px rgba(0,0,0,0.3);
-            }
-            .vote-bar::before {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: -100%;
-                width: 100%;
-                height: 100%;
-                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-                animation: shimmer 2s ease-in-out;
-                animation-iteration-count: 3;
-            }
-            @keyframes shimmer {
-                0% { left: -100%; }
-                100% { left: 200%; }
             }
             .modal {
                 display: flex;
@@ -345,7 +329,7 @@ export const watchPage = (user: any, debateId: string) => `
                             </div>
 
                             <!-- Comments List (固定高さ、新着が下) -->
-                            <div id="commentsList" class="space-y-3" style="height: 500px; overflow-y: auto; scroll-behavior: smooth; display: flex; flex-direction: column-reverse;">
+                            <div id="commentsList" class="space-y-3" style="height: 500px; overflow-y: auto; scroll-behavior: smooth; display: flex; flex-direction: column;">
                                 <!-- コメントはここに動的に追加される -->
                             </div>
                         </div>

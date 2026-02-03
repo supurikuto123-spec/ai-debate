@@ -186,7 +186,12 @@
                     `;
                     conversationHistory = []; // 会話履歴もクリア
                     debateActive = false; // ディベート停止
-                    showToast('全ディベート履歴を削除しました');
+                    
+                    // D1データベースからも削除
+                    fetch('/api/debate/' + DEBATE_ID + '/messages', { method: 'DELETE' })
+                        .then(() => showToast('全ディベート履歴を削除しました'))
+                        .catch(err => showToast('削除エラー: ' + err.message));
+                    
                     return;
                 }
 
@@ -226,7 +231,8 @@
                 `;
 
                 // Add to top
-                commentsList.insertBefore(commentDiv, commentsList.firstChild);
+                commentsList.appendChild(commentDiv);
+                commentsList.scrollTop = commentsList.scrollHeight; // 最下部にスクロール
 
                 // D1に保存
                 saveCommentToD1(text);
@@ -898,28 +904,33 @@
                 container.appendChild(bubbleDiv);
                 container.scrollTop = container.scrollHeight;
                 
-                // タイピング演出（1文字ずつ）
-                const textElement = bubbleDiv.querySelector('.typing-text');
-                let charIndex = 0;
-                const typingSpeed = 30; // 30ms per character
-                
-                function typeChar() {
-                    if (charIndex < message.length && debateActive) {
-                        textElement.textContent += message.charAt(charIndex);
-                        charIndex++;
-                        container.scrollTop = container.scrollHeight;
-                        setTimeout(typeChar, typingSpeed);
-                    } else {
-                        // タイピング完了後にD1保存とAI評価
-                        saveDebateMessageToD1(side, aiModel, message);
+                // 枠が描画されるまで少し待つ（ブラウザの次のフレーム）
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        // タイピング演出（1文字ずつ）
+                        const textElement = bubbleDiv.querySelector('.typing-text');
+                        let charIndex = 0;
+                        const typingSpeed = 30; // 30ms per character
                         
-                        if (!fogMode) {
-                            getAIEvaluations(message, side);
+                        function typeChar() {
+                            if (charIndex < message.length && debateActive) {
+                                textElement.textContent += message.charAt(charIndex);
+                                charIndex++;
+                                container.scrollTop = container.scrollHeight;
+                                setTimeout(typeChar, typingSpeed);
+                            } else {
+                                // タイピング完了後にD1保存とAI評価
+                                saveDebateMessageToD1(side, aiModel, message);
+                                
+                                if (!fogMode) {
+                                    getAIEvaluations(message, side);
+                                }
+                            }
                         }
-                    }
-                }
-                
-                typeChar();
+                        
+                        typeChar();
+                    });
+                });
             }
 
             // ディベートメッセージをD1に保存
@@ -1011,7 +1022,8 @@
                                     <p class="text-sm text-gray-200">${formattedContent}</p>
                                 `;
                                 
-                                commentsList.insertBefore(commentDiv, commentsList.firstChild);
+                                commentsList.appendChild(commentDiv);
+                commentsList.scrollTop = commentsList.scrollHeight; // 最下部にスクロール
                             }
                             
                             lastCommentCount = data.comments.length;
