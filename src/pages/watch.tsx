@@ -729,7 +729,7 @@ export const watchPage = (user: any, debateId: string) => `
                         '!! ! ? ?? に当てはまる場合のみ、符号と短いコメント（15文字以内）を返してください。',
                         'それ以外の場合は符号なしで返してください。',
                         '',
-                        'フォーマット: { "symbol": "!!" or "!" or "?" or "??" or null, "comment": "短いコメント" or "" }'
+                        'Output format: JSON with symbol (!! or ! or ? or ?? or null) and comment (string or empty)'
                     ];
                     const prompt = promptParts.join(String.fromCharCode(10));
 
@@ -840,7 +840,7 @@ export const watchPage = (user: any, debateId: string) => `
                         fullDebate,
                         '',
                         'どちらが現時点で優勢か判定してください。',
-                        'フォーマット: { "winner": "agree" または "disagree" }'
+                        'Output format: JSON with winner (agree or disagree)'
                     ];
                     const prompt = promptParts.join(String.fromCharCode(10));
                     
@@ -1030,7 +1030,7 @@ export const watchPage = (user: any, debateId: string) => `
                         debate,
                         '',
                         'あなたは' + aiName + 'です。どちらが説得力があったか判定し、理由を簡潔に述べてください（50文字以内）。',
-                        'フォーマット: { "winner": "agree or disagree", "reason": "理由" }'
+                        'Output format: JSON with winner (agree or disagree) and reason (50 chars max)'
                     ];
                     const prompt = promptParts.join(String.fromCharCode(10));
                     
