@@ -810,10 +810,9 @@
                 
                 if (remaining <= 0) {
                     debateActive = false;
-                    fogMode = false;
                     
-                    // 最終投票モード（1分猶予）
-                    showFinalVotingModal();
+                    // 最終投票期間を開始（1分間）
+                    startFinalVotingPeriod();
                     return;
                 }
                 
@@ -823,6 +822,111 @@
                     `${minutes}:${seconds.toString().padStart(2, '0')}`;
                 
                 setTimeout(updateDebateTimer, 1000);
+            }
+
+            // 最終投票期間（1分間）
+            function startFinalVotingPeriod() {
+                showToast('⏰ ディベート終了！1分以内に最終投票を確定してください');
+                
+                // 投票確定ボタンを表示
+                const confirmBtn = document.createElement('button');
+                confirmBtn.id = 'confirmVoteBtn';
+                confirmBtn.className = 'w-full bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-4 px-6 rounded-lg text-xl mt-6 transition-all';
+                confirmBtn.innerHTML = '<i class="fas fa-check-circle mr-2"></i>投票を確定する';
+                
+                // Winner Prediction セクションに追加
+                const predictionSection = document.querySelector('.vote-prediction-btn').parentElement.parentElement;
+                predictionSection.appendChild(confirmBtn);
+                
+                let finalVotingTimeLeft = 60; // 60秒
+                let userConfirmed = false;
+                
+                // カウントダウン表示を追加
+                const countdownDiv = document.createElement('div');
+                countdownDiv.id = 'finalCountdown';
+                countdownDiv.className = 'text-center text-xl text-cyan-400 mt-4';
+                countdownDiv.textContent = '残り時間: 60秒';
+                predictionSection.appendChild(countdownDiv);
+                
+                // 確定ボタンクリック
+                confirmBtn.addEventListener('click', () => {
+                    if (!hasVoted) {
+                        showToast('エラー: まず意見を選択してください');
+                        return;
+                    }
+                    userConfirmed = true;
+                    confirmBtn.disabled = true;
+                    confirmBtn.textContent = '投票確定済み - 他の参加者を待っています...';
+                    showToast('✅ 投票が確定されました');
+                });
+                
+                // カウントダウンタイマー
+                const finalTimer = setInterval(() => {
+                    finalVotingTimeLeft--;
+                    countdownDiv.textContent = '残り時間: ' + finalVotingTimeLeft + '秒';
+                    
+                    if (finalVotingTimeLeft <= 0) {
+                        clearInterval(finalTimer);
+                        
+                        // 未投票の場合はエラー
+                        if (!hasVoted) {
+                            showToast('エラー: 投票が必要です');
+                            // 投票モーダルを再表示
+                            document.getElementById('voteModal').classList.remove('hidden');
+                            return;
+                        }
+                        
+                        // 未確定でも自動確定
+                        if (!userConfirmed) {
+                            showToast('⏰ 時間切れ - 現在の選択で自動確定しました');
+                        }
+                        
+                        // 結果画面へ遷移
+                        showFinalResults();
+                    }
+                }, 1000);
+            }
+
+            // 最終結果表示
+            function showFinalResults() {
+                const agreePercent = Math.round((voteData.agree / voteData.total) * 100);
+                const disagreePercent = 100 - agreePercent;
+                const winner = voteData.agree > voteData.disagree ? '意見A' : '意見B';
+                const winnerColor = voteData.agree > voteData.disagree ? 'text-green-400' : 'text-red-400';
+                
+                // 結果モーダルを作成
+                const resultModal = document.createElement('div');
+                resultModal.className = 'fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center z-50';
+                resultModal.innerHTML = '<div class="cyber-card max-w-2xl w-full mx-4">' +
+                    '<h2 class="text-4xl font-bold text-center mb-8">' +
+                        '<i class="fas fa-trophy mr-3 text-yellow-400"></i>' +
+                        '最終結果' +
+                    '</h2>' +
+                    '<div class="text-center mb-8">' +
+                        '<p class="text-2xl mb-4">勝者</p>' +
+                        '<p class="text-5xl font-bold ' + winnerColor + ' mb-4">' + winner + '</p>' +
+                    '</div>' +
+                    '<div class="grid grid-cols-2 gap-6 mb-8">' +
+                        '<div class="text-center p-6 bg-green-500/20 rounded">' +
+                            '<p class="text-xl mb-2">意見A</p>' +
+                            '<p class="text-4xl font-bold text-green-400">' + agreePercent + '%</p>' +
+                            '<p class="text-sm text-gray-400 mt-2">' + voteData.agree + ' 票</p>' +
+                        '</div>' +
+                        '<div class="text-center p-6 bg-red-500/20 rounded">' +
+                            '<p class="text-xl mb-2">意見B</p>' +
+                            '<p class="text-4xl font-bold text-red-400">' + disagreePercent + '%</p>' +
+                            '<p class="text-sm text-gray-400 mt-2">' + voteData.disagree + ' 票</p>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="text-center">' +
+                        '<p class="text-lg text-gray-400 mb-6">総投票数: ' + voteData.total + ' 人</p>' +
+                        '<button onclick="location.href=\'/\'" class="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 px-8 rounded-lg">' +
+                            '<i class="fas fa-home mr-2"></i>トップページへ' +
+                        '</button>' +
+                    '</div>' +
+                '</div>';
+                
+                document.body.appendChild(resultModal);
             }
 
             async function generateAIResponse(side) {
