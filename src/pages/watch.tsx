@@ -870,32 +870,30 @@ export const watchPage = (user: any, debateId: string) => `
                 finalVotingMode = true;
                 
                 // モーダル作成
-                const modalHTML = `
-                    <div id="finalVoteModal" class="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center z-50">
-                        <div class="bg-gray-900 border-4 border-cyan-500 rounded-lg p-8 max-w-lg w-full mx-4 shadow-2xl">
-                            <h2 class="text-3xl font-bold text-cyan-400 mb-4 text-center">
-                                <i class="fas fa-gavel mr-2"></i>最終判定
-                            </h2>
-                            <p class="text-white text-center mb-6">
-                                ディベート終了！<br>
-                                <span class="text-cyan-300">1分以内</span>に最終的な支持を決定してください。
-                            </p>
-                            <div class="grid grid-cols-2 gap-4">
-                                <button id="finalVoteAgree" class="bg-green-500/20 border-2 border-green-500 hover:bg-green-500/40 p-6 rounded transition-all">
-                                    <i class="fas fa-check-circle text-4xl mb-2"></i>
-                                    <p class="font-bold">意見Aを支持</p>
-                                </button>
-                                <button id="finalVoteDisagree" class="bg-red-500/20 border-2 border-red-500 hover:bg-red-500/40 p-6 rounded transition-all">
-                                    <i class="fas fa-times-circle text-4xl mb-2"></i>
-                                    <p class="font-bold">意見Bを支持</p>
-                                </button>
-                            </div>
-                            <p class="text-xs text-gray-400 text-center mt-4">
-                                未選択の場合、現在の投票がそのまま反映されます
-                            </p>
-                        </div>
-                    </div>
-                `;
+                const modalHTML = '<div id="finalVoteModal" class="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center z-50">' +
+                    '<div class="bg-gray-900 border-4 border-cyan-500 rounded-lg p-8 max-w-lg w-full mx-4 shadow-2xl">' +
+                        '<h2 class="text-3xl font-bold text-cyan-400 mb-4 text-center">' +
+                            '<i class="fas fa-gavel mr-2"></i>最終判定' +
+                        '</h2>' +
+                        '<p class="text-white text-center mb-6">' +
+                            'ディベート終了！<br>' +
+                            '<span class="text-cyan-300">1分以内</span>に最終的な支持を決定してください。' +
+                        '</p>' +
+                        '<div class="grid grid-cols-2 gap-4">' +
+                            '<button id="finalVoteAgree" class="bg-green-500/20 border-2 border-green-500 hover:bg-green-500/40 p-6 rounded transition-all">' +
+                                '<i class="fas fa-check-circle text-4xl mb-2"></i>' +
+                                '<p class="font-bold">意見Aを支持</p>' +
+                            '</button>' +
+                            '<button id="finalVoteDisagree" class="bg-red-500/20 border-2 border-red-500 hover:bg-red-500/40 p-6 rounded transition-all">' +
+                                '<i class="fas fa-times-circle text-4xl mb-2"></i>' +
+                                '<p class="font-bold">意見Bを支持</p>' +
+                            '</button>' +
+                        '</div>' +
+                        '<p class="text-xs text-gray-400 text-center mt-4">' +
+                            '未選択の場合、現在の投票がそのまま反映されます' +
+                        '</p>' +
+                    '</div>' +
+                '</div>';
                 document.body.insertAdjacentHTML('beforeend', modalHTML);
                 
                 // イベントリスナー
@@ -1026,46 +1024,46 @@ export const watchPage = (user: any, debateId: string) => `
                 const winnerColor = voteData.agree > voteData.disagree ? 'text-green-400' : 'text-red-400';
                 
                 // AI評価コメントを表示
-                const judgmentComments = judgments.map((j, i) => 
-                    `<div class="mb-2"><span class="text-cyan-400 font-bold">AI-Judge-${i+1}:</span> ${j?.reason || '評価中...'}</div>`
-                ).join('');
+                const judgmentComments = judgments.map((j, i) => {
+                    const judgeNum = i + 1;
+                    const reason = j ? (j.reason || '評価中...') : '評価中...';
+                    return '<div class="mb-2"><span class="text-cyan-400 font-bold">AI-Judge-' + judgeNum + ':</span> ' + reason + '</div>';
+                }).join('');
                 
                 // 結果モーダル
-                const resultHTML = `
-                    <div id="resultModal" class="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center z-50">
-                        <div class="bg-gray-900 border-4 border-cyan-500 rounded-lg p-8 max-w-2xl w-full mx-4 shadow-2xl">
-                            <h2 class="text-4xl font-bold text-cyan-400 mb-6 text-center">
-                                <i class="fas fa-trophy mr-2"></i>ディベート結果
-                            </h2>
-                            <div class="text-center mb-6">
-                                <p class="text-2xl mb-2">勝者:</p>
-                                <p class="text-5xl font-bold ${winnerColor}">${winner}</p>
-                            </div>
-                            <div class="bg-gray-800 p-4 rounded mb-6">
-                                <h3 class="text-xl font-bold text-cyan-400 mb-4">最終投票結果</h3>
-                                <div class="grid grid-cols-2 gap-4 text-center">
-                                    <div>
-                                        <p class="text-3xl font-bold text-green-400">${voteData.agree}</p>
-                                        <p class="text-sm text-gray-400">意見A支持</p>
-                                    </div>
-                                    <div>
-                                        <p class="text-3xl font-bold text-red-400">${voteData.disagree}</p>
-                                        <p class="text-sm text-gray-400">意見B支持</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="bg-gray-800 p-4 rounded mb-6">
-                                <h3 class="text-xl font-bold text-cyan-400 mb-4">AI審査員の評価</h3>
-                                <div class="text-sm text-white">
-                                    ${judgmentComments}
-                                </div>
-                            </div>
-                            <button onclick="location.href='/main'" class="w-full bg-cyan-500 hover:bg-cyan-600 text-black font-bold py-3 rounded">
-                                <i class="fas fa-home mr-2"></i>メインに戻る
-                            </button>
-                        </div>
-                    </div>
-                `;
+                const resultHTML = '<div id="resultModal" class="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center z-50">' +
+                    '<div class="bg-gray-900 border-4 border-cyan-500 rounded-lg p-8 max-w-2xl w-full mx-4 shadow-2xl">' +
+                        '<h2 class="text-4xl font-bold text-cyan-400 mb-6 text-center">' +
+                            '<i class="fas fa-trophy mr-2"></i>ディベート結果' +
+                        '</h2>' +
+                        '<div class="text-center mb-6">' +
+                            '<p class="text-2xl mb-2">勝者:</p>' +
+                            '<p class="text-5xl font-bold ' + winnerColor + '">' + winner + '</p>' +
+                        '</div>' +
+                        '<div class="bg-gray-800 p-4 rounded mb-6">' +
+                            '<h3 class="text-xl font-bold text-cyan-400 mb-4">最終投票結果</h3>' +
+                            '<div class="grid grid-cols-2 gap-4 text-center">' +
+                                '<div>' +
+                                    '<p class="text-3xl font-bold text-green-400">' + voteData.agree + '</p>' +
+                                    '<p class="text-sm text-gray-400">意見A支持</p>' +
+                                '</div>' +
+                                '<div>' +
+                                    '<p class="text-3xl font-bold text-red-400">' + voteData.disagree + '</p>' +
+                                    '<p class="text-sm text-gray-400">意見B支持</p>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="bg-gray-800 p-4 rounded mb-6">' +
+                            '<h3 class="text-xl font-bold text-cyan-400 mb-4">AI審査員の評価</h3>' +
+                            '<div class="text-sm text-white">' +
+                                judgmentComments +
+                            '</div>' +
+                        '</div>' +
+                        '<button onclick="location.href=\'/main\'" class="w-full bg-cyan-500 hover:bg-cyan-600 text-black font-bold py-3 rounded">' +
+                            '<i class="fas fa-home mr-2"></i>メインに戻る' +
+                        '</button>' +
+                    '</div>' +
+                '</div>';
                 document.body.insertAdjacentHTML('beforeend', resultHTML);
             }
 
