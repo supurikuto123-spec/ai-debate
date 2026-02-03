@@ -51,7 +51,8 @@ export const watchPage = (user: any, debateId: string) => `
                 width: 100%;
                 height: 100%;
                 background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-                animation: shimmer 3s infinite ease-in-out;
+                animation: shimmer 2s ease-in-out;
+                animation-iteration-count: 3;
             }
             @keyframes shimmer {
                 0% { left: -100%; }
