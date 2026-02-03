@@ -694,68 +694,73 @@ export const watchPage = (user: any, debateId: string) => `
             
             async function getAIEvaluation(message, side) {
                 try {
-                    // 厳格な判定：!!、?、?? のみ表示、それ以外は評価のみ（表示なし）
-                    const hasStrongData = /(\d{2,}|\d+%|\d+人|\d+億|OECD|WHO|国連|政府|研究所)/.test(message);
-                    const hasMultipleLogic = (message.match(/例えば|なぜなら|したがって|その結果|つまり|事実/g) || []).length >= 2;
-                    const hasStrongCounter = /しかし|反論|誤り|間違い|逆に/.test(message);
-                    const hasWeakLogic = !(/例えば|なぜなら|したがって|その結果|つまり/.test(message));
-                    const messageLength = message.length;
+                    // AIに評価させる（毎ターン）
+                    const fullDebate = conversationHistory.map(msg => 
+                        `[${msg.side === 'agree' ? '意見A' : '意見B'}]: ${msg.content}`
+                    ).join('\n');
                     
-                    let symbol = null;  // デフォルトは表示なし
-                    let comment = '';
+                    const prompt = `以下のディベート全体を評価してください：
+${fullDebate}
+
+最新の発言「${message}」を評価してください。
+
+評価基準：
+- !! : とても良い（形勢が一気に変わるような決定的な発言）
+- ! : 優れた意見（有利に働く発言）
+- それ未満の優れた意見 : 符号なし（評価は必要だが表示不要）
+- ? : 悪手（相手の意見に飲まれている、形勢が逆転しそう）
+- ?? : 意図不明（何が目的かわからないほど的外れor致命的な失言）
+
+!! ! ? ?? に当てはまる場合のみ、符号と短いコメント（15文字以内）を返してください。
+それ以外の場合は符号なしで返してください。
+
+フォーマット: { "symbol": "!!" or "!" or "?" or "??" or null, "comment": "短いコメント" or "" }`;
+
+                    const response = await fetch('/api/debate/generate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            systemPrompt: 'あなたはディベート評価の専門家です。客観的に評価してください。',
+                            conversationHistory: [{ role: 'user', content: prompt }],
+                            maxTokens: 80,
+                            temperature: 0.8
+                        })
+                    });
                     
-                    // !! - とても良い（形勢が一気に変わるような発言）
-                    if (hasStrongData && hasMultipleLogic && messageLength >= 100) {
-                        symbol = '!!';
-                        const comments = [
-                            '決定的な論拠！形勢変化',
-                            '圧倒的な説得力',
-                            'データと論理が完璧',
-                            '議論を制する一手'
-                        ];
-                        comment = comments[Math.floor(Math.random() * comments.length)];
-                    }
-                    // ! - 優れた意見（有利に働く発言）
-                    else if ((hasStrongData && messageLength >= 80) || (hasMultipleLogic && hasStrongData)) {
-                        symbol = '!';
-                        const comments = [
-                            '有力な主張',
-                            '形勢を優位に',
-                            '説得力のある論理',
-                            '優れた反論'
-                        ];
-                        comment = comments[Math.floor(Math.random() * comments.length)];
-                    }
-                    // ? - 悪手（相手の意見に飲まれている）
-                    else if ((hasStrongCounter && !hasStrongData && messageLength < 80) || (hasWeakLogic && messageLength < 60)) {
-                        symbol = '?';
-                        const comments = [
-                            '根拠不足で劣勢',
-                            '反論が弱い',
-                            '形勢が傾く',
-                            '説得力に欠ける'
-                        ];
-                        comment = comments[Math.floor(Math.random() * comments.length)];
-                    }
-                    // ?? - 意図不明（的外れor失言）
-                    else if (messageLength < 40 || (hasStrongCounter && !hasStrongData && !hasMultipleLogic)) {
-                        symbol = '??';
-                        const comments = [
-                            '論点がずれている',
-                            '致命的な失言',
-                            '意図が不明確',
-                            '大きく形勢を損なう'
-                        ];
-                        comment = comments[Math.floor(Math.random() * comments.length)];
-                    }
+                    const data = await response.json();
                     
-                    // 符号がある場合のみ返す
-                    if (symbol) {
-                        return { symbol, comment, support: side, shouldVote: true };
-                    } else {
-                        return { symbol: null, comment: '', support: side, shouldVote: false };
+                    try {
+                        // JSONパース試行
+                        const result = JSON.parse(data.message);
+                        
+                        if (result.symbol && ['!!', '!', '?', '??'].includes(result.symbol)) {
+                            return { 
+                                symbol: result.symbol, 
+                                comment: result.comment || '評価中...', 
+                                support: side, 
+                                shouldVote: true 
+                            };
+                        } else {
+                            // 符号なし
+                            return { symbol: null, comment: '', support: side, shouldVote: false };
+                        }
+                    } catch {
+                        // JSONパース失敗：文字列から符号を抽出
+                        const message = data.message;
+                        if (message.includes('!!')) {
+                            return { symbol: '!!', comment: '圧倒的な説得力', support: side, shouldVote: true };
+                        } else if (message.includes('!') && !message.includes('!!')) {
+                            return { symbol: '!', comment: '有力な主張', support: side, shouldVote: true };
+                        } else if (message.includes('??')) {
+                            return { symbol: '??', comment: '意図不明', support: side, shouldVote: true };
+                        } else if (message.includes('?') && !message.includes('??')) {
+                            return { symbol: '?', comment: '根拠不足', support: side, shouldVote: true };
+                        } else {
+                            return { symbol: null, comment: '', support: side, shouldVote: false };
+                        }
                     }
                 } catch (error) {
+                    console.error('AI evaluation error:', error);
                     return { symbol: null, comment: '', support: side, shouldVote: false };
                 }
             }
