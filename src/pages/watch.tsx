@@ -842,26 +842,29 @@ export const watchPage = (user: any, debateId: string) => `
                 if (!evaluation || !evaluation.symbol) return;  // 符号がない場合は表示しない
                 
                 const container = document.getElementById('debateMessages');
-                const symbolColor = evaluation.symbol === '!!' || evaluation.symbol === '!' ? 'text-green-400' : 'text-red-400';
                 
-                // 符号を絵文字/アイコンに変換
-                let symbolIcon = '';
+                // カスタム符号デザイン（SVG）
+                let symbolSvg = '';
+                let symbolColor = '';
+                
                 if (evaluation.symbol === '!!') {
-                    symbolIcon = '<i class="fas fa-star text-yellow-400"></i><i class="fas fa-star text-yellow-400"></i>';
+                    symbolColor = 'text-green-400';
+                    symbolSvg = '<svg width="20" height="20" viewBox="0 0 20 20" class="inline"><text x="0" y="16" fill="currentColor" font-size="16" font-weight="bold">!!</text></svg>';
                 } else if (evaluation.symbol === '!') {
-                    symbolIcon = '<i class="fas fa-star text-yellow-400"></i>';
+                    symbolColor = 'text-green-400';
+                    symbolSvg = '<svg width="12" height="20" viewBox="0 0 12 20" class="inline"><text x="0" y="16" fill="currentColor" font-size="16" font-weight="bold">!</text></svg>';
                 } else if (evaluation.symbol === '?') {
-                    symbolIcon = '<i class="fas fa-question-circle text-orange-400"></i>';
+                    symbolColor = 'text-orange-400';
+                    symbolSvg = '<svg width="12" height="20" viewBox="0 0 12 20" class="inline"><text x="0" y="16" fill="currentColor" font-size="16" font-weight="bold">?</text></svg>';
                 } else if (evaluation.symbol === '??') {
-                    symbolIcon = '<i class="fas fa-exclamation-triangle text-red-400"></i>';
+                    symbolColor = 'text-red-400';
+                    symbolSvg = '<svg width="20" height="20" viewBox="0 0 20 20" class="inline"><text x="0" y="16" fill="currentColor" font-size="16" font-weight="bold">??</text></svg>';
                 }
                 
-                const evalHTML = `
-                    <div class="text-xs text-gray-400 italic text-right px-4 py-1 animate-fade-in">
-                        <span class="font-bold ${symbolColor} text-lg">${symbolIcon}</span> 
-                        <span class="text-gray-300">${evaluation.comment}</span>
-                    </div>
-                `;
+                const evalHTML = '<div class="text-xs text-gray-400 italic text-right px-4 py-1 animate-fade-in">' +
+                    '<span class="' + symbolColor + ' text-lg">' + symbolSvg + '</span> ' +
+                    '<span class="text-gray-300">' + evaluation.comment + '</span>' +
+                    '</div>';
                 container.insertAdjacentHTML('beforeend', evalHTML);
             }
             
