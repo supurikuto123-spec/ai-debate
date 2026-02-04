@@ -1079,19 +1079,19 @@
                 const bubbleClass = side === 'agree' ? 'bubble-agree' : 'bubble-disagree';
                 const aiModel = side === 'agree' ? 'GPT-4o' : 'Claude-3.5';
                 const iconClass = side === 'agree' ? 'fa-brain' : 'fa-lightbulb';
+                const gradientClass = side === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500';
+                const opinionLabel = side === 'agree' ? '意見A' : '意見B';
                 
                 const bubbleHTML = `
-                    <div class="bubble ${bubbleClass} p-4 text-white shadow-lg">
-                        <div class="flex items-center mb-2">
-                            <div class="w-10 h-10 rounded-full bg-gradient-to-br ${side === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500'} flex items-center justify-center mr-3">
-                                <i class="fas ${iconClass}"></i>
+                    <div class="bubble ${bubbleClass} p-4 text-white shadow-lg" style="width: 100%;">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-gradient-to-br ${gradientClass} flex items-center justify-center flex-shrink-0">
+                                <i class="fas ${iconClass} text-sm"></i>
                             </div>
-                            <div>
-                                <p class="font-bold">${aiModel}</p>
-                                <p class="text-xs opacity-75">${side === 'agree' ? '意見A' : '意見B'}</p>
-                            </div>
+                            <span class="font-bold text-sm flex-shrink-0">${aiModel}</span>
+                            <span class="text-xs opacity-75 flex-shrink-0">${opinionLabel}</span>
+                            <span class="text-sm leading-relaxed">${message}</span>
                         </div>
-                        <p class="text-sm leading-relaxed">${message}</p>
                     </div>
                 `;
                 
@@ -1118,40 +1118,42 @@
                     '</div>' +
                     '<span class="font-bold text-sm flex-shrink-0">' + aiModel + '</span>' +
                     '<span class="text-xs opacity-75 flex-shrink-0">' + opinionLabel + '</span>' +
-                    '<span class="text-sm leading-relaxed typing-text flex-1"></span>' +
+                    '<div class="text-sm leading-relaxed typing-text" style="min-width: 100%; flex: 1;"></div>' +
                 '</div>';
                 
                 container.appendChild(bubbleDiv);
                 
-                // 自動スクロール（即座に）
-                container.scrollTop = container.scrollHeight;
-                
-                // 枠が完全に描画されるまで待つ（50ms）
-                setTimeout(() => {
-                    // タイピング演出開始
-                    const textElement = bubbleDiv.querySelector('.typing-text');
-                    let charIndex = 0;
-                    const typingSpeed = 30; // 30ms per character
-                    
-                    function typeChar() {
-                        if (charIndex < message.length && debateActive) {
-                            textElement.textContent += message.charAt(charIndex);
-                            charIndex++;
-                            // タイピング中も自動スクロール
-                            container.scrollTop = container.scrollHeight;
-                            setTimeout(typeChar, typingSpeed);
-                        } else {
-                            // タイピング完了後にD1保存とAI評価
-                            saveDebateMessageToD1(side, aiModel, message);
-                            
-                            if (!fogMode) {
-                                getAIEvaluations(message, side);
+                // 枠が描画されるまで待つ
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        // 自動スクロール
+                        container.scrollTop = container.scrollHeight;
+                        
+                        // タイピング演出開始
+                        const textElement = bubbleDiv.querySelector('.typing-text');
+                        let charIndex = 0;
+                        const typingSpeed = 30; // 30ms per character
+                        
+                        function typeChar() {
+                            if (charIndex < message.length && debateActive) {
+                                textElement.textContent += message.charAt(charIndex);
+                                charIndex++;
+                                // タイピング中も自動スクロール
+                                container.scrollTop = container.scrollHeight;
+                                setTimeout(typeChar, typingSpeed);
+                            } else {
+                                // タイピング完了後にD1保存とAI評価
+                                saveDebateMessageToD1(side, aiModel, message);
+                                
+                                if (!fogMode) {
+                                    getAIEvaluations(message, side);
+                                }
                             }
                         }
-                    }
-                    
-                    typeChar();
-                }, 50);
+                        
+                        typeChar();
+                    });
+                });
             }
 
             // ディベートメッセージをD1に保存
