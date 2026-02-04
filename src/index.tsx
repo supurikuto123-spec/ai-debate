@@ -318,13 +318,13 @@ app.post('/api/debate/generate', async (c) => {
       // 最後に「相手の発言を踏まえて反論してください」を追加
       messages.push({
         role: 'user',
-        content: '上記の議論を踏まえ、新しい視点から反論してください。130文字以内。'
+        content: '上記の議論を踏まえ、新しい視点から反論してください。150文字以内で句読点で終わるようにしてください。'
       })
     } else {
       // 初回は通常通り
       messages.push({
         role: 'user',
-        content: '130文字以内で簡潔に主張してください。'
+        content: '150文字以内で簡潔に主張してください。句読点で終わるようにしてください。'
       })
     }
     
@@ -354,9 +354,9 @@ app.post('/api/debate/generate', async (c) => {
     // [意見A], [意見B], [意見C]などのラベルを削除
     message = message.replace(/^\[意見[ABC]\]:\s*/g, '')
     
-    // 130文字制限を厳格に実施
-    if (message.length > 130) {
-      message = message.substring(0, 130)
+    // 150文字制限を厳格に実施
+    if (message.length > 150) {
+      message = message.substring(0, 150)
     }
     
     return c.json({ message })

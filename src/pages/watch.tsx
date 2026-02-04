@@ -194,22 +194,22 @@ export const watchPage = (user: any, debateId: string) => `
                             </h1>
                             <div class="flex items-center space-x-4 text-sm text-gray-400">
                                 <span>
-                                    <i class="fas fa-calendar-alt mr-2 text-cyan-400"></i>2026/01/28 15:00 開始
+                                    <i class="fas fa-calendar-alt mr-2 text-cyan-400"></i><span id="debateStartTime">開始前</span>
                                 </span>
                                 <span>
-                                    <i class="fas fa-clock mr-2 text-magenta-400"></i>残り時間: <span id="remainingTime">28:45</span>
+                                    <i class="fas fa-clock mr-2 text-magenta-400"></i>残り時間: <span id="remainingTime">1:00</span>
                                 </span>
                                 <span class="text-green-400">
                                     <div class="w-2 h-2 bg-green-400 rounded-full inline-block mr-2 animate-pulse"></div>
                                     LIVE
                                 </span>
                                 <span>
-                                    <i class="fas fa-eye mr-2 text-yellow-400"></i><span id="viewerCount">1,234</span>人が観戦中
+                                    <i class="fas fa-eye mr-2 text-yellow-400"></i><span id="viewerCount">1</span>人が観戦中
                                 </span>
                             </div>
                         </div>
                         <div class="inline-block px-4 py-1 bg-cyan-500/20 border border-cyan-500 rounded-full text-cyan-300 text-sm">
-                            <i class="fas fa-microchip mr-2"></i>TECH & AI
+                            <i class="fas fa-microchip mr-2"></i><span id="debateCategory">AI×雇用</span>
                         </div>
                     </div>
 

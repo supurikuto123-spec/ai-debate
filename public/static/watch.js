@@ -177,9 +177,9 @@
                     debateActive = false;
                     lastCommentCount = 0; // カウントをリセット
                     
-                    // D1からも削除
-                    fetch('/api/comments/' + DEBATE_ID, { method: 'DELETE' });
-                    fetch('/api/debate/' + DEBATE_ID + '/messages', { method: 'DELETE' });
+                    // D1からも削除（await で完了を待つ）
+                    await fetch('/api/comments/' + DEBATE_ID, { method: 'DELETE' });
+                    await fetch('/api/debate/' + DEBATE_ID + '/messages', { method: 'DELETE' });
                     
                     showToast('コメントとディベート履歴を削除しました');
                     return;
@@ -756,13 +756,10 @@
             // Auto-scroll debate messages
             setInterval(() => {
                 const container = document.getElementById('debateMessages');
-                if (container.scrollHeight - container.scrollTop - container.clientHeight < 100) {
-                    container.scrollTop = container.scrollHeight;
-                }
-            }, 1000);
+                container.scrollTop = container.scrollHeight;
+            }, 500);
 
-            // Update remaining time
-            let remainingSeconds = 28 * 60 + 45;
+            // Debate timer (managed by updateDebateTimer)
             setInterval(() => {
                 remainingSeconds--;
                 const minutes = Math.floor(remainingSeconds / 60);
@@ -803,6 +800,18 @@
                 debateActive = true;
                 debateStartTime = Date.now();
                 conversationHistory = []; // 会話履歴をリセット
+                
+                // 開始時刻を表示
+                const startTimeElement = document.getElementById('debateStartTime');
+                if (startTimeElement) {
+                    const date = new Date(debateStartTime);
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const hours = String(date.getHours()).padStart(2, '0');
+                    const minutes = String(date.getMinutes()).padStart(2, '0');
+                    startTimeElement.textContent = `${year}/${month}/${day} ${hours}:${minutes} 開始`;
+                }
                 
                 const debateMessages = document.getElementById('debateMessages');
                 debateMessages.innerHTML = '<div class="text-center text-cyan-300 p-4"><i class="fas fa-spinner fa-spin mr-2"></i>ディベート開始...</div>';
@@ -1076,42 +1085,40 @@
                     '</div>' +
                     '<span class="font-bold text-sm flex-shrink-0">' + aiModel + '</span>' +
                     '<span class="text-xs opacity-75 flex-shrink-0">' + opinionLabel + '</span>' +
-                    '<p class="text-sm leading-relaxed typing-text flex-1"></p>' +
+                    '<span class="text-sm leading-relaxed typing-text flex-1"></span>' +
                 '</div>';
                 
                 container.appendChild(bubbleDiv);
                 
-                // 枠が完全に描画されるまで待つ
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        // 自動スクロール
-                        container.scrollTop = container.scrollHeight;
-                        
-                        // タイピング演出開始
-                        const textElement = bubbleDiv.querySelector('.typing-text');
-                        let charIndex = 0;
-                        const typingSpeed = 30; // 30ms per character
-                        
-                        function typeChar() {
-                            if (charIndex < message.length && debateActive) {
-                                textElement.textContent += message.charAt(charIndex);
-                                charIndex++;
-                                // タイピング中も自動スクロール
-                                container.scrollTop = container.scrollHeight;
-                                setTimeout(typeChar, typingSpeed);
-                            } else {
-                                // タイピング完了後にD1保存とAI評価
-                                saveDebateMessageToD1(side, aiModel, message);
-                                
-                                if (!fogMode) {
-                                    getAIEvaluations(message, side);
-                                }
+                // 自動スクロール（即座に）
+                container.scrollTop = container.scrollHeight;
+                
+                // 枠が完全に描画されるまで待つ（50ms）
+                setTimeout(() => {
+                    // タイピング演出開始
+                    const textElement = bubbleDiv.querySelector('.typing-text');
+                    let charIndex = 0;
+                    const typingSpeed = 30; // 30ms per character
+                    
+                    function typeChar() {
+                        if (charIndex < message.length && debateActive) {
+                            textElement.textContent += message.charAt(charIndex);
+                            charIndex++;
+                            // タイピング中も自動スクロール
+                            container.scrollTop = container.scrollHeight;
+                            setTimeout(typeChar, typingSpeed);
+                        } else {
+                            // タイピング完了後にD1保存とAI評価
+                            saveDebateMessageToD1(side, aiModel, message);
+                            
+                            if (!fogMode) {
+                                getAIEvaluations(message, side);
                             }
                         }
-                        
-                        typeChar();
-                    });
-                });
+                    }
+                    
+                    typeChar();
+                }, 50);
             }
 
             // ディベートメッセージをD1に保存
