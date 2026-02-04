@@ -351,6 +351,9 @@ app.post('/api/debate/generate', async (c) => {
     const data = await response.json()
     let message = data.choices[0].message.content.trim()
     
+    // [意見A], [意見B], [意見C]などのラベルを削除
+    message = message.replace(/^\[意見[ABC]\]:\s*/g, '')
+    
     // 130文字制限を厳格に実施
     if (message.length > 130) {
       message = message.substring(0, 130)
