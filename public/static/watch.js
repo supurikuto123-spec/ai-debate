@@ -23,7 +23,7 @@
             let voteData = {
                 agree: 0,
                 disagree: 0,
-                total: 0
+                total: 1  // 初期値: 自分自身（観戦者）
             };
             
             // AI評価システム用グローバル変数
@@ -33,17 +33,27 @@
             let finalVotingMode = false;  // 最終投票モード（1分猶予）
 
             // Initialize demo votes (10 random voters)
-            function initDemoVotes() {
-                // 10人のランダム投票者を生成
-                for (let i = 0; i < 10; i++) {
-                    const randomVote = Math.random() > 0.5 ? 'agree' : 'disagree';
-                    voteData[randomVote]++;
-                    voteData.total++;
+            async function loadVotesFromD1() {
+                try {
+                    const response = await fetch('/api/votes/' + DEBATE_ID);
+                    const data = await response.json();
+                    
+                    if (data.agree !== undefined && data.disagree !== undefined) {
+                        voteData.agree = data.agree;
+                        voteData.disagree = data.disagree;
+                        voteData.total = data.total;
+                        
+                        // UIを更新
+                        updateVoteDisplay();
+                        updateViewerCount();
+                    }
+                } catch (error) {
+                    console.error('Failed to load votes:', error);
                 }
             }
 
             // Submit initial vote from modal
-            function submitVote(side) {
+            async function submitVote(side) {
                 userVote = side;
                 hasVoted = true;
                 voteData[side]++;
@@ -53,11 +63,26 @@
                 const storageKey = 'debate_vote_' + DEBATE_ID + '_' + currentUser.user_id;
                 localStorage.setItem(storageKey, side);
 
+                // D1に保存
+                try {
+                    await fetch('/api/vote', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            debateId: DEBATE_ID,
+                            vote: side
+                        })
+                    });
+                } catch (error) {
+                    console.error('Failed to save vote:', error);
+                }
+
                 // Hide modal
                 document.getElementById('voteModal').classList.add('hidden');
 
                 // Update UI
                 updateVoteDisplay();
+                updateViewerCount();
                 highlightSelectedButton(side);
                 
                 showToast('投票が完了しました！観戦を開始します');
@@ -65,10 +90,10 @@
             window.submitVote = submitVote;
 
             // Change vote (also works as initial vote)
-            function changeVote(side) {
+            async function changeVote(side) {
                 if (!hasVoted) {
                     // 初回投票として扱う
-                    submitVote(side);
+                    await submitVote(side);
                     return;
                 }
 
@@ -86,11 +111,28 @@
                 const storageKey = 'debate_vote_' + DEBATE_ID + '_' + currentUser.user_id;
                 localStorage.setItem(storageKey, side);
 
+                // D1に保存
+                try {
+                    await fetch('/api/vote', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            debateId: DEBATE_ID,
+                            vote: side
+                        })
+                    });
+                } catch (error) {
+                    console.error('Failed to update vote:', error);
+                }
+
                 // Update UI
                 updateVoteDisplay();
+                updateViewerCount();
                 highlightSelectedButton(side);
                 
                 const message = side === 'agree' ? '意見Aに変更しました！' : '意見Bに変更しました！';
+                showToast(message);
+            }
                 showToast(message);
             }
             window.changeVote = changeVote;
@@ -1286,7 +1328,7 @@
                     console.error('Disagree button not found!');
                 }
                 
-                initDemoVotes();
+                loadVotesFromD1(); // D1から投票データを読み込み
                 updateVoteDisplay();
                 loadDebateMessagesFromD1(); // ディベートメッセージを読み込み
                 loadCommentsFromD1(); // コメントを読み込み
