@@ -351,6 +351,9 @@ app.post('/api/debate/generate', async (c) => {
     const data = await response.json()
     let message = data.choices[0].message.content.trim()
     
+    // 実際に使用されたモデル情報を取得
+    const usedModel = data.model || 'gpt-4o-mini'
+    
     // [意見A], [意見B], [意見C]などのラベルを削除
     message = message.replace(/^\[意見[ABC]\]:\s*/g, '')
     
@@ -359,7 +362,7 @@ app.post('/api/debate/generate', async (c) => {
       message = message.substring(0, 150)
     }
     
-    return c.json({ message })
+    return c.json({ message, model: usedModel })
   } catch (error) {
     console.error('Debate generation error:', error)
     return c.json({ error: 'Internal server error' }, 500)

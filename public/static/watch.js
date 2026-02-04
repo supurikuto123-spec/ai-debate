@@ -216,6 +216,7 @@
                     conversationHistory = [];
                     debateActive = false;
                     lastCommentCount = 0; // カウントをリセット
+                    lastMessageCount = 0; // ディベートメッセージのカウントもリセット
                     
                     // D1からも削除（await で完了を待つ）
                     await fetch('/api/comments/' + DEBATE_ID, { method: 'DELETE' });
@@ -301,6 +302,9 @@
 
                 // D1に保存
                 saveCommentToD1(text);
+                
+                // カウントを増やして二重表示を防ぐ
+                lastCommentCount++;
 
                 // Update count
                 const count = parseInt(document.getElementById('commentCount').textContent);
@@ -1054,7 +1058,9 @@
                             side: side
                         });
                         
-                        addDebateMessageWithTyping(side, data.message); // タイピング演出版を使用
+                        // 実際のモデル情報を使用
+                        const actualModel = data.model || 'gpt-4o-mini';
+                        addDebateMessageWithTyping(side, data.message, actualModel); // タイピング演出版を使用
                         
                         // 5ターン目に強制評価（デモ用）
                         const turnNumber = conversationHistory.length;
@@ -1100,10 +1106,10 @@
             }
 
             // メッセージ追加関数（瞬時表示 + AI評価）
-            function addDebateMessageWithTyping(side, message) {
+            function addDebateMessageWithTyping(side, message, actualModel) {
                 const container = document.getElementById('debateMessages');
                 const bubbleClass = side === 'agree' ? 'bubble-agree' : 'bubble-disagree';
-                const aiModel = 'GPT-4o';  // 現在は両方ともOpenAI APIを使用
+                const aiModel = actualModel || 'GPT-4o';  // 実際のモデル情報を使用
                 const iconClass = side === 'agree' ? 'fa-brain' : 'fa-lightbulb';
                 const gradientClass = side === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500';
                 const opinionLabel = side === 'agree' ? '意見A' : '意見B';
@@ -1111,22 +1117,26 @@
                 // 枠を先に生成（1行レイアウト）
                 const bubbleDiv = document.createElement('div');
                 bubbleDiv.className = 'bubble ' + bubbleClass + ' p-4 text-white shadow-lg';
-                bubbleDiv.style.minHeight = '60px';  // 最小高さを固定
+                bubbleDiv.style.minHeight = '80px';  // 最小高さを増やして1行分を確保
+                bubbleDiv.style.width = '100%';  // 幅を100%に固定
                 bubbleDiv.innerHTML = '<div class="flex items-center gap-3">' +
                     '<div class="w-8 h-8 rounded-full bg-gradient-to-br ' + gradientClass + ' flex items-center justify-center flex-shrink-0">' +
                         '<i class="fas ' + iconClass + ' text-sm"></i>' +
                     '</div>' +
                     '<span class="font-bold text-sm flex-shrink-0">' + aiModel + '</span>' +
                     '<span class="text-xs opacity-75 flex-shrink-0">' + opinionLabel + '</span>' +
-                    '<div class="text-sm leading-relaxed typing-text" style="min-width: 100%; flex: 1;"></div>' +
+                    '<div class="text-sm leading-relaxed typing-text"></div>' +
                 '</div>';
                 
                 container.appendChild(bubbleDiv);
                 
+                // 即座に自動スクロール
+                container.scrollTop = container.scrollHeight;
+                
                 // 枠が描画されるまで待つ
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
-                        // 自動スクロール
+                        // 自動スクロール（2回目）
                         container.scrollTop = container.scrollHeight;
                         
                         // タイピング演出開始
