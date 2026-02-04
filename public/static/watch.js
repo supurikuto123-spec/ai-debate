@@ -132,6 +132,9 @@
                     document.getElementById('voteStatus').innerHTML = '<i class="fas fa-users mr-2"></i>総投票数: ' + voteData.total.toLocaleString() + '人';
                     document.getElementById('agreeBar').style.width = agreePercent + '%';
                     document.getElementById('disagreeBar').style.width = disagreePercent + '%';
+                    
+                    // 観戦人数も更新
+                    updateViewerCount();
                 }
             }
 
@@ -150,11 +153,29 @@
                     return;
                 }
 
-                // Check for !debate command (dev user only)
-                if (text === '!debate' && currentUser.user_id === 'dev') {
+                // Check for !s command (dev user only) - ディベート開始
+                if (text === '!s' && currentUser.user_id === 'dev') {
                     input.value = '';
                     showToast('ディベートを開始します...');
                     startDebate();
+                    return;
+                }
+
+                // Check for !dela command (dev user only) - コメント+ディベート削除
+                if (text === '!dela' && currentUser.user_id === 'dev') {
+                    input.value = '';
+                    const commentsList = document.getElementById('commentsList');
+                    commentsList.innerHTML = '';
+                    const debateMessages = document.getElementById('debateMessages');
+                    debateMessages.innerHTML = `
+                        <div class="text-center text-gray-400 p-8">
+                            <i class="fas fa-info-circle text-4xl mb-4 text-cyan-400"></i>
+                            <p class="text-lg">devユーザーでコメント欄に <span class="text-cyan-300 font-bold">!s</span> と入力してディベートを開始</p>
+                        </div>
+                    `;
+                    conversationHistory = [];
+                    debateActive = false;
+                    showToast('コメントとディベート履歴を削除しました');
                     return;
                 }
 
@@ -170,14 +191,7 @@
                     return;
                 }
 
-                // Check for !delc command (dev user only) - 全コメント削除
-                if (text === '!delc' && currentUser.user_id === 'dev') {
-                    input.value = '';
-                    const commentsList = document.getElementById('commentsList');
-                    commentsList.innerHTML = '';
-                    showToast('全コメントを削除しました');
-                    return;
-                }
+
 
                 // Check for !deld command (dev user only) - 全ディベート履歴削除
                 if (text === '!deld' && currentUser.user_id === 'dev') {
@@ -751,13 +765,13 @@
                     `${minutes}:${seconds.toString().padStart(2, '0')}`;
             }, 1000);
 
-            // Simulate viewer count changes
-            let viewerCount = 1234;
-            setInterval(() => {
-                viewerCount += Math.floor(Math.random() * 10) - 3;
-                viewerCount = Math.max(1000, viewerCount);
-                document.getElementById('viewerCount').textContent = viewerCount.toLocaleString();
-            }, 5000);
+            // 観戦人数を実データに更新
+            function updateViewerCount() {
+                document.getElementById('viewerCount').textContent = voteData.total.toLocaleString();
+            }
+            
+            // 定期的に観戦人数を更新
+            setInterval(updateViewerCount, 2000);
 
             // Debate system
             let debateActive = false;
@@ -807,9 +821,11 @@
                     document.getElementById('agreePercent').textContent = '???';
                     document.getElementById('disagreePercent').textContent = '???';
                     document.getElementById('voteStatus').textContent = '❓ 集計中...';
-                    // ゲージを完全に隠す（blur + グラデーション）
+                    // ゲージを完全に隠す（blur + グラデーション + アニメーション削除）
                     const agreeBar = document.getElementById('agreeBar');
                     const disagreeBar = document.getElementById('disagreeBar');
+                    agreeBar.style.transition = 'none'; // アニメーション削除
+                    disagreeBar.style.transition = 'none';
                     agreeBar.style.filter = 'blur(20px)';
                     disagreeBar.style.filter = 'blur(20px)';
                     agreeBar.style.background = 'linear-gradient(90deg, #333, #555, #333)';
@@ -866,6 +882,25 @@
                     confirmBtn.disabled = true;
                     confirmBtn.textContent = '投票確定済み - 他の参加者を待っています...';
                     showToast('✅ 投票が確定されました');
+                    
+                    // ゲージを復活させる
+                    const agreeBar = document.getElementById('agreeBar');
+                    const disagreeBar = document.getElementById('disagreeBar');
+                    agreeBar.style.transition = 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)'; // アニメーション復活
+                    disagreeBar.style.transition = 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
+                    agreeBar.style.filter = 'none';
+                    disagreeBar.style.filter = 'none';
+                    agreeBar.style.background = '';
+                    disagreeBar.style.background = '';
+                    
+                    // 投票ボタンを無効化
+                    document.getElementById('voteAgreeBtn').disabled = true;
+                    document.getElementById('voteDisagreeBtn').disabled = true;
+                    document.getElementById('voteAgreeBtn').style.opacity = '0.5';
+                    document.getElementById('voteDisagreeBtn').style.opacity = '0.5';
+                    
+                    // 数値を表示
+                    updateVoteDisplay();
                 });
                 
                 // カウントダウンタイマー
@@ -973,6 +1008,17 @@
                         
                         addDebateMessageWithTyping(side, data.message); // タイピング演出版を使用
                         
+                        // 5ターン目に強制評価（デモ用）
+                        const turnNumber = conversationHistory.length;
+                        if (turnNumber === 5 || turnNumber === 10) {
+                            // 強制的に符号を付ける
+                            setTimeout(() => {
+                                const forcedSymbols = ['!!', '!', '?', '??'];
+                                const randomSymbol = forcedSymbols[Math.floor(Math.random() * forcedSymbols.length)];
+                                displayAIEvaluation({ symbol: randomSymbol, shouldVote: true }, side);
+                            }, 3000); // タイピング完了後
+                        }
+                        
                         // Continue with opposite side after 3 seconds
                         setTimeout(() => {
                             if (debateActive) {
@@ -1022,24 +1068,26 @@
                 const gradientClass = side === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500';
                 const opinionLabel = side === 'agree' ? '意見A' : '意見B';
                 
-                // 枠を先に生成
+                // 枠を先に生成（1行レイアウト）
                 const bubbleDiv = document.createElement('div');
                 bubbleDiv.className = 'bubble ' + bubbleClass + ' p-4 text-white shadow-lg';
-                bubbleDiv.innerHTML = '<div class="flex items-center mb-2">' +
-                    '<div class="w-10 h-10 rounded-full bg-gradient-to-br ' + gradientClass + ' flex items-center justify-center mr-3">' +
-                        '<i class="fas ' + iconClass + '"></i>' +
+                bubbleDiv.innerHTML = '<div class="flex items-center gap-2">' +
+                    '<div class="w-8 h-8 rounded-full bg-gradient-to-br ' + gradientClass + ' flex items-center justify-center flex-shrink-0">' +
+                        '<i class="fas ' + iconClass + ' text-sm"></i>' +
                     '</div>' +
-                    '<div>' +
-                        '<p class="font-bold">' + aiModel + '</p>' +
-                        '<p class="text-xs opacity-75">' + opinionLabel + '</p>' +
+                    '<div class="flex items-center gap-2 flex-shrink-0">' +
+                        '<span class="font-bold text-sm">' + aiModel + '</span>' +
+                        '<span class="text-xs opacity-75">' + opinionLabel + '</span>' +
                     '</div>' +
-                '</div>' +
-                '<p class="text-sm leading-relaxed typing-text"></p>';
+                    '<p class="text-sm leading-relaxed typing-text flex-1"></p>' +
+                '</div>';
                 
                 container.appendChild(bubbleDiv);
+                
+                // 自動スクロール（即座に）
                 container.scrollTop = container.scrollHeight;
                 
-                // 枠が完全に表示されるまで待つ（500ms）
+                // 枠が完全に表示されるまで待つ（800ms）
                 setTimeout(() => {
                     // タイピング演出（1文字ずつ）
                     const textElement = bubbleDiv.querySelector('.typing-text');
@@ -1063,7 +1111,7 @@
                     }
                     
                     typeChar();
-                }, 500);
+                }, 800);
             }
 
             // ディベートメッセージをD1に保存
