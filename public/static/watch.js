@@ -799,14 +799,7 @@
                 container.scrollTop = container.scrollHeight;
             }, 500);
 
-            // Debate timer (managed by updateDebateTimer)
-            setInterval(() => {
-                remainingSeconds--;
-                const minutes = Math.floor(remainingSeconds / 60);
-                const seconds = remainingSeconds % 60;
-                document.getElementById('remainingTime').textContent = 
-                    `${minutes}:${seconds.toString().padStart(2, '0')}`;
-            }, 1000);
+            // Debate timer is managed by updateDebateTimer() function
 
             // 観戦人数を実データに更新
             function updateViewerCount() {
