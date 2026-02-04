@@ -686,23 +686,30 @@ app.get('/api/check-userid/:userid', async (c) => {
 
 // API: Get online connection count (real-time tracking with KV)
 app.get('/api/stats/online', async (c) => {
-  // Return random value between 5-30
-  const baseCount = 12
-  const variance = Math.floor(Math.random() * 15) - 7
-  const online = Math.max(1, baseCount + variance)
-  
-  return c.json({ count: online })
+  try {
+    // Get all online users from KV (keys starting with 'online:')
+    const list = await c.env.KV.list({ prefix: 'online:' })
+    const onlineCount = list.keys.length
+    
+    return c.json({ count: onlineCount })
+  } catch (error) {
+    console.error('Error getting online count:', error)
+    return c.json({ count: 0 })
+  }
 })
 
 // API: Get total visitor count (from database)
 app.get('/api/stats/visitors', async (c) => {
   try {
-    // Return simulated cumulative count
-    const simulatedVisits = 1547 + Math.floor(Math.random() * 100)
-    return c.json({ count: simulatedVisits })
+    const result = await c.env.DB.prepare(
+      'SELECT COUNT(*) as count FROM visits'
+    ).first()
+    
+    const count = result?.count || 0
+    return c.json({ count })
   } catch (error) {
     console.error('Error getting visitor count:', error)
-    return c.json({ count: 1500 })
+    return c.json({ count: 0 })
   }
 })
 
