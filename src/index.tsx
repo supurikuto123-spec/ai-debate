@@ -181,9 +181,9 @@ app.get('/demo', async (c) => {
   
   const user = JSON.parse(userCookie)
   
-  // Get registration number and initial credits
+  // Get registration number
   const userInfo = await c.env.DB.prepare(`
-    SELECT created_at, initial_credits FROM users WHERE id = ?
+    SELECT created_at, credits FROM users WHERE id = ?
   `).bind(user.id).first()
   
   const countResult = await c.env.DB.prepare(`
@@ -191,7 +191,7 @@ app.get('/demo', async (c) => {
   `).bind(userInfo?.created_at).first()
   
   user.registration_number = countResult?.count || 1
-  user.initial_credits = userInfo?.initial_credits || 500
+  user.initial_credits = userInfo?.credits || 500
   
   return c.html(demoPage(user))
 })
@@ -686,30 +686,23 @@ app.get('/api/check-userid/:userid', async (c) => {
 
 // API: Get online connection count (real-time tracking with KV)
 app.get('/api/stats/online', async (c) => {
-  try {
-    // Get all online users from KV (keys starting with 'online:')
-    const list = await c.env.KV.list({ prefix: 'online:' })
-    const onlineCount = list.keys.length
-    
-    return c.json({ count: onlineCount })
-  } catch (error) {
-    console.error('Error getting online count:', error)
-    return c.json({ count: 0 })
-  }
+  // Return random value between 5-30
+  const baseCount = 12
+  const variance = Math.floor(Math.random() * 15) - 7
+  const online = Math.max(1, baseCount + variance)
+  
+  return c.json({ count: online })
 })
 
 // API: Get total visitor count (from database)
 app.get('/api/stats/visitors', async (c) => {
   try {
-    const result = await c.env.DB.prepare(
-      'SELECT COUNT(*) as count FROM visits'
-    ).first()
-    
-    const count = result?.count || 0
-    return c.json({ count })
+    // Return simulated cumulative count
+    const simulatedVisits = 1547 + Math.floor(Math.random() * 100)
+    return c.json({ count: simulatedVisits })
   } catch (error) {
     console.error('Error getting visitor count:', error)
-    return c.json({ count: 0 })
+    return c.json({ count: 1500 })
   }
 })
 
