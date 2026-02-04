@@ -175,6 +175,12 @@
                     `;
                     conversationHistory = [];
                     debateActive = false;
+                    lastCommentCount = 0; // カウントをリセット
+                    
+                    // D1からも削除
+                    fetch('/api/comments/' + DEBATE_ID, { method: 'DELETE' });
+                    fetch('/api/debate/' + DEBATE_ID + '/messages', { method: 'DELETE' });
+                    
                     showToast('コメントとディベート履歴を削除しました');
                     return;
                 }
@@ -1087,7 +1093,7 @@
                 // 自動スクロール（即座に）
                 container.scrollTop = container.scrollHeight;
                 
-                // 枠が完全に表示されるまで待つ（800ms）
+                // 枠が完全に表示されるまで待つ（1000ms = 1秒）
                 setTimeout(() => {
                     // タイピング演出（1文字ずつ）
                     const textElement = bubbleDiv.querySelector('.typing-text');
@@ -1098,6 +1104,7 @@
                         if (charIndex < message.length && debateActive) {
                             textElement.textContent += message.charAt(charIndex);
                             charIndex++;
+                            // タイピング中も自動スクロール
                             container.scrollTop = container.scrollHeight;
                             setTimeout(typeChar, typingSpeed);
                         } else {
@@ -1111,7 +1118,7 @@
                     }
                     
                     typeChar();
-                }, 800);
+                }, 1000); // 1秒待機
             }
 
             // ディベートメッセージをD1に保存

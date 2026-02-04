@@ -448,6 +448,24 @@ app.get('/api/comments/:debateId', async (c) => {
   }
 })
 
+// API: コメントを削除
+app.delete('/api/comments/:debateId', async (c) => {
+  try {
+    const debateId = c.req.param('debateId')
+    const { DB } = c.env
+    
+    await DB.prepare(`
+      DELETE FROM debate_comments
+      WHERE debate_id = ?
+    `).bind(debateId).run()
+    
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('Comments delete error:', error)
+    return c.json({ error: 'Failed to delete comments' }, 500)
+  }
+})
+
 // API: ディベートメッセージを取得
 app.get('/api/debate/:debateId/messages', async (c) => {
   try {
