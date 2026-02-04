@@ -1093,32 +1093,34 @@
                 // 自動スクロール（即座に）
                 container.scrollTop = container.scrollHeight;
                 
-                // 枠が完全に表示されるまで待つ（1000ms = 1秒）
-                setTimeout(() => {
-                    // タイピング演出（1文字ずつ）
-                    const textElement = bubbleDiv.querySelector('.typing-text');
-                    let charIndex = 0;
-                    const typingSpeed = 30; // 30ms per character
-                    
-                    function typeChar() {
-                        if (charIndex < message.length && debateActive) {
-                            textElement.textContent += message.charAt(charIndex);
-                            charIndex++;
-                            // タイピング中も自動スクロール
-                            container.scrollTop = container.scrollHeight;
-                            setTimeout(typeChar, typingSpeed);
-                        } else {
-                            // タイピング完了後にD1保存とAI評価
-                            saveDebateMessageToD1(side, aiModel, message);
-                            
-                            if (!fogMode) {
-                                getAIEvaluations(message, side);
+                // 枠が描画されるまで待つ（2フレーム）
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        // タイピング演出（1文字ずつ）
+                        const textElement = bubbleDiv.querySelector('.typing-text');
+                        let charIndex = 0;
+                        const typingSpeed = 30; // 30ms per character
+                        
+                        function typeChar() {
+                            if (charIndex < message.length && debateActive) {
+                                textElement.textContent += message.charAt(charIndex);
+                                charIndex++;
+                                // タイピング中も自動スクロール
+                                container.scrollTop = container.scrollHeight;
+                                setTimeout(typeChar, typingSpeed);
+                            } else {
+                                // タイピング完了後にD1保存とAI評価
+                                saveDebateMessageToD1(side, aiModel, message);
+                                
+                                if (!fogMode) {
+                                    getAIEvaluations(message, side);
+                                }
                             }
                         }
-                    }
-                    
-                    typeChar();
-                }, 1000); // 1秒待機
+                        
+                        typeChar();
+                    });
+                });
             }
 
             // ディベートメッセージをD1に保存

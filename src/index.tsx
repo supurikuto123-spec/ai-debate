@@ -308,10 +308,10 @@ app.post('/api/debate/generate', async (c) => {
     // 会話履歴を全て追加（相手の発言を読めるように）
     if (conversationHistory && conversationHistory.length > 0) {
       for (const msg of conversationHistory) {
-        // 両方のAIの発言をassistantとして記録
+        // 両方のAIの発言をassistantとして記録（ラベルなし）
         messages.push({
           role: 'assistant',
-          content: `[${msg.side === 'agree' ? '意見A' : '意見B'}]: ${msg.content}`
+          content: msg.content
         })
       }
       
@@ -437,7 +437,7 @@ app.get('/api/comments/:debateId', async (c) => {
       SELECT *
       FROM debate_comments
       WHERE debate_id = ?
-      ORDER BY created_at DESC
+      ORDER BY created_at ASC
       LIMIT 50
     `).bind(debateId).all()
     
