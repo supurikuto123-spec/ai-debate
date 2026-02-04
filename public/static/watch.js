@@ -487,33 +487,41 @@
             }
             
             function displayAIEvaluation(evaluation, side) {
-                if (!evaluation || !evaluation.symbol) return;  // 符号がない場合は表示しない
+                if (!evaluation || !evaluation.symbol) return;
                 
+                // 最後に追加したメッセージバブルを取得
                 const container = document.getElementById('debateMessages');
+                const bubbles = container.querySelectorAll('.bubble');
+                const lastBubble = bubbles[bubbles.length - 1];
                 
-                // カスタム符号デザイン（SVG）
+                if (!lastBubble) return;
+                
+                // アイコンをSVGで作成
                 let symbolSvg = '';
                 let symbolColor = '';
                 
                 if (evaluation.symbol === '!!') {
-                    symbolColor = 'text-green-400';
-                    symbolSvg = '<svg width="20" height="20" viewBox="0 0 20 20" class="inline"><text x="0" y="16" fill="currentColor" font-size="16" font-weight="bold">!!</text></svg>';
+                    symbolColor = '#10b981'; // green
+                    symbolSvg = '<svg width="32" height="32" viewBox="0 0 32 32" style="filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.8));"><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="' + symbolColor + '" font-size="24" font-weight="bold">!!</text></svg>';
                 } else if (evaluation.symbol === '!') {
-                    symbolColor = 'text-green-400';
-                    symbolSvg = '<svg width="12" height="20" viewBox="0 0 12 20" class="inline"><text x="0" y="16" fill="currentColor" font-size="16" font-weight="bold">!</text></svg>';
+                    symbolColor = '#10b981'; // green
+                    symbolSvg = '<svg width="24" height="32" viewBox="0 0 24 32" style="filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.8));"><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="' + symbolColor + '" font-size="24" font-weight="bold">!</text></svg>';
                 } else if (evaluation.symbol === '?') {
-                    symbolColor = 'text-orange-400';
-                    symbolSvg = '<svg width="12" height="20" viewBox="0 0 12 20" class="inline"><text x="0" y="16" fill="currentColor" font-size="16" font-weight="bold">?</text></svg>';
+                    symbolColor = '#f59e0b'; // orange
+                    symbolSvg = '<svg width="24" height="32" viewBox="0 0 24 32" style="filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.8));"><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="' + symbolColor + '" font-size="24" font-weight="bold">?</text></svg>';
                 } else if (evaluation.symbol === '??') {
-                    symbolColor = 'text-red-400';
-                    symbolSvg = '<svg width="20" height="20" viewBox="0 0 20 20" class="inline"><text x="0" y="16" fill="currentColor" font-size="16" font-weight="bold">??</text></svg>';
+                    symbolColor = '#ef4444'; // red
+                    symbolSvg = '<svg width="32" height="32" viewBox="0 0 32 32" style="filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.8));"><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="' + symbolColor + '" font-size="24" font-weight="bold">??</text></svg>';
                 }
                 
-                const evalHTML = '<div class="text-xs text-gray-400 italic text-right px-4 py-1 animate-fade-in">' +
-                    '<span class="' + symbolColor + ' text-lg">' + symbolSvg + '</span> ' +
-                    '<span class="text-gray-300">' + evaluation.comment + '</span>' +
-                    '</div>';
-                container.insertAdjacentHTML('beforeend', evalHTML);
+                // 枠の端（左上または右上）にアイコンを配置
+                const iconDiv = document.createElement('div');
+                iconDiv.className = 'absolute top-2 ' + (side === 'agree' ? 'left-2' : 'right-2');
+                iconDiv.innerHTML = symbolSvg;
+                
+                // バブルをrelativeに設定
+                lastBubble.style.position = 'relative';
+                lastBubble.appendChild(iconDiv);
             }
             
             // 最終投票モーダルを表示
