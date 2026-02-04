@@ -133,8 +133,6 @@
                 const message = side === 'agree' ? '意見Aに変更しました！' : '意見Bに変更しました！';
                 showToast(message);
             }
-                showToast(message);
-            }
             window.changeVote = changeVote;
 
             // Highlight selected button
