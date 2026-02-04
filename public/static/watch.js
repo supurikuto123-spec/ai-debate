@@ -1016,14 +1016,6 @@
                         
                         // 5ターン目に強制評価（デモ用）
                         const turnNumber = conversationHistory.length;
-                        if (turnNumber === 5 || turnNumber === 10) {
-                            // 強制的に符号を付ける
-                            setTimeout(() => {
-                                const forcedSymbols = ['!!', '!', '?', '??'];
-                                const randomSymbol = forcedSymbols[Math.floor(Math.random() * forcedSymbols.length)];
-                                displayAIEvaluation({ symbol: randomSymbol, shouldVote: true }, side);
-                            }, 3000); // タイピング完了後
-                        }
                         
                         // Continue with opposite side after 3 seconds
                         setTimeout(() => {
@@ -1077,26 +1069,25 @@
                 // 枠を先に生成（1行レイアウト）
                 const bubbleDiv = document.createElement('div');
                 bubbleDiv.className = 'bubble ' + bubbleClass + ' p-4 text-white shadow-lg';
-                bubbleDiv.innerHTML = '<div class="flex items-center gap-2">' +
+                bubbleDiv.style.minHeight = '60px';  // 最小高さを固定
+                bubbleDiv.innerHTML = '<div class="flex items-center gap-3">' +
                     '<div class="w-8 h-8 rounded-full bg-gradient-to-br ' + gradientClass + ' flex items-center justify-center flex-shrink-0">' +
                         '<i class="fas ' + iconClass + ' text-sm"></i>' +
                     '</div>' +
-                    '<div class="flex items-center gap-2 flex-shrink-0">' +
-                        '<span class="font-bold text-sm">' + aiModel + '</span>' +
-                        '<span class="text-xs opacity-75">' + opinionLabel + '</span>' +
-                    '</div>' +
+                    '<span class="font-bold text-sm flex-shrink-0">' + aiModel + '</span>' +
+                    '<span class="text-xs opacity-75 flex-shrink-0">' + opinionLabel + '</span>' +
                     '<p class="text-sm leading-relaxed typing-text flex-1"></p>' +
                 '</div>';
                 
                 container.appendChild(bubbleDiv);
                 
-                // 自動スクロール（即座に）
-                container.scrollTop = container.scrollHeight;
-                
-                // 枠が描画されるまで待つ（2フレーム）
+                // 枠が完全に描画されるまで待つ
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
-                        // タイピング演出（1文字ずつ）
+                        // 自動スクロール
+                        container.scrollTop = container.scrollHeight;
+                        
+                        // タイピング演出開始
                         const textElement = bubbleDiv.querySelector('.typing-text');
                         let charIndex = 0;
                         const typingSpeed = 30; // 30ms per character
