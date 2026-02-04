@@ -1077,7 +1077,7 @@
             function addDebateMessage(side, message) {
                 const container = document.getElementById('debateMessages');
                 const bubbleClass = side === 'agree' ? 'bubble-agree' : 'bubble-disagree';
-                const aiModel = side === 'agree' ? 'GPT-4o' : 'Claude-3.5';
+                const aiModel = 'GPT-4o';  // 現在は両方ともOpenAI APIを使用
                 const iconClass = side === 'agree' ? 'fa-brain' : 'fa-lightbulb';
                 const gradientClass = side === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500';
                 const opinionLabel = side === 'agree' ? '意見A' : '意見B';
@@ -1103,7 +1103,7 @@
             function addDebateMessageWithTyping(side, message) {
                 const container = document.getElementById('debateMessages');
                 const bubbleClass = side === 'agree' ? 'bubble-agree' : 'bubble-disagree';
-                const aiModel = side === 'agree' ? 'GPT-4o' : 'Claude-3.5';
+                const aiModel = 'GPT-4o';  // 現在は両方ともOpenAI APIを使用
                 const iconClass = side === 'agree' ? 'fa-brain' : 'fa-lightbulb';
                 const gradientClass = side === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500';
                 const opinionLabel = side === 'agree' ? '意見A' : '意見B';
@@ -1144,6 +1144,9 @@
                             } else {
                                 // タイピング完了後にD1保存とAI評価
                                 saveDebateMessageToD1(side, aiModel, message);
+                                
+                                // 保存完了後にカウントを増やす（二重表示を防ぐ）
+                                lastMessageCount++;
                                 
                                 if (!fogMode) {
                                     getAIEvaluations(message, side);
@@ -1188,16 +1191,20 @@
                     const data = await response.json();
                     
                     if (data.messages && data.messages.length > 0) {
-                        // 新しいメッセージがある場合のみ更新
-                        if (data.messages.length !== lastMessageCount) {
+                        // 新しいメッセージがある場合のみ追加（差分のみ）
+                        if (data.messages.length > lastMessageCount) {
                             const container = document.getElementById('debateMessages');
-                            container.innerHTML = ''; // クリア
                             
-                            for (const msg of data.messages) {
+                            // 差分だけを追加
+                            for (let i = lastMessageCount; i < data.messages.length; i++) {
+                                const msg = data.messages[i];
                                 addDebateMessage(msg.side, msg.content);
                             }
                             
                             lastMessageCount = data.messages.length;
+                            
+                            // 最下部にスクロール
+                            container.scrollTop = container.scrollHeight;
                         }
                     }
                 } catch (error) {
