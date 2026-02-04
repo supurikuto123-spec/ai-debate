@@ -139,7 +139,7 @@
             }
 
             // Post comment
-            function postComment() {
+            async function postComment() {
                 const input = document.getElementById('commentInput');
                 const text = input.value.trim();
                 
