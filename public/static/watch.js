@@ -296,9 +296,14 @@
                     <p class="text-sm text-gray-200">${formattedText}</p>
                 `;
 
-                // Add to top
+                // Add to bottom
                 commentsList.appendChild(commentDiv);
-                commentsList.scrollTop = commentsList.scrollHeight; // 最下部にスクロール
+                
+                // ユーザーが最下部にいる場合のみスクロール
+                const isAtBottom = commentsList.scrollHeight - commentsList.scrollTop - commentsList.clientHeight < 50;
+                if (isAtBottom) {
+                    commentsList.scrollTop = commentsList.scrollHeight;
+                }
 
                 // D1に保存
                 saveCommentToD1(text);
@@ -1108,7 +1113,12 @@
                 `;
                 
                 container.insertAdjacentHTML('beforeend', bubbleHTML);
-                container.scrollTop = container.scrollHeight; // コメント欄と同じ
+                
+                // ユーザーが最下部にいる場合のみスクロール
+                const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+                if (isAtBottom) {
+                    container.scrollTop = container.scrollHeight;
+                }
             }
 
             // メッセージ追加関数（瞬時表示 + AI評価）
@@ -1136,8 +1146,11 @@
                 
                 container.appendChild(bubbleDiv);
                 
-                // 新しいメッセージ追加時は最下部にスクロール
-                container.scrollTop = container.scrollHeight;
+                // ユーザーが最下部にいる場合のみスクロール
+                const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+                if (isAtBottom) {
+                    container.scrollTop = container.scrollHeight;
+                }
                 
                 // タイピング演出開始
                 const textElement = bubbleDiv.querySelector('.typing-text');
@@ -1209,8 +1222,11 @@
                             
                             lastMessageCount = data.messages.length;
                             
-                            // 最下部にスクロール（コメント欄と同じ）
-                            container.scrollTop = container.scrollHeight;
+                            // ユーザーが最下部にいる場合のみスクロール
+                            const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+                            if (isAtBottom) {
+                                container.scrollTop = container.scrollHeight;
+                            }
                         }
                     }
                 } catch (error) {
@@ -1261,8 +1277,11 @@
                                 commentsList.appendChild(commentDiv);
                             }
                             
-                            // 最下部にスクロール
-                            commentsList.scrollTop = commentsList.scrollHeight;
+                            // ユーザーが最下部にいる場合のみスクロール
+                            const isAtBottom = commentsList.scrollHeight - commentsList.scrollTop - commentsList.clientHeight < 50;
+                            if (isAtBottom) {
+                                commentsList.scrollTop = commentsList.scrollHeight;
+                            }
                             lastCommentCount = data.comments.length;
                         }
                     }
