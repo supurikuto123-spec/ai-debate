@@ -52,38 +52,20 @@
                 }
             }
 
-            // 10秒ごとにランダムに10人の投票を変更（0から始まって徐々に増える）
+            // 10秒ごとにランダムに最大10人の投票を変更（既存の票のみ、新規追加なし）
             setInterval(() => {
-                const changeCount = 10;
+                // 変更可能な票数を計算（agree と disagree の合計）
+                const maxChanges = Math.min(10, voteData.agree + voteData.disagree);
                 
-                for (let i = 0; i < changeCount; i++) {
-                    if (voteData.total === 0 || (voteData.agree === 0 && voteData.disagree === 0)) {
-                        // 0票から開始：新規追加
-                        if (Math.random() < 0.5) {
-                            voteData.agree++;
-                        } else {
-                            voteData.disagree++;
-                        }
-                        voteData.total++;
-                    } else {
-                        // 既存票を変更
-                        if (Math.random() < 0.5) {
-                            if (voteData.agree > 0) {
-                                voteData.agree--;
-                                voteData.disagree++;
-                            } else {
-                                voteData.disagree--;
-                                voteData.agree++;
-                            }
-                        } else {
-                            if (voteData.disagree > 0) {
-                                voteData.disagree--;
-                                voteData.agree++;
-                            } else {
-                                voteData.agree--;
-                                voteData.disagree++;
-                            }
-                        }
+                for (let i = 0; i < maxChanges; i++) {
+                    if (Math.random() < 0.5 && voteData.agree > 0) {
+                        // agree → disagree に変更
+                        voteData.agree--;
+                        voteData.disagree++;
+                    } else if (voteData.disagree > 0) {
+                        // disagree → agree に変更
+                        voteData.disagree--;
+                        voteData.agree++;
                     }
                 }
                 
@@ -348,7 +330,7 @@
                 commentsList.appendChild(commentDiv);
                 
                 // 真下にいる場合のみ自動スクロール
-                const isAtBottom = commentsList.scrollHeight - commentsList.scrollTop - commentsList.clientHeight < 10;
+                const isAtBottom = commentsList.scrollHeight - commentsList.scrollTop - commentsList.clientHeight < 100;
                 if (isAtBottom) {
                     commentsList.scrollTop = commentsList.scrollHeight;
                 }
@@ -542,16 +524,20 @@
                         }
                     });
                     
-                    // 現在の人間のみの投票者数を計算（voteData.totalからAI票を除外）
+                    // 現在の人間のみの投票者数を計算（AI票を除外）
                     const currentAIVotes = aiVotesDistribution.agree + aiVotesDistribution.disagree;
                     const currentHumanVoters = voteData.total - currentAIVotes;
                     
-                    // 人間の投票者数が増加した場合のみAI票を追加
-                    if (currentHumanVoters > lastHumanVoterCount) {
-                        const humanVoterIncrease = currentHumanVoters - lastHumanVoterCount;
-                        
-                        // 増加分をAI 3体で均等配分（1人増えるごとに各AIに1票ずつ追加）
-                        const votesPerAI = Math.floor(humanVoterIncrease / 3);
+                    // AI票の目標値を計算：人間投票者数と同じにする（3体で割る）
+                    const targetAIVotesTotal = currentHumanVoters;
+                    
+                    // 現在のAI票の合計
+                    const currentAITotal = aiVotesDistribution.agree + aiVotesDistribution.disagree;
+                    
+                    // AI票を調整する必要がある場合
+                    if (targetAIVotesTotal > currentAITotal) {
+                        const votesToAdd = targetAIVotesTotal - currentAITotal;
+                        const votesPerAI = Math.floor(votesToAdd / 3);
                         
                         if (votesPerAI > 0) {
                             // 各AIの判定に基づいて投票
@@ -567,9 +553,6 @@
                                     voteData.total += votesPerAI;
                                 }
                             });
-                            
-                            // 最後の人間投票者数を更新
-                            lastHumanVoterCount = currentHumanVoters;
                             
                             // ゲージを更新
                             updateVoteDisplay();
@@ -1180,7 +1163,7 @@
                 container.insertAdjacentHTML('beforeend', bubbleHTML);
                 
                 // 真下にいる場合のみ自動スクロール
-                const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 10;
+                const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
                 if (isAtBottom) {
                     container.scrollTop = container.scrollHeight;
                 }
@@ -1309,7 +1292,7 @@
                             lastMessageCount = data.messages.length;
                             
                             // 真下にいる場合のみ自動スクロール
-                            const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 10;
+                            const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
                             if (isAtBottom) {
                                 container.scrollTop = container.scrollHeight;
                             }
@@ -1364,7 +1347,7 @@
                             }
                             
                             // 真下にいる場合のみ自動スクロール
-                            const isAtBottom = commentsList.scrollHeight - commentsList.scrollTop - commentsList.clientHeight < 10;
+                            const isAtBottom = commentsList.scrollHeight - commentsList.scrollTop - commentsList.clientHeight < 100;
                             if (isAtBottom) {
                                 commentsList.scrollTop = commentsList.scrollHeight;
                             }

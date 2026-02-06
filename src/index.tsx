@@ -318,13 +318,13 @@ app.post('/api/debate/generate', async (c) => {
       // 最後に「相手の発言を踏まえて反論してください」を追加
       messages.push({
         role: 'user',
-        content: '上記の議論を踏まえ、新しい視点から反論してください。【絶対厳守】150文字ぴったりまで使い切ること。必ず句読点（。）で終わること。150文字未満や151文字以上は絶対に禁止です。'
+        content: '上記の議論を踏まえ、新しい視点から反論してください。【重要】必ず130文字以内、句読点（。）で終わること。130文字を超えた場合は即座に無効です。130文字で完結する内容にしてください。'
       })
     } else {
       // 初回は通常通り
       messages.push({
         role: 'user',
-        content: '【絶対厳守】150文字ぴったりまで使い切ること。必ず句読点（。）で終わること。150文字未満や151文字以上は絶対に禁止です。簡潔に主張してください。'
+        content: '【重要】必ず130文字以内、句読点（。）で終わること。130文字を超えた場合は即座に無効です。130文字で完結する内容にしてください。簡潔に主張してください。'
       })
     }
     
@@ -337,7 +337,7 @@ app.post('/api/debate/generate', async (c) => {
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: messages,
-        max_tokens: maxTokens || 200,  // 150文字（日本語） ≈ 200トークン
+        max_tokens: maxTokens || 150,  // 130文字（日本語） ≈ 150トークン
         temperature: temperature || 0.9
       })
     })
@@ -357,10 +357,10 @@ app.post('/api/debate/generate', async (c) => {
     // [意見A], [意見B], [意見C]などのラベルを削除
     message = message.replace(/^\[意見[ABC]\]:\s*/g, '')
     
-    // 150文字制限を厳格に実施（必ず句読点で終わるように調整）
-    if (message.length > 150) {
-      // 150文字でカット
-      message = message.substring(0, 150)
+    // 130文字制限を厳格に実施（必ず句読点で終わるように調整）
+    if (message.length > 130) {
+      // 130文字でカット
+      message = message.substring(0, 130)
       
       // 最後の句読点（。、！、？）を探す
       const lastPunctuationIndex = Math.max(
@@ -370,11 +370,11 @@ app.post('/api/debate/generate', async (c) => {
       )
       
       // 句読点が見つかった場合、そこで終了
-      if (lastPunctuationIndex > 100) { // 最低でも100文字は確保
+      if (lastPunctuationIndex > 80) { // 最低でも80文字は確保
         message = message.substring(0, lastPunctuationIndex + 1)
       } else {
         // 句読点がない場合は強制的に「。」を追加
-        message = message.substring(0, 149) + '。'
+        message = message.substring(0, 129) + '。'
       }
     } else if (!message.endsWith('。') && !message.endsWith('！') && !message.endsWith('？')) {
       // 150文字未満でも句読点で終わっていない場合は「。」を追加
