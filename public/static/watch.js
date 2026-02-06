@@ -797,14 +797,6 @@
                 document.body.insertAdjacentHTML('beforeend', resultHTML);
             }
 
-            // Auto-scroll debate messages (every 100ms for immediate response)
-            setInterval(() => {
-                const container = document.getElementById('debateMessages');
-                if (container) {
-                    container.scrollTop = container.scrollHeight;
-                }
-            }, 100);
-
             // Debate timer is managed by updateDebateTimer() function
 
             // 観戦人数を実データに更新
@@ -1131,44 +1123,33 @@
                 '</div>';
                 
                 container.appendChild(bubbleDiv);
+                container.scrollTop = container.scrollHeight; // コメント欄と同じ実装
                 
-                // 即座に自動スクロール
-                container.scrollTop = container.scrollHeight;
+                // タイピング演出開始
+                const textElement = bubbleDiv.querySelector('.typing-text');
+                let charIndex = 0;
+                const typingSpeed = 30; // 30ms per character
                 
-                // 枠が描画されるまで待つ
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        // 自動スクロール（2回目）
-                        container.scrollTop = container.scrollHeight;
+                function typeChar() {
+                    if (charIndex < message.length && debateActive) {
+                        textElement.textContent += message.charAt(charIndex);
+                        charIndex++;
+                        container.scrollTop = container.scrollHeight; // タイピング中もスクロール
+                        setTimeout(typeChar, typingSpeed);
+                    } else {
+                        // タイピング完了後にD1保存とAI評価
+                        saveDebateMessageToD1(side, aiModel, message);
                         
-                        // タイピング演出開始
-                        const textElement = bubbleDiv.querySelector('.typing-text');
-                        let charIndex = 0;
-                        const typingSpeed = 30; // 30ms per character
+                        // 保存完了後にカウントを増やす（二重表示を防ぐ）
+                        lastMessageCount++;
                         
-                        function typeChar() {
-                            if (charIndex < message.length && debateActive) {
-                                textElement.textContent += message.charAt(charIndex);
-                                charIndex++;
-                                // タイピング中も自動スクロール
-                                container.scrollTop = container.scrollHeight;
-                                setTimeout(typeChar, typingSpeed);
-                            } else {
-                                // タイピング完了後にD1保存とAI評価
-                                saveDebateMessageToD1(side, aiModel, message);
-                                
-                                // 保存完了後にカウントを増やす（二重表示を防ぐ）
-                                lastMessageCount++;
-                                
-                                if (!fogMode) {
-                                    getAIEvaluations(message, side);
-                                }
-                            }
+                        if (!fogMode) {
+                            getAIEvaluations(message, side);
                         }
-                        
-                        typeChar();
-                    });
-                });
+                    }
+                }
+                
+                typeChar();
             }
 
             // ディベートメッセージをD1に保存
