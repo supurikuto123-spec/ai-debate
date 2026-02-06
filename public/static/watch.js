@@ -17,12 +17,6 @@
             console.log('DEBATE_ID:', DEBATE_ID);
             console.log('currentUser:', currentUser);
 
-            // スクロール状態の管理
-            let debateUserScrolling = false;
-            let commentUserScrolling = false;
-            let debateScrollTimeout;
-            let commentScrollTimeout;
-
             // Vote state
             let userVote = null;
             let hasVoted = false;
@@ -60,22 +54,33 @@
 
             // 10秒ごとにランダムに10人の投票を変更
             setInterval(() => {
-                if (voteData.total >= 20) {  // 少なくとも20人いる場合のみ
-                    const changeCount = Math.min(10, Math.floor(voteData.total * 0.1));  // 最大10人
-                    
-                    for (let i = 0; i < changeCount; i++) {
-                        // agree → disagree または disagree → agree にランダムに変更
-                        if (Math.random() < 0.5 && voteData.agree > 0) {
+                // 初回投票は新規追加、その後は既存の票を変更
+                const changeCount = 10;
+                
+                for (let i = 0; i < changeCount; i++) {
+                    // agree → disagree または disagree → agree にランダムに変更
+                    if (Math.random() < 0.5) {
+                        if (voteData.agree > 0) {
                             voteData.agree--;
                             voteData.disagree++;
-                        } else if (voteData.disagree > 0) {
+                        } else {
+                            // agreeが0の場合は新規追加
+                            voteData.agree++;
+                            voteData.total++;
+                        }
+                    } else {
+                        if (voteData.disagree > 0) {
                             voteData.disagree--;
                             voteData.agree++;
+                        } else {
+                            // disagreeが0の場合は新規追加
+                            voteData.disagree++;
+                            voteData.total++;
                         }
                     }
-                    
-                    updateVoteDisplay();
                 }
+                
+                updateVoteDisplay();
             }, 10000);  // 10秒ごと
 
             // Submit initial vote from modal
@@ -325,8 +330,9 @@
                 // Add to bottom
                 commentsList.appendChild(commentDiv);
                 
-                // ユーザーがスクロール中でない場合のみ自動スクロール
-                if (!commentUserScrolling) {
+                // 真下にいる場合のみ自動スクロール
+                const isAtBottom = commentsList.scrollHeight - commentsList.scrollTop - commentsList.clientHeight < 10;
+                if (isAtBottom) {
                     commentsList.scrollTop = commentsList.scrollHeight;
                 }
 
@@ -1139,8 +1145,9 @@
                 
                 container.insertAdjacentHTML('beforeend', bubbleHTML);
                 
-                // ユーザーがスクロール中でない場合のみ自動スクロール
-                if (!debateUserScrolling) {
+                // 真下にいる場合のみ自動スクロール
+                const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 10;
+                if (isAtBottom) {
                     container.scrollTop = container.scrollHeight;
                 }
             }
@@ -1170,8 +1177,9 @@
                 
                 container.appendChild(bubbleDiv);
                 
-                // ユーザーがスクロール中でない場合のみ自動スクロール
-                if (!debateUserScrolling) {
+                // 真下にいる場合のみ自動スクロール
+                const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 10;
+                if (isAtBottom) {
                     container.scrollTop = container.scrollHeight;
                 }
                 
@@ -1185,8 +1193,9 @@
                         textElement.textContent += message.charAt(charIndex);
                         charIndex++;
                         
-                        // タイピング中もユーザーがスクロール中でなければ自動スクロール
-                        if (!debateUserScrolling) {
+                        // タイピング中も真下にいる場合のみ自動スクロール
+                        const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 10;
+                        if (isAtBottom) {
                             container.scrollTop = container.scrollHeight;
                         }
                         
@@ -1251,8 +1260,9 @@
                             
                             lastMessageCount = data.messages.length;
                             
-                            // ユーザーがスクロール中でない場合のみ自動スクロール
-                            if (!debateUserScrolling) {
+                            // 真下にいる場合のみ自動スクロール
+                            const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 10;
+                            if (isAtBottom) {
                                 container.scrollTop = container.scrollHeight;
                             }
                         }
@@ -1305,8 +1315,9 @@
                                 commentsList.appendChild(commentDiv);
                             }
                             
-                            // ユーザーがスクロール中でない場合のみ自動スクロール
-                            if (!commentUserScrolling) {
+                            // 真下にいる場合のみ自動スクロール
+                            const isAtBottom = commentsList.scrollHeight - commentsList.scrollTop - commentsList.clientHeight < 10;
+                            if (isAtBottom) {
                                 commentsList.scrollTop = commentsList.scrollHeight;
                             }
                             lastCommentCount = data.comments.length;
@@ -1328,29 +1339,6 @@
             // Initialize on page load
             window.addEventListener('DOMContentLoaded', () => {
                 console.log('Page loaded, initializing...');
-                
-                // スクロール監視の初期化
-                const debateContainer = document.getElementById('debateMessages');
-                if (debateContainer) {
-                    debateContainer.addEventListener('scroll', () => {
-                        debateUserScrolling = true;
-                        clearTimeout(debateScrollTimeout);
-                        debateScrollTimeout = setTimeout(() => {
-                            debateUserScrolling = false;
-                        }, 1000);
-                    });
-                }
-                
-                const commentContainer = document.getElementById('commentsList');
-                if (commentContainer) {
-                    commentContainer.addEventListener('scroll', () => {
-                        commentUserScrolling = true;
-                        clearTimeout(commentScrollTimeout);
-                        commentScrollTimeout = setTimeout(() => {
-                            commentUserScrolling = false;
-                        }, 1000);
-                    });
-                }
                 
                 // 投票ボタンのイベントリスナーを先に設定
                 const agreeModalBtn = document.getElementById('voteAgreeModalBtn');
