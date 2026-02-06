@@ -1178,7 +1178,14 @@
                 container.appendChild(bubbleDiv);
                 
                 // 真下にいる場合のみ自動スクロール
-                const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 10;
+                const scrollHeight = container.scrollHeight;
+                const scrollTop = container.scrollTop;
+                const clientHeight = container.clientHeight;
+                const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+                const isAtBottom = distanceFromBottom < 10;
+                
+                console.log('Debate scroll check:', { scrollHeight, scrollTop, clientHeight, distanceFromBottom, isAtBottom });
+                
                 if (isAtBottom) {
                     container.scrollTop = container.scrollHeight;
                 }
@@ -1194,7 +1201,8 @@
                         charIndex++;
                         
                         // タイピング中も真下にいる場合のみ自動スクロール
-                        const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 10;
+                        const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+                        const isAtBottom = distanceFromBottom < 10;
                         if (isAtBottom) {
                             container.scrollTop = container.scrollHeight;
                         }
