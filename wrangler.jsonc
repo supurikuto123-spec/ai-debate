@@ -1,23 +1,9 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "webapp",
+  "name": "ai-debate",
   "compatibility_date": "2026-01-26",
   "pages_build_output_dir": "./dist",
   "compatibility_flags": [
     "nodejs_compat"
-  ],
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "ai-debate-db",
-      "database_id": "local-dev"
-    }
-  ],
-  "kv_namespaces": [
-    {
-      "binding": "KV",
-      "id": "local-kv",
-      "preview_id": "local-kv"
-    }
   ]
 }
