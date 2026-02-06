@@ -1084,14 +1084,14 @@
                 
                 const bubbleHTML = `
                     <div class="bubble ${bubbleClass} p-4 text-white shadow-lg" style="width: 100%;">
-                        <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-3 mb-2">
                             <div class="w-8 h-8 rounded-full bg-gradient-to-br ${gradientClass} flex items-center justify-center flex-shrink-0">
                                 <i class="fas ${iconClass} text-sm"></i>
                             </div>
                             <span class="font-bold text-sm flex-shrink-0">${aiModel}</span>
                             <span class="text-xs opacity-75 flex-shrink-0">${opinionLabel}</span>
-                            <span class="text-sm leading-relaxed">${message}</span>
                         </div>
+                        <div class="text-sm leading-relaxed" style="word-wrap: break-word; white-space: pre-wrap;">${message}</div>
                     </div>
                 `;
                 
@@ -1108,19 +1108,19 @@
                 const gradientClass = side === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500';
                 const opinionLabel = side === 'agree' ? '意見A' : '意見B';
                 
-                // 枠を先に生成（1行レイアウト）
+                // 枠を先に生成（モデル情報とテキストを分離）
                 const bubbleDiv = document.createElement('div');
                 bubbleDiv.className = 'bubble ' + bubbleClass + ' p-4 text-white shadow-lg';
-                bubbleDiv.style.minHeight = '80px';  // 最小高さを増やして1行分を確保
-                bubbleDiv.style.width = '100%';  // 幅を100%に固定
-                bubbleDiv.innerHTML = '<div class="flex items-center gap-3">' +
-                    '<div class="w-8 h-8 rounded-full bg-gradient-to-br ' + gradientClass + ' flex items-center justify-center flex-shrink-0">' +
-                        '<i class="fas ' + iconClass + ' text-sm"></i>' +
+                bubbleDiv.style.width = '100%';
+                bubbleDiv.innerHTML = 
+                    '<div class="flex items-center gap-3 mb-2">' +
+                        '<div class="w-8 h-8 rounded-full bg-gradient-to-br ' + gradientClass + ' flex items-center justify-center flex-shrink-0">' +
+                            '<i class="fas ' + iconClass + ' text-sm"></i>' +
+                        '</div>' +
+                        '<span class="font-bold text-sm flex-shrink-0">' + aiModel + '</span>' +
+                        '<span class="text-xs opacity-75 flex-shrink-0">' + opinionLabel + '</span>' +
                     '</div>' +
-                    '<span class="font-bold text-sm flex-shrink-0">' + aiModel + '</span>' +
-                    '<span class="text-xs opacity-75 flex-shrink-0">' + opinionLabel + '</span>' +
-                    '<div class="text-sm leading-relaxed typing-text"></div>' +
-                '</div>';
+                    '<div class="text-sm leading-relaxed typing-text" style="word-wrap: break-word; white-space: pre-wrap;"></div>';
                 
                 container.appendChild(bubbleDiv);
                 container.scrollTop = container.scrollHeight; // コメント欄と同じ
