@@ -1096,7 +1096,12 @@
                 `;
                 
                 container.insertAdjacentHTML('beforeend', bubbleHTML);
-                container.scrollTop = container.scrollHeight;
+                
+                // 親要素（スクロール可能なコンテナ）をスクロール
+                const scrollContainer = container.parentElement;
+                if (scrollContainer) {
+                    scrollContainer.scrollTop = scrollContainer.scrollHeight;
+                }
             }
 
             // メッセージ追加関数（瞬時表示 + AI評価）
@@ -1123,7 +1128,12 @@
                 '</div>';
                 
                 container.appendChild(bubbleDiv);
-                container.scrollTop = container.scrollHeight; // コメント欄と同じ実装
+                
+                // 親要素（スクロール可能なコンテナ）をスクロール
+                const scrollContainer = container.parentElement;
+                if (scrollContainer) {
+                    scrollContainer.scrollTop = scrollContainer.scrollHeight;
+                }
                 
                 // タイピング演出開始
                 const textElement = bubbleDiv.querySelector('.typing-text');
@@ -1134,7 +1144,10 @@
                     if (charIndex < message.length && debateActive) {
                         textElement.textContent += message.charAt(charIndex);
                         charIndex++;
-                        container.scrollTop = container.scrollHeight; // タイピング中もスクロール
+                        // タイピング中もスクロール
+                        if (scrollContainer) {
+                            scrollContainer.scrollTop = scrollContainer.scrollHeight;
+                        }
                         setTimeout(typeChar, typingSpeed);
                     } else {
                         // タイピング完了後にD1保存とAI評価
@@ -1196,8 +1209,11 @@
                             
                             lastMessageCount = data.messages.length;
                             
-                            // 最下部にスクロール
-                            container.scrollTop = container.scrollHeight;
+                            // 親要素（スクロール可能なコンテナ）をスクロール
+                            const scrollContainer = container.parentElement;
+                            if (scrollContainer) {
+                                scrollContainer.scrollTop = scrollContainer.scrollHeight;
+                            }
                         }
                     }
                 } catch (error) {
