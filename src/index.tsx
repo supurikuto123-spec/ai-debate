@@ -337,7 +337,7 @@ app.post('/api/debate/generate', async (c) => {
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: messages,
-        max_tokens: maxTokens || 60,  // 150文字 ≈ 60トークン
+        max_tokens: maxTokens || 200,  // 150文字（日本語） ≈ 200トークン
         temperature: temperature || 0.9
       })
     })

@@ -26,11 +26,6 @@ export const watchPage = (user: any, debateId: string) => `
                 border-radius: 16px 0 16px 16px;
                 border-right: 4px solid #f87171;
             }
-            .vote-bar {
-                transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-                position: relative;
-                box-shadow: inset 0 2px 8px rgba(0,0,0,0.3);
-            }
             .modal {
                 display: flex;
                 position: fixed;
@@ -73,36 +68,6 @@ export const watchPage = (user: any, debateId: string) => `
             @keyframes shine {
                 to {
                     left: 100%;
-                }
-            }
-            /* 派手なゲージアニメーション */
-            .vote-bar {
-                transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
-                box-shadow: 0 0 30px rgba(255,255,255,0.6), 0 0 50px currentColor;
-                animation: pulse-glow 1.5s infinite, shimmer 3s infinite;
-                position: relative;
-                overflow: hidden;
-            }
-            .vote-bar::after {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: -100%;
-                width: 100%;
-                height: 100%;
-                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
-                animation: shimmer-slide 2s infinite;
-            }
-            @keyframes pulse-glow {
-                0%, 100% {
-                    box-shadow: 0 0 30px rgba(255,255,255,0.6), 0 0 50px currentColor, inset 0 0 20px rgba(255,255,255,0.3);
-                    filter: brightness(1) saturate(1.2);
-                    transform: scaleY(1);
-                }
-                50% {
-                    box-shadow: 0 0 50px rgba(255,255,255,1), 0 0 80px currentColor, inset 0 0 40px rgba(255,255,255,0.6);
-                    filter: brightness(1.4) saturate(1.5);
-                    transform: scaleY(1.05);
                 }
             }
             @keyframes shimmer-slide {

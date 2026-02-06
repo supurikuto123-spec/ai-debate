@@ -538,20 +538,27 @@
                         const result = JSON.parse(data.message);
                         return result;
                     } catch {
-                        // パース失敗時は文字列から判定（両方チェック）
+                        // パース失敗時は文字列から公平に判定
                         const msg = data.message.toLowerCase();
-                        if (msg.includes('意見a') || (msg.includes('agree') && !msg.includes('disagree'))) {
+                        const hasAgree = msg.includes('意見a') || msg.includes('agree');
+                        const hasDisagree = msg.includes('意見b') || msg.includes('disagree');
+                        
+                        if (hasAgree && !hasDisagree) {
                             return { winner: 'agree' };
-                        } else if (msg.includes('意見b') || (msg.includes('disagree') && !msg.includes('agree'))) {
+                        } else if (hasDisagree && !hasAgree) {
                             return { winner: 'disagree' };
                         } else {
-                            // 判定できない場合はランダム
-                            return { winner: Math.random() < 0.5 ? 'agree' : 'disagree' };
+                            // 両方含まれる場合、より強い表現を探す
+                            if (msg.includes('意見aが優勢') || msg.includes('agree') && msg.indexOf('agree') < msg.indexOf('disagree')) {
+                                return { winner: 'agree' };
+                            } else {
+                                return { winner: 'disagree' };
+                            }
                         }
                     }
                 } catch (error) {
-                    // エラー時はランダム
-                    return { winner: Math.random() < 0.5 ? 'agree' : 'disagree' };
+                    console.error('AI judgment error:', error);
+                    return { winner: 'agree' };
                 }
             }
             
@@ -1129,11 +1136,8 @@
                 
                 container.appendChild(bubbleDiv);
                 
-                // ユーザーが最下部にいる場合のみスクロール
-                const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
-                if (isAtBottom) {
-                    container.scrollTop = container.scrollHeight;
-                }
+                // 新しいメッセージ追加時は最下部にスクロール
+                container.scrollTop = container.scrollHeight;
                 
                 // タイピング演出開始
                 const textElement = bubbleDiv.querySelector('.typing-text');
