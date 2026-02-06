@@ -538,15 +538,20 @@
                         const result = JSON.parse(data.message);
                         return result;
                     } catch {
-                        // パース失敗時は文字列から判定
-                        if (data.message.includes('agree') || data.message.includes('意見A')) {
+                        // パース失敗時は文字列から判定（両方チェック）
+                        const msg = data.message.toLowerCase();
+                        if (msg.includes('意見a') || (msg.includes('agree') && !msg.includes('disagree'))) {
                             return { winner: 'agree' };
-                        } else {
+                        } else if (msg.includes('意見b') || (msg.includes('disagree') && !msg.includes('agree'))) {
                             return { winner: 'disagree' };
+                        } else {
+                            // 判定できない場合はランダム
+                            return { winner: Math.random() < 0.5 ? 'agree' : 'disagree' };
                         }
                     }
                 } catch (error) {
-                    return { winner: 'agree' };  // デフォルト
+                    // エラー時はランダム
+                    return { winner: Math.random() < 0.5 ? 'agree' : 'disagree' };
                 }
             }
             
@@ -1139,13 +1144,6 @@
                     if (charIndex < message.length && debateActive) {
                         textElement.textContent += message.charAt(charIndex);
                         charIndex++;
-                        
-                        // ユーザーが最下部にいる場合のみスクロール
-                        const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
-                        if (isAtBottom) {
-                            container.scrollTop = container.scrollHeight;
-                        }
-                        
                         setTimeout(typeChar, typingSpeed);
                     } else {
                         // タイピング完了後にD1保存とAI評価

@@ -380,8 +380,8 @@ export const watchPage = (user: any, debateId: string) => `
                             </span>
                         </div>
                         <div class="relative h-10 bg-gray-900 rounded-full overflow-hidden border-2 border-cyan-500/50 shadow-lg">
-                            <div id="agreeBar" class="vote-bar absolute left-0 top-0 h-full bg-gradient-to-r from-green-600 via-green-500 to-emerald-400" style="width: 0%"></div>
-                            <div id="disagreeBar" class="vote-bar absolute right-0 top-0 h-full bg-gradient-to-l from-red-600 via-red-500 to-rose-400" style="width: 0%"></div>
+                            <div id="agreeBar" class="vote-bar absolute left-0 top-0 h-full bg-gradient-to-r from-green-600 via-green-500 to-emerald-400" style="width: 0%; transition: none;"></div>
+                            <div id="disagreeBar" class="vote-bar absolute right-0 top-0 h-full bg-gradient-to-l from-red-600 via-red-500 to-rose-400" style="width: 0%; transition: none;"></div>
                             <div class="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none"></div>
                         </div>
                     </div>
