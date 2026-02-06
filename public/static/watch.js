@@ -797,11 +797,13 @@
                 document.body.insertAdjacentHTML('beforeend', resultHTML);
             }
 
-            // Auto-scroll debate messages
+            // Auto-scroll debate messages (every 100ms for immediate response)
             setInterval(() => {
                 const container = document.getElementById('debateMessages');
-                container.scrollTop = container.scrollHeight;
-            }, 500);
+                if (container) {
+                    container.scrollTop = container.scrollHeight;
+                }
+            }, 100);
 
             // Debate timer is managed by updateDebateTimer() function
 
