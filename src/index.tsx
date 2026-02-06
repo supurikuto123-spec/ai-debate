@@ -318,13 +318,13 @@ app.post('/api/debate/generate', async (c) => {
       // 最後に「相手の発言を踏まえて反論してください」を追加
       messages.push({
         role: 'user',
-        content: '上記の議論を踏まえ、新しい視点から反論してください。150文字以内で句読点で終わるようにしてください。'
+        content: '上記の議論を踏まえ、新しい視点から反論してください。【重要】必ず150文字以内、句読点（。）で終わること。150文字を超えた場合は無効です。'
       })
     } else {
       // 初回は通常通り
       messages.push({
         role: 'user',
-        content: '150文字以内で簡潔に主張してください。句読点で終わるようにしてください。'
+        content: '【重要】必ず150文字以内、句読点（。）で終わること。150文字を超えた場合は無効です。簡潔に主張してください。'
       })
     }
     
@@ -337,7 +337,7 @@ app.post('/api/debate/generate', async (c) => {
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: messages,
-        max_tokens: maxTokens || 80,
+        max_tokens: maxTokens || 60,  // 150文字 ≈ 60トークン
         temperature: temperature || 0.9
       })
     })

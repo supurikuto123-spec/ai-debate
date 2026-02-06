@@ -929,11 +929,11 @@
                     confirmBtn.textContent = '投票確定済み - 他の参加者を待っています...';
                     showToast('✅ 投票が確定されました');
                     
-                    // ゲージを復活させる
+                    // ゲージを復活させる（アニメーションなし）
                     const agreeBar = document.getElementById('agreeBar');
                     const disagreeBar = document.getElementById('disagreeBar');
-                    agreeBar.style.transition = 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)'; // アニメーション復活
-                    disagreeBar.style.transition = 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
+                    agreeBar.style.transition = 'none'; // アニメーションなし
+                    disagreeBar.style.transition = 'none';
                     agreeBar.style.filter = 'none';
                     disagreeBar.style.filter = 'none';
                     agreeBar.style.background = '';
@@ -1123,7 +1123,12 @@
                     '<div class="text-sm leading-relaxed typing-text" style="word-wrap: break-word; white-space: pre-wrap;"></div>';
                 
                 container.appendChild(bubbleDiv);
-                container.scrollTop = container.scrollHeight; // コメント欄と同じ
+                
+                // ユーザーが最下部にいる場合のみスクロール
+                const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+                if (isAtBottom) {
+                    container.scrollTop = container.scrollHeight;
+                }
                 
                 // タイピング演出開始
                 const textElement = bubbleDiv.querySelector('.typing-text');
@@ -1134,7 +1139,13 @@
                     if (charIndex < message.length && debateActive) {
                         textElement.textContent += message.charAt(charIndex);
                         charIndex++;
-                        container.scrollTop = container.scrollHeight; // コメント欄と同じ
+                        
+                        // ユーザーが最下部にいる場合のみスクロール
+                        const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+                        if (isAtBottom) {
+                            container.scrollTop = container.scrollHeight;
+                        }
+                        
                         setTimeout(typeChar, typingSpeed);
                     } else {
                         // タイピング完了後にD1保存とAI評価
