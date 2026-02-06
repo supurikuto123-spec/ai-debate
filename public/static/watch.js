@@ -28,7 +28,7 @@
             
             // AI評価システム用グローバル変数
             let aiVotesDistribution = { agree: 0, disagree: 0 };  // 3つのAIの投票配分
-            let lastUserCount = 0;  // 前回のユーザー総数（差分計算用）
+            let lastHumanVoterCount = 0;  // 前回の人間のみの投票者数（AI除く）
             let fogMode = false;  // ゲージ霧モード（残り10%で有効）
             let finalVotingMode = false;  // 最終投票モード（1分猶予）
 
@@ -52,30 +52,38 @@
                 }
             }
 
-            // 10秒ごとにランダムに10人の投票を変更
+            // 10秒ごとにランダムに10票の投票先を変更（総数は変わらない）
             setInterval(() => {
-                // 初回投票は新規追加、その後は既存の票を変更
                 const changeCount = 10;
                 
                 for (let i = 0; i < changeCount; i++) {
-                    // agree → disagree または disagree → agree にランダムに変更
-                    if (Math.random() < 0.5) {
-                        if (voteData.agree > 0) {
-                            voteData.agree--;
-                            voteData.disagree++;
-                        } else {
-                            // agreeが0の場合は新規追加
+                    // 既存の票を変更（総数は維持）
+                    if (voteData.total === 0) {
+                        // 票が0の場合は初回なので新規追加
+                        if (Math.random() < 0.5) {
                             voteData.agree++;
-                            voteData.total++;
+                        } else {
+                            voteData.disagree++;
                         }
+                        voteData.total++;
                     } else {
-                        if (voteData.disagree > 0) {
-                            voteData.disagree--;
-                            voteData.agree++;
+                        // agree → disagree または disagree → agree に変更（総数不変）
+                        if (Math.random() < 0.5) {
+                            if (voteData.agree > 0) {
+                                voteData.agree--;
+                                voteData.disagree++;
+                            } else if (voteData.disagree > 0) {
+                                voteData.disagree--;
+                                voteData.agree++;
+                            }
                         } else {
-                            // disagreeが0の場合は新規追加
-                            voteData.disagree++;
-                            voteData.total++;
+                            if (voteData.disagree > 0) {
+                                voteData.disagree--;
+                                voteData.agree++;
+                            } else if (voteData.agree > 0) {
+                                voteData.agree--;
+                                voteData.disagree++;
+                            }
                         }
                     }
                 }
@@ -182,6 +190,11 @@
 
             // Update vote display
             function updateVoteDisplay() {
+                // fogMode中は非表示
+                if (fogMode) {
+                    return;
+                }
+                
                 if (voteData.total < 5) {
                     // Less than 5 votes - show "集計中"
                     document.getElementById('agreePercent').textContent = '--';
@@ -483,9 +496,23 @@
                 }
             }
             
-            // AI投票：符号出現時のみ、全文を送って3つのAIが再評価
+            // AI投票：3ターン目以降に、人間の投票者数（AI除く）に基づいて配分
             async function performAIVoting(currentSide) {
                 try {
+                    // 現在のターン数をチェック
+                    const currentTurn = conversationHistory.length;
+                    
+                    // 3ターン未満の場合は「AI集計中」のみ表示
+                    if (currentTurn < 3) {
+                        document.getElementById('judge1-eval').textContent = 'AI集計中...';
+                        document.getElementById('judge1-eval').className = 'text-sm text-gray-400';
+                        document.getElementById('judge2-eval').textContent = 'AI集計中...';
+                        document.getElementById('judge2-eval').className = 'text-sm text-gray-400';
+                        document.getElementById('judge3-eval').textContent = 'AI集計中...';
+                        document.getElementById('judge3-eval').className = 'text-sm text-gray-400';
+                        return;
+                    }
+                    
                     // 全ディベート内容を結合
                     const fullDebate = conversationHistory.map(msg => {
                         const sideName = msg.side === 'agree' ? '意見A' : '意見B';
@@ -511,35 +538,38 @@
                         }
                     });
                     
-                    // 現在のユーザー総数を取得
-                    const currentUserCount = voteData.total;
+                    // 現在の人間のみの投票者数を計算（voteData.totalからAI票を除外）
+                    const currentAIVotes = aiVotesDistribution.agree + aiVotesDistribution.disagree;
+                    const currentHumanVoters = voteData.total - currentAIVotes;
                     
-                    // 増加分のユーザー数を計算
-                    const newUsers = currentUserCount - lastUserCount;
-                    
-                    // 3つのAIに均等配分（増加分のみ）
-                    const votesPerAI = Math.floor(newUsers / 3);
-                    
-                    if (votesPerAI > 0) {
-                        // 各AIの判定に基づいて投票
-                        judgments.forEach(judgment => {
-                            if (judgment && judgment.winner) {
-                                if (judgment.winner === 'agree') {
-                                    aiVotesDistribution.agree += votesPerAI;
-                                    voteData.agree += votesPerAI;
-                                } else {
-                                    aiVotesDistribution.disagree += votesPerAI;
-                                    voteData.disagree += votesPerAI;
+                    // 人間の投票者数が増加した場合のみAI票を追加
+                    if (currentHumanVoters > lastHumanVoterCount) {
+                        const humanVoterIncrease = currentHumanVoters - lastHumanVoterCount;
+                        
+                        // 増加分をAI 3体で均等配分（1人増えるごとに各AIに1票ずつ追加）
+                        const votesPerAI = Math.floor(humanVoterIncrease / 3);
+                        
+                        if (votesPerAI > 0) {
+                            // 各AIの判定に基づいて投票
+                            judgments.forEach(judgment => {
+                                if (judgment && judgment.winner) {
+                                    if (judgment.winner === 'agree') {
+                                        aiVotesDistribution.agree += votesPerAI;
+                                        voteData.agree += votesPerAI;
+                                    } else {
+                                        aiVotesDistribution.disagree += votesPerAI;
+                                        voteData.disagree += votesPerAI;
+                                    }
+                                    voteData.total += votesPerAI;
                                 }
-                                voteData.total += votesPerAI;
-                            }
-                        });
-                        
-                        // 最後のユーザー数を更新
-                        lastUserCount = currentUserCount;
-                        
-                        // ゲージを更新
-                        updateVoteDisplay();
+                            });
+                            
+                            // 最後の人間投票者数を更新
+                            lastHumanVoterCount = currentHumanVoters;
+                            
+                            // ゲージを更新
+                            updateVoteDisplay();
+                        }
                     }
                 } catch (error) {
                     console.error('AI voting error:', error);
@@ -1200,12 +1230,13 @@
                         textElement.textContent += message.charAt(charIndex);
                         charIndex++;
                         
-                        // タイピング中も真下にいる場合のみ自動スクロール
-                        const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-                        const isAtBottom = distanceFromBottom < 10;
-                        if (isAtBottom) {
-                            container.scrollTop = container.scrollHeight;
-                        }
+                        // タイピング中も真下にいる場合のみ自動スクロール（10px以内）
+                        requestAnimationFrame(() => {
+                            const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+                            if (distanceFromBottom < 10) {
+                                container.scrollTop = container.scrollHeight;
+                            }
+                        });
                         
                         setTimeout(typeChar, typingSpeed);
                     } else {

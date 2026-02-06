@@ -357,9 +357,30 @@ app.post('/api/debate/generate', async (c) => {
     // [意見A], [意見B], [意見C]などのラベルを削除
     message = message.replace(/^\[意見[ABC]\]:\s*/g, '')
     
-    // 150文字制限を厳格に実施
+    // 150文字制限を厳格に実施（必ず句読点で終わるように調整）
     if (message.length > 150) {
+      // 150文字でカット
       message = message.substring(0, 150)
+      
+      // 最後の句読点（。、！、？）を探す
+      const lastPunctuationIndex = Math.max(
+        message.lastIndexOf('。'),
+        message.lastIndexOf('！'),
+        message.lastIndexOf('？')
+      )
+      
+      // 句読点が見つかった場合、そこで終了
+      if (lastPunctuationIndex > 100) { // 最低でも100文字は確保
+        message = message.substring(0, lastPunctuationIndex + 1)
+      } else {
+        // 句読点がない場合は強制的に「。」を追加
+        message = message.substring(0, 149) + '。'
+      }
+    } else if (!message.endsWith('。') && !message.endsWith('！') && !message.endsWith('？')) {
+      // 150文字未満でも句読点で終わっていない場合は「。」を追加
+      if (message.length < 150) {
+        message = message + '。'
+      }
     }
     
     return c.json({ message, model: usedModel })

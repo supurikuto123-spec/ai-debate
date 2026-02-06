@@ -21,6 +21,51 @@
 - クレジットシステム説明
 - Font Awesomeアイコン（SNS用）
 
+### 2. AIディベート観戦システム（完全実装✅）
+
+**リアルタイムディベート**
+- AI vs AI ディベート生成（OpenAI gpt-4o-mini）
+- タイピングアニメーション（30ms/文字）
+- 150文字厳守（バックエンドで強制切り詰め + 句読点調整）
+- ターン制対話（3秒間隔）
+- 60秒制限時間
+
+**投票・ゲージシステム**
+- リアルタイム投票（意見A / 意見B）
+- 10秒ごとに10票のランダム変更（総数不変）
+- AI評価システム（3つのAI審査員）
+  - **3ターン目から評価開始**（それまで「AI集計中」表示）
+  - 人間投票者数（AI除く）に基づく票数配分
+  - 10人投票 = 各AI審査員に3票配分
+  - 人間投票者が増えた場合のみAI票追加
+- Fog Mode（残り10%で投票数を完全非表示）
+- ゲージアニメーション完全削除（transition: none）
+
+**AI評価記号システム**
+- !! : 圧倒的な説得力（緑）
+- ! : 優れた意見（緑）
+- ? : 根拠不足（オレンジ）
+- ?? : 意図不明・致命的失言（赤）
+- 符号なし : 通常の主張（表示なし）
+
+**自動スクロール機能**
+- 真下にいる場合のみスクロール（10px以内判定）
+- タイピング中も`requestAnimationFrame`で自動スクロール
+- ユーザーが上にスクロール中は自動スクロール停止
+- コメント欄も同様の動作
+
+**コメントシステム**
+- リアルタイムコメント投稿
+- 投票に基づく色分け（緑=意見A、赤=意見B）
+- D1データベース永続化
+- 2秒ごとの自動同期
+
+**開発者コマンド（devユーザー限定）**
+- `!s` : ディベート開始
+- `!stop` : ディベート停止
+- `!dela` : コメント+ディベート全削除
+- `!deld` : ディベート履歴削除
+
 ### 2. 事前登録システム（完全実装✅）
 
 **Google OAuth認証**
@@ -68,6 +113,44 @@
 - created_at
 ```
 
+**debates テーブル**
+```sql
+- id (UUID)
+- topic (トピック)
+- status (waiting/active/finished)
+- winner (agree/disagree/draw)
+- created_at, updated_at
+```
+
+**debate_messages テーブル**
+```sql
+- id (UUID)
+- debate_id
+- side (agree/disagree)
+- model (gpt-4o-mini等)
+- content (メッセージ本文)
+- created_at
+```
+
+**votes テーブル**
+```sql
+- debate_id
+- user_id
+- vote (agree/disagree)
+- created_at, updated_at
+```
+
+**comments テーブル**
+```sql
+- id (UUID)
+- debate_id
+- user_id
+- username
+- vote (agree/disagree)
+- content
+- created_at
+```
+
 ### 4. 事前登録完了ページ（/demo）
 
 **デザイン要素**
@@ -100,14 +183,31 @@
 ## 📊 実装されたAPI
 
 ```
-GET  /                           - ホームページ
-GET  /auth/google                - Google認証開始（モック）
-GET  /register                   - 登録ページ
-POST /api/register               - 登録処理
-GET  /demo                       - 事前登録完了ページ
-GET  /logout                     - ログアウト
-GET  /api/user                   - ユーザー情報取得
-GET  /api/check-userid/:userid   - ユーザーID重複チェック
+GET  /                                  - ホームページ
+GET  /auth/google                       - Google認証開始（モック）
+GET  /register                          - 登録ページ
+POST /api/register                      - 登録処理
+GET  /demo                              - 事前登録完了ページ
+GET  /main                              - メインメニュー
+GET  /watch/:debateId                   - ディベート観戦ページ
+GET  /logout                            - ログアウト
+GET  /api/user                          - ユーザー情報取得
+GET  /api/check-userid/:userid          - ユーザーID重複チェック
+
+# ディベートAPI
+POST /api/debate/generate               - AI応答生成（OpenAI gpt-4o-mini）
+POST /api/debate/message                - ディベートメッセージ保存
+GET  /api/debate/:debateId/messages     - ディベートメッセージ取得
+DELETE /api/debate/:debateId/messages   - ディベートメッセージ削除
+
+# 投票API
+POST /api/vote                          - 投票保存・更新
+GET  /api/votes/:debateId               - 投票データ取得
+
+# コメントAPI
+POST /api/comment                       - コメント投稿
+GET  /api/comments/:debateId            - コメント一覧取得
+DELETE /api/comments/:debateId          - コメント全削除
 ```
 
 ## 💳 クレジットシステム
@@ -288,6 +388,34 @@ curl -L http://localhost:3000/auth/google
 
 ---
 
-**最終更新日**: 2026-01-26  
-**現在のステータス**: ✅ 事前登録システム完全実装済み  
-**次のマイルストーン**: AIディベートエンジンの実装
+**最終更新日**: 2026-02-06  
+**現在のステータス**: ✅ AIディベート観戦システム完全実装済み  
+**次のマイルストーン**: ユーザー vs AI ディベート実装
+
+## 🔧 最近の修正（2026-02-06）
+
+### AI投票システムの完全修正
+- **3ターン目まで待機**: 1-2ターン目は「AI集計中」表示、3ターン目から実際の評価開始
+- **人間投票者ベースの配分**: AI除く有効投票者数をベースに、AI 3体に均等配分
+  - 例: 10人投票 → 各AI審査員に3票ずつ配分
+- **増加分のみ追加**: 人間投票者が増えた場合のみAI票を追加
+
+### ランダム投票変更の修正
+- **総数維持**: 10秒ごとに10票を変更するが、総投票数は増やさない
+- **既存票の入れ替え**: agree ↔ disagree の変更のみ
+- **初期値対応**: 0票の場合は初回のみ新規追加
+
+### スクロール機能の最適化
+- **閾値統一**: 真下判定を10px以内に統一（100px→10px）
+- **タイピング中の自動スクロール**: `requestAnimationFrame`でフレーム単位の滑らかなスクロール
+- **ユーザー操作優先**: 上にスクロール中は自動スクロール停止
+
+### 文字数制限の強化
+- **バックエンド強制切り詰め**: 150文字を超えた場合、句読点位置で自然に終了
+- **句読点自動追加**: 句読点で終わっていない場合は「。」を自動追加
+- **最低文字数保証**: 100文字以上は確保した上で句読点調整
+
+### Fog Mode実装
+- **投票情報完全非表示**: 残り時間10%以下で投票数・パーセンテージを「???」表示
+- **ゲージブラー効果**: blur(20px) + グラデーション化
+- **アニメーション削除**: transition: none で静的表示
