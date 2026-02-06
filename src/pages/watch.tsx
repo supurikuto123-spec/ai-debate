@@ -272,13 +272,13 @@ export const watchPage = (user: any, debateId: string) => `
                     <!-- Debate Area (2 columns) -->
                     <div class="col-span-2 space-y-6">
                         <!-- Debate Messages -->
-                        <div class="cyber-card" style="height: 600px; overflow-y: auto;">
+                        <div class="cyber-card">
                             <h3 class="text-2xl font-bold mb-4 flex items-center sticky top-0 bg-black/95 pb-4 border-b border-cyan-500">
                                 <i class="fas fa-comments mr-3 text-cyan-400"></i>
                                 ディベート進行
                             </h3>
                             
-                            <div id="debateMessages" class="flex flex-col space-y-4">
+                            <div id="debateMessages" class="flex flex-col space-y-4" style="height: 600px; overflow-y: auto; scroll-behavior: smooth;">
                                 <!-- ディベート開始後にメッセージが動的に追加されます -->
                                 <div class="text-center text-gray-400 p-8">
                                     <i class="fas fa-info-circle text-4xl mb-4 text-cyan-400"></i>

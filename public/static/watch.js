@@ -1096,12 +1096,7 @@
                 `;
                 
                 container.insertAdjacentHTML('beforeend', bubbleHTML);
-                
-                // 親要素（スクロール可能なコンテナ）をスクロール
-                const scrollContainer = container.parentElement;
-                if (scrollContainer) {
-                    scrollContainer.scrollTop = scrollContainer.scrollHeight;
-                }
+                container.scrollTop = container.scrollHeight; // コメント欄と同じ
             }
 
             // メッセージ追加関数（瞬時表示 + AI評価）
@@ -1128,12 +1123,7 @@
                 '</div>';
                 
                 container.appendChild(bubbleDiv);
-                
-                // 親要素（スクロール可能なコンテナ）をスクロール
-                const scrollContainer = container.parentElement;
-                if (scrollContainer) {
-                    scrollContainer.scrollTop = scrollContainer.scrollHeight;
-                }
+                container.scrollTop = container.scrollHeight; // コメント欄と同じ
                 
                 // タイピング演出開始
                 const textElement = bubbleDiv.querySelector('.typing-text');
@@ -1144,10 +1134,7 @@
                     if (charIndex < message.length && debateActive) {
                         textElement.textContent += message.charAt(charIndex);
                         charIndex++;
-                        // タイピング中もスクロール
-                        if (scrollContainer) {
-                            scrollContainer.scrollTop = scrollContainer.scrollHeight;
-                        }
+                        container.scrollTop = container.scrollHeight; // コメント欄と同じ
                         setTimeout(typeChar, typingSpeed);
                     } else {
                         // タイピング完了後にD1保存とAI評価
@@ -1209,11 +1196,8 @@
                             
                             lastMessageCount = data.messages.length;
                             
-                            // 親要素（スクロール可能なコンテナ）をスクロール
-                            const scrollContainer = container.parentElement;
-                            if (scrollContainer) {
-                                scrollContainer.scrollTop = scrollContainer.scrollHeight;
-                            }
+                            // 最下部にスクロール（コメント欄と同じ）
+                            container.scrollTop = container.scrollHeight;
                         }
                     }
                 } catch (error) {
