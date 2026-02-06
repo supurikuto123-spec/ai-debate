@@ -1207,18 +1207,20 @@
                 
                 container.appendChild(bubbleDiv);
                 
-                // 真下にいる場合のみ自動スクロール
-                const scrollHeight = container.scrollHeight;
-                const scrollTop = container.scrollTop;
-                const clientHeight = container.clientHeight;
-                const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-                const isAtBottom = distanceFromBottom < 10;
-                
-                console.log('Debate scroll check:', { scrollHeight, scrollTop, clientHeight, distanceFromBottom, isAtBottom });
-                
-                if (isAtBottom) {
-                    container.scrollTop = container.scrollHeight;
-                }
+                // 真下にいる場合のみ自動スクロール（枠追加直後）
+                requestAnimationFrame(() => {
+                    const scrollHeight = container.scrollHeight;
+                    const scrollTop = container.scrollTop;
+                    const clientHeight = container.clientHeight;
+                    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+                    const isAtBottom = distanceFromBottom < 50; // 50px以内なら真下とみなす
+                    
+                    console.log('Debate scroll check (initial):', { scrollHeight, scrollTop, clientHeight, distanceFromBottom, isAtBottom });
+                    
+                    if (isAtBottom) {
+                        container.scrollTop = container.scrollHeight;
+                    }
+                });
                 
                 // タイピング演出開始
                 const textElement = bubbleDiv.querySelector('.typing-text');
@@ -1230,11 +1232,14 @@
                         textElement.textContent += message.charAt(charIndex);
                         charIndex++;
                         
-                        // タイピング中も真下にいる場合のみ自動スクロール（10px以内）
+                        // タイピング中も真下にいる場合のみ自動スクロール
                         requestAnimationFrame(() => {
                             const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-                            if (distanceFromBottom < 10) {
+                            const isAtBottom = distanceFromBottom < 50; // 50px以内なら真下
+                            
+                            if (isAtBottom) {
                                 container.scrollTop = container.scrollHeight;
+                                console.log('Typing scroll:', { distanceFromBottom, scrolled: true });
                             }
                         });
                         
