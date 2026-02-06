@@ -52,19 +52,26 @@
                 }
             }
 
-            // 10秒ごとにランダムに10票の投票先を変更（総数は変わらない）
+            // 10秒ごとにランダムに10人の投票を変更（0から始まって徐々に増える）
             setInterval(() => {
-                // 票が存在する場合のみ変更（0票の時は何もしない）
-                if (voteData.total > 0) {
-                    const changeCount = Math.min(10, voteData.total); // 総票数を超えないように
-                    
-                    for (let i = 0; i < changeCount; i++) {
-                        // agree → disagree または disagree → agree に変更（総数不変）
+                const changeCount = 10;
+                
+                for (let i = 0; i < changeCount; i++) {
+                    if (voteData.total === 0 || (voteData.agree === 0 && voteData.disagree === 0)) {
+                        // 0票から開始：新規追加
+                        if (Math.random() < 0.5) {
+                            voteData.agree++;
+                        } else {
+                            voteData.disagree++;
+                        }
+                        voteData.total++;
+                    } else {
+                        // 既存票を変更
                         if (Math.random() < 0.5) {
                             if (voteData.agree > 0) {
                                 voteData.agree--;
                                 voteData.disagree++;
-                            } else if (voteData.disagree > 0) {
+                            } else {
                                 voteData.disagree--;
                                 voteData.agree++;
                             }
@@ -72,15 +79,15 @@
                             if (voteData.disagree > 0) {
                                 voteData.disagree--;
                                 voteData.agree++;
-                            } else if (voteData.agree > 0) {
+                            } else {
                                 voteData.agree--;
                                 voteData.disagree++;
                             }
                         }
                     }
-                    
-                    updateVoteDisplay();
                 }
+                
+                updateVoteDisplay();
             }, 10000);  // 10秒ごと
 
             // Submit initial vote from modal
