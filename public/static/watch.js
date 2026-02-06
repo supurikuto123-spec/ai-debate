@@ -54,19 +54,11 @@
 
             // 10秒ごとにランダムに10票の投票先を変更（総数は変わらない）
             setInterval(() => {
-                const changeCount = 10;
-                
-                for (let i = 0; i < changeCount; i++) {
-                    // 既存の票を変更（総数は維持）
-                    if (voteData.total === 0) {
-                        // 票が0の場合は初回なので新規追加
-                        if (Math.random() < 0.5) {
-                            voteData.agree++;
-                        } else {
-                            voteData.disagree++;
-                        }
-                        voteData.total++;
-                    } else {
+                // 票が存在する場合のみ変更（0票の時は何もしない）
+                if (voteData.total > 0) {
+                    const changeCount = Math.min(10, voteData.total); // 総票数を超えないように
+                    
+                    for (let i = 0; i < changeCount; i++) {
                         // agree → disagree または disagree → agree に変更（総数不変）
                         if (Math.random() < 0.5) {
                             if (voteData.agree > 0) {
@@ -86,9 +78,9 @@
                             }
                         }
                     }
+                    
+                    updateVoteDisplay();
                 }
-                
-                updateVoteDisplay();
             }, 10000);  // 10秒ごと
 
             // Submit initial vote from modal
@@ -190,8 +182,13 @@
 
             // Update vote display
             function updateVoteDisplay() {
-                // fogMode中は非表示
+                // fogMode中は「???」表示
                 if (fogMode) {
+                    document.getElementById('agreePercent').textContent = '???';
+                    document.getElementById('disagreePercent').textContent = '???';
+                    document.getElementById('agreePercentSymbol').textContent = '';
+                    document.getElementById('disagreePercentSymbol').textContent = '';
+                    document.getElementById('voteStatus').innerHTML = '<i class="fas fa-eye-slash mr-2"></i>非公開中';
                     return;
                 }
                 
