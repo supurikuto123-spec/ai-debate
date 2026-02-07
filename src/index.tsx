@@ -301,21 +301,19 @@ app.post('/api/debate/generate', async (c) => {
     }
     
     // 会話履歴をOpenAI形式のメッセージに変換
-    // 重要: gpt-4.1-nanoはPrompt Cachingをサポートしていません（キャッシュ0が正常）
+    // OpenAI Prompt Cachingは自動動作（1024トークン以上で有効、90%割引）
+    // 重要: 静的コンテンツを先頭に配置し、プレフィックスを一致させる
     const messages: any[] = []
     
-    // 1. システムプロンプト
+    // 1. システムプロンプト（静的コンテンツ = キャッシュ対象）
     messages.push({
       role: 'system',
       content: systemPrompt
     })
     
-    // 2. 会話履歴: 最新3ターンのみ送信（トークン削減）
+    // 2. 会話履歴を全て送信（プレフィックス一致でキャッシュヒット）
     if (conversationHistory && conversationHistory.length > 0) {
-      // 最新3ターンのみ取得（6メッセージ = 3往復）
-      const recentHistory = conversationHistory.slice(-6)
-      
-      for (const msg of recentHistory) {
+      for (const msg of conversationHistory) {
         // 両方のAIの発言をassistantとして記録
         messages.push({
           role: 'assistant',
@@ -323,7 +321,7 @@ app.post('/api/debate/generate', async (c) => {
         })
       }
       
-      // 3. 最後に新しい指示を追加
+      // 3. 最後に新しい指示を追加（動的コンテンツ = キャッシュ対象外）
       messages.push({
         role: 'user',
         content: '上記の議論を踏まえ、新しい視点から反論してください。【重要】必ず180文字以内、句読点（。）で終わること。180文字を超えた場合は即座に無効です。180文字で完結する内容にしてください。'
@@ -362,10 +360,14 @@ app.post('/api/debate/generate', async (c) => {
     // 実際に使用されたモデル情報を取得
     const usedModel = data.model || 'gpt-4.1-nano'
     
-    // トークン使用量をログ出力
-    // gpt-4.1-nanoはキャッシュ非対応のため、キャッシュ0が正常
+    // トークン使用量をログ出力（キャッシュヒット率確認）
+    // gpt-4.1-nanoは90%キャッシュ割引（$0.10 → $0.01/1M cached tokens）
     if (data.usage) {
-      console.log(`[Debate] Tokens - Input: ${data.usage.prompt_tokens}, Output: ${data.usage.completion_tokens}`)
+      const cached = data.usage.prompt_tokens_details?.cached_tokens || 0
+      const cacheRate = data.usage.prompt_tokens > 0 
+        ? ((cached / data.usage.prompt_tokens) * 100).toFixed(1)
+        : '0.0'
+      console.log(`[Debate] Tokens - Input: ${data.usage.prompt_tokens}, Cached: ${cached} (${cacheRate}%), Output: ${data.usage.completion_tokens}`)
     }
     
     // [意見A], [意見B], [意見C]などのラベルを削除
