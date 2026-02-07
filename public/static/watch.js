@@ -27,10 +27,24 @@
             let userVote = null;
             let hasVoted = false;
             let voteData = {
-                agree: 10,  // 初期デモ票
-                disagree: 10,  // 初期デモ票
-                total: 20  // 初期値: デモ票20票
+                agree: 0,
+                disagree: 0,
+                total: 0
             };
+            
+            // 無条件で10票を追加（立場はランダム）
+            for (let i = 0; i < 10; i++) {
+                if (Math.random() < 0.5) {
+                    voteData.agree++;
+                } else {
+                    voteData.disagree++;
+                }
+            }
+            
+            // スクロール制御用
+            let isTyping = false;
+            let userIsScrolling = false;
+            let scrollTimeout = null;
             
             // AI評価システム用グローバル変数
             let aiVotesDistribution = { agree: 0, disagree: 0 };  // 3つのAIの投票配分
@@ -59,14 +73,12 @@
                 }
             }
 
-            // 10秒ごとにランダムに最大10人の投票を変更（既存の票のみ、新規追加なし）
+            // 10秒ごとに10票の立場をランダムに変更
             setInterval(() => {
-                // 変更可能な票数を計算（agree と disagree の合計）
-                const maxChanges = Math.min(10, voteData.agree + voteData.disagree);
+                console.log('Random vote change:', { before: { ...voteData } });
                 
-                console.log('Random vote change:', { before: { ...voteData }, maxChanges });
-                
-                for (let i = 0; i < maxChanges; i++) {
+                // 10票の立場をランダムに変更
+                for (let i = 0; i < 10; i++) {
                     if (Math.random() < 0.5 && voteData.agree > 0) {
                         // agree → disagree に変更
                         voteData.agree--;
@@ -443,19 +455,16 @@
                         '評価基準：',
                         '!! = 決定的 / ! = 優勢 / ? = 劣勢 / ?? = 致命的',
                         '',
-                        'JSON: {symbol: "!!" or "!" or "?" or "??" or null, comment: "15字以内"}'
+                        '【重要】必ずJSON形式で返してください。他の文章は不要です。',
+                        '出力例: {"symbol": "!!", "comment": "決定的な主張"}',
+                        '出力形式: {"symbol": "!!" or "!" or "?" or "??" or null, "comment": "15字以内"}'
                     ];
                     const prompt = promptParts.join(String.fromCharCode(10));
 
-                    const response = await fetch('/api/debate/generate', {
+                    const response = await fetch('/api/debate/evaluate', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            systemPrompt: '公平な審査員。立場の一貫性を最重視。',
-                            conversationHistory: [{ role: 'user', content: prompt }],
-                            maxTokens: 60,
-                            temperature: 0.5
-                        })
+                        body: JSON.stringify({ prompt })
                     });
                     
                     const data = await response.json();
@@ -1207,9 +1216,6 @@
             function addDebateMessage(side, message) {
                 const container = document.getElementById('debateMessages');
                 
-                // メッセージ追加前に真下にいるかチェック
-                const wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 10;
-                
                 const bubbleClass = side === 'agree' ? 'bubble-agree' : 'bubble-disagree';
                 const aiModel = 'GPT-4o';  // 現在は両方ともOpenAI APIを使用
                 const iconClass = side === 'agree' ? 'fa-brain' : 'fa-lightbulb';
@@ -1231,20 +1237,12 @@
                 
                 container.insertAdjacentHTML('beforeend', bubbleHTML);
                 
-                // メッセージ追加前に真下にいた場合のみスクロール
-                if (wasAtBottom) {
-                    requestAnimationFrame(() => {
-                        container.scrollTop = container.scrollHeight;
-                    });
-                }
+                // 自動スクロールなし（ユーザーの操作を妨げない）
             }
 
             // メッセージ追加関数（瞬時表示 + AI評価）
             function addDebateMessageWithTyping(side, message, actualModel) {
                 const container = document.getElementById('debateMessages');
-                
-                // メッセージ追加前に真下にいるかチェック
-                const wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 10;
                 
                 const bubbleClass = side === 'agree' ? 'bubble-agree' : 'bubble-disagree';
                 const aiModel = actualModel || 'GPT-4o';  // 実際のモデル情報を使用
@@ -1268,14 +1266,8 @@
                 
                 container.appendChild(bubbleDiv);
                 
-                // メッセージ追加前に真下にいた場合、初回スクロール
-                if (wasAtBottom) {
-                    requestAnimationFrame(() => {
-                        container.scrollTop = container.scrollHeight;
-                    });
-                }
-                
                 // タイピング演出開始
+                isTyping = true;  // タイピング開始
                 const textElement = bubbleDiv.querySelector('.typing-text');
                 let charIndex = 0;
                 const typingSpeed = 30; // 30ms per character
@@ -1285,15 +1277,13 @@
                         textElement.textContent += message.charAt(charIndex);
                         charIndex++;
                         
-                        // タイピング中も、元々真下にいた場合のみ自動スクロール
-                        if (wasAtBottom) {
-                            requestAnimationFrame(() => {
-                                container.scrollTop = container.scrollHeight;
-                            });
-                        }
+                        // タイピング中は自動スクロールを固定（ユーザー操作を妨げない）
                         
                         setTimeout(typeChar, typingSpeed);
                     } else {
+                        // タイピング完了
+                        isTyping = false;
+                        
                         // タイピング完了後にD1保存とAI評価
                         saveDebateMessageToD1(side, aiModel, message);
                         
@@ -1518,4 +1508,31 @@
                 }
                 
                 console.log('Initialization complete!');
+                
+                // ユーザースクロール検出
+                const debateMessages = document.getElementById('debateMessages');
+                const commentsList = document.getElementById('commentsList');
+                
+                [debateMessages, commentsList].forEach(container => {
+                    if (container) {
+                        container.addEventListener('scroll', () => {
+                            userIsScrolling = true;
+                            clearTimeout(scrollTimeout);
+                            scrollTimeout = setTimeout(() => {
+                                userIsScrolling = false;
+                            }, 1000);  // 1秒間スクロールなしで解除
+                        });
+                        
+                        container.addEventListener('touchstart', () => {
+                            userIsScrolling = true;
+                        });
+                        
+                        container.addEventListener('touchend', () => {
+                            clearTimeout(scrollTimeout);
+                            scrollTimeout = setTimeout(() => {
+                                userIsScrolling = false;
+                            }, 1000);
+                        });
+                    }
+                });
             });

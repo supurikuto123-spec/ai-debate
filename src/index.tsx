@@ -406,6 +406,65 @@ app.post('/api/debate/generate', async (c) => {
   }
 })
 
+// API: AI評価（JSON形式を強制）
+app.post('/api/debate/evaluate', async (c) => {
+  try {
+    const { prompt } = await c.req.json()
+    const apiKey = c.env.OPENAI_API_KEY
+    
+    if (!apiKey) {
+      return c.json({ error: 'OpenAI API key not configured' }, 500)
+    }
+    
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4.1-nano',
+        messages: [
+          {
+            role: 'system',
+            content: '公平な審査員。立場の一貫性を最重視。必ずJSON形式で返してください。'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        max_tokens: 60,
+        temperature: 0.5,
+        response_format: { type: 'json_object' }  // JSON形式を強制
+      })
+    })
+    
+    if (!response.ok) {
+      const error = await response.text()
+      console.error('OpenAI API error:', error)
+      return c.json({ error: 'AI evaluation failed' }, 500)
+    }
+    
+    const data = await response.json()
+    let message = data.choices[0].message.content.trim()
+    
+    // トークン使用量をログ出力
+    if (data.usage) {
+      const cached = data.usage.prompt_tokens_details?.cached_tokens || 0
+      const cacheRate = data.usage.prompt_tokens > 0 
+        ? ((cached / data.usage.prompt_tokens) * 100).toFixed(1)
+        : '0.0'
+      console.log(`[AI評価] Tokens - Input: ${data.usage.prompt_tokens}, Cached: ${cached} (${cacheRate}%), Output: ${data.usage.completion_tokens}`)
+    }
+    
+    return c.json({ message })
+  } catch (error) {
+    console.error('AI evaluation error:', error)
+    return c.json({ error: 'Internal server error' }, 500)
+  }
+})
+
 // API: 投票を保存
 app.post('/api/vote', async (c) => {
   try {
