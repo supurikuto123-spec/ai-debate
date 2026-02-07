@@ -425,6 +425,40 @@ app.get('/api/announcements', async (c) => {
   }
 })
 
+// API: Post Announcement (Dev Only)
+app.post('/api/announcements/post', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    if (!userCookie) {
+      return c.json({ success: false, error: 'Not authenticated' }, 401)
+    }
+    
+    const user = JSON.parse(userCookie)
+    
+    // Only dev can post
+    if (user.user_id !== 'dev') {
+      return c.json({ success: false, error: 'Permission denied' }, 403)
+    }
+    
+    const { content, type } = await c.req.json()
+    
+    if (!content) {
+      return c.json({ success: false, error: 'Content required' })
+    }
+    
+    const announcementId = crypto.randomUUID()
+    
+    await c.env.DB.prepare(
+      'INSERT INTO announcements (id, content, type, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)'
+    ).bind(announcementId, content, type || 'announcement').run()
+    
+    return c.json({ success: true, announcement_id: announcementId })
+  } catch (error) {
+    console.error('Post announcement error:', error)
+    return c.json({ success: false, error: 'Failed to post announcement' }, 500)
+  }
+})
+
 // API: Get Archive Debates
 app.get('/api/archive/debates', async (c) => {
   try {

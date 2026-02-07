@@ -38,31 +38,105 @@ export const archivePage = (userData: any) => `<!DOCTYPE html>
             </div>
         </div>
     </div>
-    <div id="replay-modal" class="modal hidden">
-        <div class="modal-content max-w-5xl w-full">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-2xl font-bold text-cyan-400">
-                    <i class="fas fa-play-circle mr-2"></i><span id="replay-title">リプレイ</span>
-                </h3>
-                <button id="close-replay" class="text-gray-400 hover:text-white text-2xl"><i class="fas fa-times"></i></button>
-            </div>
-            <div id="replay-container"></div>
-            <div class="flex justify-between items-center mt-4">
-                <div class="flex gap-2">
-                    <button id="prev-message" class="btn-secondary"><i class="fas fa-step-backward"></i></button>
-                    <button id="play-pause" class="btn-primary"><i class="fas fa-play"></i> 再生</button>
-                    <button id="next-message" class="btn-secondary"><i class="fas fa-step-forward"></i></button>
-                </div>
-                <div class="flex gap-2">
-                    <button class="speed-btn btn-secondary" data-speed="0.5">0.5x</button>
-                    <button class="speed-btn btn-primary" data-speed="1">1x</button>
-                    <button class="speed-btn btn-secondary" data-speed="1.5">1.5x</button>
-                    <button class="speed-btn btn-secondary" data-speed="2">2x</button>
-                </div>
-            </div>
-            <div class="mt-3 text-center text-gray-400"><span id="replay-progress">0 / 0</span></div>
-        </div>
-    </div>
-    <script src="/static/archive.js"></script>
+    <script>
+        const currentUser = { user_id: '${userData.user_id}', credits: ${userData.credits} };
+        
+        // Load debates
+        async function loadDebates() {
+            try {
+                const response = await fetch('/api/archive/debates');
+                const data = await response.json();
+                
+                const grid = document.getElementById('archive-grid');
+                if (!data.success || !data.debates || data.debates.length === 0) {
+                    grid.innerHTML = '<div class="text-center text-gray-400 py-12 col-span-full">まだディベートがありません</div>';
+                    return;
+                }
+                
+                grid.innerHTML = data.debates.map(debate => \`
+                    <div class="match-card" data-status="\${debate.status}">
+                        <div class="match-header mb-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="badge-\${debate.status === 'completed' ? 'new' : 'hot'}">\${debate.status === 'completed' ? '完了' : '進行中'}</span>
+                                <span class="text-xs text-gray-400">
+                                    <i class="fas fa-comments mr-1"></i>\${debate.message_count || 0}件
+                                </span>
+                            </div>
+                            <h3 class="text-xl font-bold text-cyan-300 mb-2">\${debate.theme}</h3>
+                        </div>
+                        
+                        <div class="match-opinions mb-4">
+                            <div class="opinion-box agree">
+                                <div class="text-xs text-green-400 mb-1">賛成派</div>
+                                <p class="text-sm">\${debate.opinion_a}</p>
+                            </div>
+                            <div class="opinion-box disagree">
+                                <div class="text-xs text-red-400 mb-1">反対派</div>
+                                <p class="text-sm">\${debate.opinion_b}</p>
+                            </div>
+                        </div>
+
+                        <button onclick="purchaseDebate(\${debate.id})" class="btn-watch">
+                            <i class="fas fa-play-circle mr-2"></i>視聴する（15クレジット）
+                        </button>
+                    </div>
+                \`).join('');
+            } catch (error) {
+                console.error('Load debates error:', error);
+                document.getElementById('archive-grid').innerHTML = '<div class="text-center text-red-400 py-12 col-span-full">読み込みに失敗しました</div>';
+            }
+        }
+        
+        // Purchase debate
+        async function purchaseDebate(debateId) {
+            if (currentUser.credits < 15 && currentUser.user_id !== 'dev') {
+                alert('クレジットが不足しています');
+                return;
+            }
+            
+            if (!confirm('15クレジットを消費してこのディベートを視聴しますか？')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/archive/purchase', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ debate_id: debateId })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    window.location.href = \`/watch/\${debateId}\`;
+                } else {
+                    alert(result.error || '購入に失敗しました');
+                }
+            } catch (error) {
+                console.error('Purchase error:', error);
+                alert('エラーが発生しました');
+            }
+        }
+        
+        // Filter tabs
+        document.querySelectorAll('.tab-button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const filter = btn.dataset.filter;
+                
+                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                document.querySelectorAll('.match-card').forEach(card => {
+                    if (filter === 'all') {
+                        card.style.display = '';
+                    } else {
+                        card.style.display = card.dataset.status === filter ? '' : 'none';
+                    }
+                });
+            });
+        });
+        
+        // Initial load
+        loadDebates();
+    </script>
 </body>
 </html>`

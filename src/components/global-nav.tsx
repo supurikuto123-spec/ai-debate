@@ -28,12 +28,12 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
       /* Hamburger Button */
       #nav-toggle {
         position: fixed;
-        top: 80px;
-        right: 30px;
-        width: 60px;
-        height: 60px;
-        background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(255, 0, 255, 0.2));
-        border: 2px solid #00ffff;
+        bottom: 30px;
+        left: 30px;
+        width: 70px;
+        height: 70px;
+        background: linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(255, 0, 255, 0.3));
+        border: 3px solid #00ffff;
         border-radius: 50%;
         cursor: pointer;
         z-index: 10000;
@@ -41,23 +41,24 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 6px;
+        gap: 7px;
         transition: all 0.3s ease;
-        box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+        box-shadow: 0 0 30px rgba(0, 255, 255, 0.6);
       }
 
       #nav-toggle:hover {
-        transform: scale(1.1);
-        box-shadow: 0 0 30px rgba(0, 255, 255, 0.8);
+        transform: scale(1.15) rotate(90deg);
+        box-shadow: 0 0 40px rgba(0, 255, 255, 1);
+        background: linear-gradient(135deg, rgba(0, 255, 255, 0.5), rgba(255, 0, 255, 0.5));
       }
 
       #nav-toggle span {
-        width: 30px;
-        height: 3px;
+        width: 35px;
+        height: 4px;
         background: #00ffff;
-        border-radius: 2px;
+        border-radius: 3px;
         transition: all 0.3s ease;
-        box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        box-shadow: 0 0 15px rgba(0, 255, 255, 0.8);
       }
 
       #nav-toggle.active span:nth-child(1) {
@@ -251,9 +252,9 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
 
       <!-- Navigation Links -->
       <div class="nav-links">
-        <a href="/" class="nav-link">
+        <a href="/main" class="nav-link">
           <i class="fas fa-home"></i>
-          <span>ホーム</span>
+          <span>メインページ</span>
         </a>
         <a href="/watch/1" class="nav-link">
           <i class="fas fa-eye"></i>

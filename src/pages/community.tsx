@@ -58,6 +58,118 @@ export const communityPage = (userData: any) => `<!DOCTYPE html>
             </div>
         </div>
     </div>
-    <script src="/static/community.js"></script>
+    <script>
+        const currentUser = { user_id: '${userData.user_id}' };
+        let currentLang = 'ja';
+        
+        const langNames = {
+            'ja': '日本語',
+            'en': 'English',
+            'zh': '中文',
+            'ko': '한국어',
+            'es': 'Español',
+            'fr': 'Français'
+        };
+        
+        // Load posts
+        async function loadPosts() {
+            try {
+                const response = await fetch(\`/api/community/posts?language=\${currentLang}\`);
+                const data = await response.json();
+                
+                const container = document.getElementById('posts-container');
+                if (!container) return;
+                
+                if (!data.success || !data.posts || data.posts.length === 0) {
+                    container.innerHTML = '<div class="text-center text-gray-400 py-12">まだ投稿がありません</div>';
+                    return;
+                }
+                
+                container.innerHTML = data.posts.map(post => \`
+                    <div class="profile-card">
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <span class="text-cyan-400 font-bold">@\${post.user_id}</span>
+                                <span class="text-xs text-gray-400">\${new Date(post.created_at).toLocaleString('ja-JP')}</span>
+                            </div>
+                        </div>
+                        <div class="text-gray-300 whitespace-pre-wrap">\${post.content}</div>
+                    </div>
+                \`).join('');
+            } catch (error) {
+                console.error('Load posts error:', error);
+                const container = document.getElementById('posts-container');
+                if (container) {
+                    container.innerHTML = '<div class="text-center text-red-400 py-12">読み込みに失敗しました</div>';
+                }
+            }
+        }
+        
+        // Load stats
+        async function loadStats() {
+            try {
+                const response = await fetch(\`/api/community/stats?language=\${currentLang}\`);
+                const data = await response.json();
+                
+                const countElement = document.getElementById('post-count');
+                if (countElement) {
+                    countElement.textContent = data.count || 0;
+                }
+            } catch (error) {
+                console.error('Load stats error:', error);
+            }
+        }
+        
+        // Submit post
+        document.getElementById('submit-post').addEventListener('click', async () => {
+            const content = document.getElementById('post-content').value.trim();
+            if (!content) {
+                alert('内容を入力してください');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/community/post', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content, language: currentLang })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    document.getElementById('post-content').value = '';
+                    loadPosts();
+                    loadStats();
+                } else {
+                    alert('投稿に失敗しました');
+                }
+            } catch (error) {
+                console.error('Post error:', error);
+                alert('エラーが発生しました');
+            }
+        });
+        
+        // Language tabs
+        document.querySelectorAll('.tab-button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                currentLang = btn.dataset.lang;
+                
+                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                const langNameElement = document.getElementById('current-lang-name');
+                if (langNameElement) {
+                    langNameElement.textContent = langNames[currentLang];
+                }
+                
+                loadPosts();
+                loadStats();
+            });
+        });
+        
+        // Initial load
+        loadPosts();
+        loadStats();
+    </script>
 </body>
 </html>`
