@@ -1266,13 +1266,13 @@
                         textElement.textContent += message.charAt(charIndex);
                         charIndex++;
                         
-                        // タイピング中に下部にいる場合のみスクロール（上で読んでいる時は妨げない）
-                        // 100px以内なら「下にいる」と判定（改行後も確実にスクロール）
-                        const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+                        // 下にいる時は常にスクロール（タイピング中だろうが何だろうが）
+                        // 上にいる時は絶対にスクロールしない（強制スクロール禁止）
+                        // 50px以内なら「下にいる」と判定（改行対応、確実にスクロール）
+                        const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
                         if (isAtBottom) {
-                            requestAnimationFrame(() => {
-                                container.scrollTop = container.scrollHeight;
-                            });
+                            // 即座にスクロール（遅延なし、改行後も確実）
+                            container.scrollTop = container.scrollHeight;
                         }
                         
                         setTimeout(typeChar, typingSpeed);
