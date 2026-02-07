@@ -193,17 +193,8 @@
                     return;
                 }
                 
-                if (voteData.total < 5) {
-                    // Less than 5 votes - show "集計中"
-                    document.getElementById('agreePercent').textContent = '--';
-                    document.getElementById('disagreePercent').textContent = '--';
-                    document.getElementById('agreePercentSymbol').textContent = '';
-                    document.getElementById('disagreePercentSymbol').textContent = '';
-                    document.getElementById('voteStatus').innerHTML = '<i class="fas fa-hourglass-half mr-2"></i>集計中... (' + voteData.total + '/5人)';
-                    document.getElementById('agreeBar').style.width = '50%';
-                    document.getElementById('disagreeBar').style.width = '50%';
-                } else {
-                    // 5 or more votes - show percentage
+                // 下限なしでゲージを表示（何人でも動作）
+                if (voteData.total > 0) {
                     const agreePercent = Math.round((voteData.agree / voteData.total) * 100);
                     const disagreePercent = 100 - agreePercent;
 
@@ -217,6 +208,16 @@
                     
                     // 観戦人数も更新
                     updateViewerCount();
+                } else {
+                    // 0票の場合のみデフォルト表示
+                    document.getElementById('agreePercent').textContent = '--';
+                    document.getElementById('disagreePercent').textContent = '--';
+                    document.getElementById('agreePercentSymbol').textContent = '';
+                    document.getElementById('disagreePercentSymbol').textContent = '';
+                    document.getElementById('voteStatus').innerHTML = '<i class="fas fa-hourglass-half mr-2"></i>投票を待っています';
+                    document.getElementById('agreeBar').style.width = '50%';
+                    document.getElementById('disagreeBar').style.width = '50%';
+                }
                 }
             }
 
