@@ -410,6 +410,27 @@ app.post('/api/vote', async (c) => {
   }
 })
 
+// API: ディベートテーマを取得
+app.get('/api/debate/:debateId/theme', async (c) => {
+  try {
+    const debateId = c.req.param('debateId')
+    const { DB } = c.env
+    
+    const result = await DB.prepare(`
+      SELECT * FROM debates WHERE id = ?
+    `).bind(debateId).first()
+    
+    if (!result) {
+      return c.json({ error: 'Debate not found' }, 404)
+    }
+    
+    return c.json(result)
+  } catch (error) {
+    console.error('Theme fetch error:', error)
+    return c.json({ error: 'Failed to fetch theme' }, 500)
+  }
+})
+
 // API: 投票結果を取得
 app.get('/api/votes/:debateId', async (c) => {
   try {

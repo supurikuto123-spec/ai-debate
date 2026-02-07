@@ -9,12 +9,18 @@
             console.log('Dataset:', appData.dataset);
             
             const DEBATE_ID = appData.dataset.debateId;
+            const DEBATE_THEME = appData.dataset.debateTheme;
+            const OPINION_A = appData.dataset.opinionA;
+            const OPINION_B = appData.dataset.opinionB;
             const currentUser = {
                 user_id: appData.dataset.userId,
                 credits: parseInt(appData.dataset.userCredits)
             };
             
             console.log('DEBATE_ID:', DEBATE_ID);
+            console.log('DEBATE_THEME:', DEBATE_THEME);
+            console.log('OPINION_A:', OPINION_A);
+            console.log('OPINION_B:', OPINION_B);
             console.log('currentUser:', currentUser);
 
             // Vote state
@@ -573,6 +579,10 @@
             async function getAIJudgment(fullDebate, aiName, temperature) {
                 try {
                     const promptParts = [
+                        'テーマ：' + DEBATE_THEME,
+                        '意見A：' + OPINION_A,
+                        '意見B：' + OPINION_B,
+                        '',
                         '以下のディベート全体を評価してください：',
                         fullDebate,
                         '',
@@ -1109,11 +1119,12 @@
                     : '';
                 
                 const systemPrompt = side === 'agree' 
-                    ? `あなたは賛成側の弁護士です。
+                    ? `【テーマ】${DEBATE_THEME}
+【あなたの立場】${OPINION_A}
 
 【厳守事項】
-1. 自分の立場（賛成）を一貫して主張する
-2. 相手の立場（反対）の論点を認めない
+1. 上記の立場を一貫して主張する
+2. 相手の立場の論点を認めない
 3. 相手の発言の矛盾・弱点を指摘する
 4. 具体的な根拠を示す
 5. 180文字ぴったり、句点（。）で終える
@@ -1121,11 +1132,12 @@
 【禁止事項】
 - 相手の論点を認める表現
 - 抽象的で曖昧な表現`
-                    : `あなたは反対側の弁護士です。
+                    : `【テーマ】${DEBATE_THEME}
+【あなたの立場】${OPINION_B}
 
 【厳守事項】
-1. 自分の立場（反対）を一貫して主張する
-2. 相手の立場（賛成）の論点を認めない
+1. 上記の立場を一貫して主張する
+2. 相手の立場の論点を認めない
 3. 相手の発言の矛盾・弱点を指摘する
 4. 具体的な根拠を示す
 5. 180文字ぴったり、句点（。）で終える

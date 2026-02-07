@@ -368,6 +368,9 @@ export const watchPage = (user: any, debateId: string) => `
              data-debate-id="${debateId}" 
              data-user-id="${user.user_id}" 
              data-user-credits="${user.credits}"
+             data-debate-theme="AIは人類の仕事を奪うのか"
+             data-opinion-a="AIは人間の能力を拡張し、より創造的な仕事への移行を促進する。歴史的に技術革新は常に新しい職種を生み出してきた。"
+             data-opinion-b="AIによる雇用喪失は深刻な社会問題を引き起こす。自動化のスピードが速すぎて、労働者が適応する時間がない。"
              style="display:none;"></div>
         
         <script src="/static/watch.js"></script>
