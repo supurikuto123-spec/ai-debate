@@ -1253,8 +1253,11 @@
                 
                 container.appendChild(bubbleDiv);
                 
-                // 初期スクロール位置を最下部に設定
-                container.scrollTop = container.scrollHeight;
+                // バブル追加直後、ユーザーが下にいる場合のみスクロール
+                const wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= 1;
+                if (wasAtBottom) {
+                    container.scrollTop = container.scrollHeight;
+                }
                 
                 // タイピング演出開始
                 const textElement = bubbleDiv.querySelector('.typing-text');
@@ -1268,8 +1271,8 @@
                         
                         // 下にいる時は常にスクロール（タイピング中だろうが何だろうが）
                         // 上にいる時は絶対にスクロールしない（強制スクロール禁止）
-                        // 50px以内なら「下にいる」と判定（改行対応、確実にスクロール）
-                        const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+                        // 1px以内なら「下にいる」と判定（真下のみ）
+                        const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= 1;
                         if (isAtBottom) {
                             // 即座にスクロール（遅延なし、改行後も確実）
                             container.scrollTop = container.scrollHeight;
