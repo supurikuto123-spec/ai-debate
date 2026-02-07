@@ -1260,15 +1260,18 @@
                 
                 container.appendChild(bubbleDiv);
                 
-                // コメント欄と完全に同じロジック：追加前に真下判定
-                const bottomDistance = container.scrollHeight - container.scrollTop - container.clientHeight;
-                const wasAtBottom = bottomDistance < 5;
-                console.log('[Debate Scroll] bottomDistance:', bottomDistance, 'wasAtBottom:', wasAtBottom, 'scrollHeight:', container.scrollHeight, 'scrollTop:', container.scrollTop, 'clientHeight:', container.clientHeight);
-                
                 // タイピング演出開始
                 const textElement = bubbleDiv.querySelector('.typing-text');
                 let charIndex = 0;
                 const typingSpeed = 30; // 30ms per character
+                
+                // タイピング開始時に真下判定（DOM更新後）
+                let wasAtBottom = true; // 初回は常にスクロール
+                requestAnimationFrame(() => {
+                    const bottomDistance = container.scrollHeight - container.scrollTop - container.clientHeight;
+                    wasAtBottom = bottomDistance < 5;
+                    console.log('[Debate Scroll] Initial check - bottomDistance:', bottomDistance, 'wasAtBottom:', wasAtBottom);
+                });
                 
                 function typeChar() {
                     if (charIndex < message.length && debateActive) {
