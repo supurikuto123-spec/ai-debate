@@ -428,7 +428,11 @@
                         '以下のディベート全体を評価してください：',
                         fullDebate,
                         '',
-                        '最新の発言「' + message + '」を評価してください。',
+                        '最新の発言「' + message + '」を以下の観点で評価：',
+                        '1. 自分の立場を一貫して主張しているか',
+                        '2. 相手の論点を安易に認めていないか',
+                        '3. 具体的なデータや事例を挙げているか',
+                        '4. 論理的に相手の弱点を指摘しているか',
                         '',
                         '評価基準：',
                         '- !! : とても良い（形勢が一気に変わるような決定的な発言）',
@@ -448,10 +452,10 @@
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            systemPrompt: 'あなたはディベート評価の専門家です。客観的に評価してください。',
+                            systemPrompt: 'あなたはディベート評価の専門家です。立場の一貫性と具体性を重視して客観的に評価してください。',
                             conversationHistory: [{ role: 'user', content: prompt }],
-                            maxTokens: 80,
-                            temperature: 0.8
+                            maxTokens: 100,
+                            temperature: 0.7
                         })
                     });
                     
@@ -580,6 +584,11 @@
                         '以下のディベート全体を評価してください：',
                         fullDebate,
                         '',
+                        '以下の観点で総合的に判定：',
+                        '1. 立場の一貫性（ぶれていないか）',
+                        '2. 具体性（データ・事例があるか）',
+                        '3. 論理性（相手の弱点を指摘できているか）',
+                        '',
                         'どちらが現時点で優勢か判定してください。',
                         'Output format: JSON with winner (agree or disagree)'
                     ];
@@ -589,9 +598,9 @@
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            systemPrompt: 'あなたは公平なディベート審査員です。',
+                            systemPrompt: 'あなたは公平なディベート審査員です。立場の一貫性と具体性を重視してください。',
                             conversationHistory: [{ role: 'user', content: prompt }],
-                            maxTokens: 50,
+                            maxTokens: 80,
                             temperature: temperature
                         })
                     });
@@ -1102,8 +1111,20 @@
                 
                 const turnNumber = conversationHistory.length + 1;
                 const systemPrompt = side === 'agree' 
-                    ? `ターン${turnNumber}: AIは仕事を創出する立場。前回の議論を踏まえ、新しい角度から主張。データや事例を1つ挙げ、簡潔に反論。130文字厳守。`
-                    : `ターン${turnNumber}: AIは仕事を奪う立場。前回の議論を踏まえ、新しい角度から主張。データや事例を1つ挙げ、簡潔に反論。130文字厳守。`;
+                    ? `ターン${turnNumber}: あなたは賛成側の弁護士です。以下を厳守：
+1. 自分の立場（賛成）を一貫して主張する
+2. 相手の論点を安易に認めない
+3. 必ず具体的なデータ・事例・統計を1つ以上挙げる（国名・年・数値など）
+4. 前回の相手の主張の弱点を指摘する
+5. 130文字ぴったりで、句読点（。）で終える
+6. 抽象論ではなく、具体例で反論する`
+                    : `ターン${turnNumber}: あなたは反対側の弁護士です。以下を厳守：
+1. 自分の立場（反対）を一貫して主張する
+2. 相手の論点を安易に認めない
+3. 必ず具体的なデータ・事例・統計を1つ以上挙げる（国名・年・数値など）
+4. 前回の相手の主張の弱点を指摘する
+5. 130文字ぴったりで、句読点（。）で終える
+6. 抽象論ではなく、具体例で反論する`;
                 
                 try {
                     const response = await fetch('/api/debate/generate', {
@@ -1112,8 +1133,8 @@
                         body: JSON.stringify({ 
                             systemPrompt,
                             conversationHistory, // 会話履歴を送信
-                            maxTokens: 80,  // 短くする
-                            temperature: 0.9  // 多様性を増やす
+                            maxTokens: 200,  // 130文字 ≈ 180-200トークン
+                            temperature: 0.7  // 一貫性とバランス重視
                         })
                     });
                     
