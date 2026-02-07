@@ -40,6 +40,9 @@
                     voteData.disagree++;
                 }
             }
+            voteData.total = voteData.agree + voteData.disagree;
+            
+            console.log('Initial votes:', voteData);
             
             // AI評価システム用グローバル変数
             let aiVotesDistribution = { agree: 0, disagree: 0 };  // 3つのAIの投票配分
@@ -84,6 +87,9 @@
                         voteData.agree++;
                     }
                 }
+                
+                // totalを再計算
+                voteData.total = voteData.agree + voteData.disagree;
                 
                 console.log('Random vote change:', { after: { ...voteData } });
                 
@@ -320,7 +326,7 @@
                 const commentsList = document.getElementById('commentsList');
                 
                 // コメント追加前に真下にいるかチェック
-                const wasAtBottom = commentsList.scrollHeight - commentsList.scrollTop - commentsList.clientHeight < 1;
+                const wasAtBottom = commentsList.scrollHeight - commentsList.scrollTop - commentsList.clientHeight < 5;
                 
                 const commentDiv = document.createElement('div');
                 const stanceClass = userVote === 'agree' ? 'comment-agree' : 'comment-disagree';
@@ -657,6 +663,10 @@
                 const lastBubble = bubbles[bubbles.length - 1];
                 
                 if (!lastBubble) return;
+                
+                // 既存の符号アイコンを削除（重複防止）
+                const existingIcons = lastBubble.querySelectorAll('.absolute.top-2');
+                existingIcons.forEach(icon => icon.remove());
                 
                 // アイコンをSVGで作成
                 let symbolSvg = '';
@@ -1275,7 +1285,7 @@
                         charIndex++;
                         
                         // タイピング中に真下にいる場合のみスクロール（ユーザーのスワイプを妨げない）
-                        const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 1;
+                        const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 5;
                         if (isAtBottom) {
                             requestAnimationFrame(() => {
                                 container.scrollTop = container.scrollHeight;
@@ -1362,7 +1372,7 @@
                             const newComments = data.comments.slice(lastCommentCount);
                             
                             // コメント追加前に真下にいるかチェック
-                            const wasAtBottom = commentsList.scrollHeight - commentsList.scrollTop - commentsList.clientHeight < 1;
+                            const wasAtBottom = commentsList.scrollHeight - commentsList.scrollTop - commentsList.clientHeight < 5;
                             
                             for (const comment of newComments) {
                                 const stanceClass = comment.vote === 'agree' ? 'comment-agree' : 'comment-disagree';
