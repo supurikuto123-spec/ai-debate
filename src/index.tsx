@@ -411,6 +411,83 @@ app.post('/api/profile/update', async (c) => {
   }
 })
 
+// API: Avatar Upload
+app.post('/api/avatar/upload', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    if (!userCookie) {
+      return c.json({ success: false, error: 'Not authenticated' }, 401)
+    }
+    
+    const user = JSON.parse(userCookie)
+    const formData = await c.req.formData()
+    const file = formData.get('avatar')
+    
+    if (!file || !(file instanceof File)) {
+      return c.json({ success: false, error: 'No file uploaded' }, 400)
+    }
+    
+    // Validate file size (2MB max)
+    if (file.size > 2 * 1024 * 1024) {
+      return c.json({ success: false, error: 'File too large (max 2MB)' }, 400)
+    }
+    
+    // Generate unique filename
+    const ext = file.name.split('.').pop()
+    const filename = `avatars/${user.user_id}-${Date.now()}.${ext}`
+    
+    // Upload to R2 (if R2 is available, otherwise use base64)
+    if (c.env.R2) {
+      const arrayBuffer = await file.arrayBuffer()
+      await c.env.R2.put(filename, arrayBuffer, {
+        httpMetadata: {
+          contentType: file.type
+        }
+      })
+      
+      // Return R2 URL (or public URL if configured)
+      return c.json({ success: true, url: `/api/avatar/${filename}` })
+    } else {
+      // Fallback: Store as base64 data URL
+      const arrayBuffer = await file.arrayBuffer()
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
+      const dataUrl = `data:${file.type};base64,${base64}`
+      
+      return c.json({ success: true, url: dataUrl })
+    }
+  } catch (error) {
+    console.error('Avatar upload error:', error)
+    return c.json({ success: false, error: 'Upload failed' }, 500)
+  }
+})
+
+// API: Serve Avatar from R2
+app.get('/api/avatar/:path{.*}', async (c) => {
+  try {
+    const path = c.req.param('path')
+    
+    if (c.env.R2) {
+      const object = await c.env.R2.get(path)
+      
+      if (!object) {
+        return c.notFound()
+      }
+      
+      return new Response(object.body, {
+        headers: {
+          'Content-Type': object.httpMetadata?.contentType || 'image/jpeg',
+          'Cache-Control': 'public, max-age=31536000'
+        }
+      })
+    }
+    
+    return c.notFound()
+  } catch (error) {
+    console.error('Serve avatar error:', error)
+    return c.notFound()
+  }
+})
+
 // API: Get Announcements
 app.get('/api/announcements', async (c) => {
   try {

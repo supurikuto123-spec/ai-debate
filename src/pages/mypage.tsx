@@ -181,6 +181,23 @@ export const myPage = (userData: any) => `
                                 `).join('')}
                             </div>
 
+                            <!-- Upload Option -->
+                            <div class="mt-4 p-4 bg-slate-800/50 rounded-lg border border-cyan-500/20">
+                                <label for="avatar-upload" class="block text-sm text-cyan-400 mb-2 cursor-pointer">
+                                    <i class="fas fa-upload mr-2"></i>画像をアップロード（クリックして選択）
+                                </label>
+                                <input 
+                                    type="file" 
+                                    id="avatar-upload" 
+                                    accept="image/*" 
+                                    class="hidden"
+                                    onchange="handleAvatarUpload(event)"
+                                />
+                                <div id="upload-preview" class="hidden mt-3">
+                                    <img id="upload-preview-img" class="w-32 h-32 rounded-full mx-auto border-2 border-cyan-500" />
+                                </div>
+                            </div>
+
                             <input type="hidden" id="avatar_type" name="avatar_type" value="${userData.avatar_type || 'preset'}">
                             <input type="hidden" id="avatar_value" name="avatar_value" value="${userData.avatar_value || '1'}">
                         </div>
@@ -211,6 +228,7 @@ export const myPage = (userData: any) => `
         <script>
             let selectedAvatarType = '${userData.avatar_type || 'preset'}';
             let selectedAvatarValue = '${userData.avatar_value || '1'}';
+            let uploadedFile = null;
 
             function selectAvatar(type, value) {
                 selectedAvatarType = type;
@@ -230,16 +248,83 @@ export const myPage = (userData: any) => `
                 
                 document.getElementById('current-avatar').src = 
                     \`https://api.dicebear.com/7.x/avataaars/svg?seed=\${value}\`;
+                
+                // Hide upload preview
+                document.getElementById('upload-preview').classList.add('hidden');
+                uploadedFile = null;
+            }
+
+            async function handleAvatarUpload(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                // Validate file size (max 2MB)
+                if (file.size > 2 * 1024 * 1024) {
+                    alert('ファイルサイズは2MB以下にしてください');
+                    return;
+                }
+                
+                // Validate file type
+                if (!file.type.startsWith('image/')) {
+                    alert('画像ファイルを選択してください');
+                    return;
+                }
+                
+                uploadedFile = file;
+                
+                // Preview
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('upload-preview-img').src = e.target.result;
+                    document.getElementById('upload-preview').classList.remove('hidden');
+                    document.getElementById('current-avatar').src = e.target.result;
+                    
+                    // Deselect presets
+                    document.querySelectorAll('.avatar-preset').forEach(img => {
+                        img.classList.remove('selected');
+                    });
+                    
+                    selectedAvatarType = 'upload';
+                    selectedAvatarValue = ''; // Will be set after upload
+                };
+                reader.readAsDataURL(file);
             }
 
             document.getElementById('profile-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 
+                let avatarValue = selectedAvatarValue;
+                
+                // Upload image if selected
+                if (uploadedFile) {
+                    try {
+                        const uploadFormData = new FormData();
+                        uploadFormData.append('avatar', uploadedFile);
+                        
+                        const uploadResponse = await fetch('/api/avatar/upload', {
+                            method: 'POST',
+                            body: uploadFormData
+                        });
+                        
+                        const uploadResult = await uploadResponse.json();
+                        if (!uploadResult.success) {
+                            alert('画像のアップロードに失敗しました');
+                            return;
+                        }
+                        
+                        avatarValue = uploadResult.url;
+                    } catch (error) {
+                        console.error('Upload error:', error);
+                        alert('画像のアップロードエラー');
+                        return;
+                    }
+                }
+                
                 const formData = {
                     nickname: document.getElementById('nickname').value,
                     user_id: document.getElementById('user_id').value,
-                    avatar_type: document.getElementById('avatar_type').value,
-                    avatar_value: document.getElementById('avatar_value').value
+                    avatar_type: selectedAvatarType,
+                    avatar_value: avatarValue
                 };
 
                 try {
