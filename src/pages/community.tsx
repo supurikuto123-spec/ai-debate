@@ -9,19 +9,246 @@ export const communityPage = (userData: any) => `<!DOCTYPE html>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <link href="/static/styles.css" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+        
+        .fullscreen-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a0a1f 100%);
+        }
+        
+        .chat-header {
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(255, 0, 255, 0.1));
+            border-bottom: 2px solid cyan;
+            flex-shrink: 0;
+        }
+        
+        .language-tabs {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 15px;
+        }
+        
+        .tab-button {
+            padding: 8px 16px;
+            border: 2px solid rgba(0, 255, 255, 0.3);
+            background: rgba(0, 255, 255, 0.1);
+            color: cyan;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+        
+        .tab-button:hover {
+            background: rgba(0, 255, 255, 0.2);
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+        }
+        
+        .tab-button.active {
+            background: linear-gradient(135deg, cyan, magenta);
+            color: #000;
+            border-color: cyan;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .message-card {
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.05), rgba(255, 0, 255, 0.05));
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .message-card:hover {
+            border-color: cyan;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+        }
+        
+        .message-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid cyan;
+            object-fit: cover;
+        }
+        
+        .user-name {
+            color: cyan;
+            font-weight: bold;
+            text-decoration: none;
+        }
+        
+        .user-name:hover {
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+        }
+        
+        .message-time {
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .message-content {
+            color: #ddd;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+        
+        .message-actions {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .reaction-btn, .delete-btn {
+            background: none;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            color: cyan;
+            padding: 5px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .reaction-btn:hover {
+            background: rgba(0, 255, 255, 0.2);
+            border-color: cyan;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+        }
+        
+        .reaction-btn.reacted {
+            background: linear-gradient(135deg, rgba(255, 0, 255, 0.3), rgba(255, 0, 128, 0.3));
+            border-color: magenta;
+        }
+        
+        .delete-btn {
+            border-color: rgba(255, 0, 0, 0.5);
+            color: #ff6b6b;
+        }
+        
+        .delete-btn:hover {
+            background: rgba(255, 0, 0, 0.2);
+            border-color: red;
+        }
+        
+        .chat-input-area {
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(255, 0, 255, 0.1));
+            border-top: 2px solid cyan;
+            flex-shrink: 0;
+        }
+        
+        .input-container {
+            display: flex;
+            gap: 10px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        #post-input {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(0, 255, 255, 0.3);
+            border-radius: 25px;
+            padding: 12px 20px;
+            color: #fff;
+            font-size: 14px;
+            resize: none;
+            min-height: 50px;
+            max-height: 150px;
+        }
+        
+        #post-input:focus {
+            outline: none;
+            border-color: cyan;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+        }
+        
+        #send-btn {
+            background: linear-gradient(135deg, cyan, magenta);
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            color: #000;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+        
+        #send-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.6);
+        }
+        
+        .empty-state {
+            text-align: center;
+            color: #888;
+            padding: 60px 20px;
+        }
+        
+        .loading-state {
+            text-align: center;
+            color: cyan;
+            padding: 60px 20px;
+        }
+    </style>
 </head>
-<body class="bg-black text-white">
+<body>
     ${globalNav(userData)}
-    <div class="pt-20 pb-12 min-h-screen">
-        <div class="cyber-grid"></div>
-        <div class="container mx-auto px-6 relative z-10">
-            <div class="text-center mb-8">
-                <h1 class="text-4xl font-black cyber-text mb-2">
-                    <i class="fas fa-users mr-3"></i>コミュニティ
-                </h1>
-                <p class="text-cyan-300">言語別スペースで交流</p>
-            </div>
-            <div class="flex justify-center gap-4 mb-8 flex-wrap">
+    
+    <div class="fullscreen-container">
+        <div class="chat-header">
+            <h1 class="text-3xl font-black text-center cyber-text">
+                <i class="fas fa-users mr-3"></i>コミュニティ
+            </h1>
+            <p class="text-center text-cyan-300 text-sm mt-1">
+                <span id="current-lang-name">日本語</span> スペース - 投稿数: <span id="post-count">0</span>
+            </p>
+            <div class="language-tabs">
                 <button class="tab-button active" data-lang="ja"><i class="fas fa-flag mr-2"></i>日本語</button>
                 <button class="tab-button" data-lang="en"><i class="fas fa-flag mr-2"></i>English</button>
                 <button class="tab-button" data-lang="zh"><i class="fas fa-flag mr-2"></i>中文</button>
@@ -29,38 +256,33 @@ export const communityPage = (userData: any) => `<!DOCTYPE html>
                 <button class="tab-button" data-lang="es"><i class="fas fa-flag mr-2"></i>Español</button>
                 <button class="tab-button" data-lang="fr"><i class="fas fa-flag mr-2"></i>Français</button>
             </div>
-            <div class="grid md:grid-cols-3 gap-6">
-                <div class="md:col-span-1">
-                    <div class="profile-card sticky top-24">
-                        <h3 class="text-xl font-bold text-cyan-400 mb-4">
-                            <i class="fas fa-pen mr-2"></i>新規投稿
-                        </h3>
-                        <textarea id="post-content" placeholder="投稿内容を入力..." class="w-full bg-slate-800/50 border border-cyan-500/20 rounded-lg p-4 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500/50 min-h-[150px]"></textarea>
-                        <button id="submit-post" class="btn-primary w-full mt-3">
-                            <i class="fas fa-paper-plane mr-2"></i>投稿
-                        </button>
-                    </div>
-                </div>
-                <div class="md:col-span-2">
-                    <div class="mb-4">
-                        <h3 class="text-xl font-bold text-cyan-400">
-                            <i class="fas fa-comments mr-2"></i><span id="current-lang-name">日本語</span> スペース
-                        </h3>
-                        <div class="text-sm text-gray-400 mt-1">投稿数: <span id="post-count">0</span></div>
-                    </div>
-                    <div id="posts-container" class="space-y-4">
-                        <div class="text-center text-gray-400 py-12">
-                            <i class="fas fa-spinner fa-spin text-4xl mb-4"></i>
-                            <div>読み込み中...</div>
-                        </div>
-                    </div>
-                </div>
+        </div>
+        
+        <div class="chat-messages" id="messages-container">
+            <div class="loading-state">
+                <i class="fas fa-spinner fa-spin text-4xl mb-4"></i>
+                <div>読み込み中...</div>
+            </div>
+        </div>
+        
+        <div class="chat-input-area">
+            <div class="input-container">
+                <textarea 
+                    id="post-input" 
+                    placeholder="メッセージを入力..."
+                    rows="1"
+                ></textarea>
+                <button id="send-btn">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
             </div>
         </div>
     </div>
+    
     <script>
-        const currentUser = { user_id: '${userData.user_id}' };
+        const currentUser = { user_id: '${userData.user_id}', username: '${userData.username || userData.user_id}' };
         let currentLang = 'ja';
+        let userReactions = {}; // Track user's reactions
         
         const langNames = {
             'ja': '日本語',
@@ -71,38 +293,119 @@ export const communityPage = (userData: any) => `<!DOCTYPE html>
             'fr': 'Français'
         };
         
+        // Get avatar URL
+        function getAvatarUrl(post) {
+            if (post.avatar_url) return post.avatar_url;
+            if (post.avatar_type) {
+                return \`https://api.dicebear.com/7.x/\${post.avatar_type}/svg?seed=\${post.user_id}\`;
+            }
+            return \`https://api.dicebear.com/7.x/bottts/svg?seed=\${post.user_id}\`;
+        }
+        
+        // Navigate to user profile
+        function viewProfile(userId) {
+            window.location.href = \`/user/\${userId}\`;
+        }
+        
+        // Delete post
+        async function deletePost(postId) {
+            if (!confirm('この投稿を削除しますか？')) return;
+            
+            try {
+                const response = await fetch(\`/api/community/post/\${postId}\`, {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    loadPosts();
+                    loadStats();
+                } else {
+                    alert('削除に失敗しました');
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                alert('エラーが発生しました');
+            }
+        }
+        
+        // Toggle reaction
+        async function toggleReaction(postId) {
+            try {
+                const response = await fetch(\`/api/community/post/\${postId}/reaction\`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ emoji: '❤️' })
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    loadPosts();
+                }
+            } catch (error) {
+                console.error('Reaction error:', error);
+            }
+        }
+        
         // Load posts
         async function loadPosts() {
             try {
                 const response = await fetch(\`/api/community/posts?language=\${currentLang}\`);
                 const data = await response.json();
                 
-                const container = document.getElementById('posts-container');
+                const container = document.getElementById('messages-container');
                 if (!container) return;
                 
                 if (!data.success || !data.posts || data.posts.length === 0) {
-                    container.innerHTML = '<div class="text-center text-gray-400 py-12">まだ投稿がありません</div>';
+                    container.innerHTML = '<div class="empty-state"><i class="fas fa-comment-slash text-4xl mb-4 block"></i><div>まだ投稿がありません</div></div>';
                     return;
                 }
                 
-                container.innerHTML = data.posts.map(post => \`
-                    <div class="profile-card">
-                        <div class="flex items-start justify-between mb-3">
-                            <div class="flex items-center gap-2">
-                                <span class="text-cyan-400 font-bold">@\${post.user_id}</span>
-                                <span class="text-xs text-gray-400">\${new Date(post.created_at).toLocaleString('ja-JP')}</span>
+                container.innerHTML = data.posts.map(post => {
+                    const isOwner = post.user_id === currentUser.user_id;
+                    const hasReacted = post.user_has_reacted === 1;
+                    
+                    return \`
+                        <div class="message-card">
+                            <div class="message-header">
+                                <div class="user-info" onclick="viewProfile('\${post.user_id}')">
+                                    <img src="\${getAvatarUrl(post)}" alt="\${post.user_id}" class="user-avatar" />
+                                    <div>
+                                        <div class="user-name">@\${post.user_id}</div>
+                                        <div class="message-time">\${new Date(post.created_at).toLocaleString('ja-JP')}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="message-content">\${escapeHtml(post.content)}</div>
+                            <div class="message-actions">
+                                <button class="reaction-btn \${hasReacted ? 'reacted' : ''}" onclick="toggleReaction(\${post.id})">
+                                    <i class="fas fa-heart"></i>
+                                    <span>\${post.reaction_count || 0}</span>
+                                </button>
+                                \${isOwner ? \`<button class="delete-btn" onclick="deletePost(\${post.id})"><i class="fas fa-trash"></i> 削除</button>\` : ''}
                             </div>
                         </div>
-                        <div class="text-gray-300 whitespace-pre-wrap">\${post.content}</div>
-                    </div>
-                \`).join('');
+                    \`;
+                }).join('');
+                
+                // Auto scroll to bottom on initial load
+                setTimeout(() => {
+                    container.scrollTop = container.scrollHeight;
+                }, 100);
             } catch (error) {
                 console.error('Load posts error:', error);
-                const container = document.getElementById('posts-container');
+                const container = document.getElementById('messages-container');
                 if (container) {
-                    container.innerHTML = '<div class="text-center text-red-400 py-12">読み込みに失敗しました</div>';
+                    container.innerHTML = '<div class="empty-state" style="color: #ff6b6b;"><i class="fas fa-exclamation-triangle text-4xl mb-4 block"></i><div>読み込みに失敗しました</div></div>';
                 }
             }
+        }
+        
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
         
         // Load stats
@@ -120,9 +423,9 @@ export const communityPage = (userData: any) => `<!DOCTYPE html>
             }
         }
         
-        // Submit post
-        document.getElementById('submit-post').addEventListener('click', async () => {
-            const content = document.getElementById('post-content').value.trim();
+        // Send post
+        async function sendPost() {
+            const content = document.getElementById('post-input').value.trim();
             if (!content) {
                 alert('内容を入力してください');
                 return;
@@ -137,7 +440,7 @@ export const communityPage = (userData: any) => `<!DOCTYPE html>
                 
                 const result = await response.json();
                 if (result.success) {
-                    document.getElementById('post-content').value = '';
+                    document.getElementById('post-input').value = '';
                     loadPosts();
                     loadStats();
                 } else {
@@ -147,6 +450,23 @@ export const communityPage = (userData: any) => `<!DOCTYPE html>
                 console.error('Post error:', error);
                 alert('エラーが発生しました');
             }
+        }
+        
+        // Send button
+        document.getElementById('send-btn').addEventListener('click', sendPost);
+        
+        // Enter key to send (Shift+Enter for new line)
+        document.getElementById('post-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendPost();
+            }
+        });
+        
+        // Auto-resize textarea
+        document.getElementById('post-input').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 150) + 'px';
         });
         
         // Language tabs
@@ -170,6 +490,12 @@ export const communityPage = (userData: any) => `<!DOCTYPE html>
         // Initial load
         loadPosts();
         loadStats();
+        
+        // Auto refresh every 30 seconds
+        setInterval(() => {
+            loadPosts();
+            loadStats();
+        }, 30000);
     </script>
 </body>
 </html>`

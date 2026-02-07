@@ -11,6 +11,7 @@ import { myPage } from './pages/mypage'
 import { announcementsPage } from './pages/announcements'
 import { archivePage } from './pages/archive'
 import { communityPage } from './pages/community'
+import { UserProfile } from './pages/user-profile'
 
 type Bindings = {
   DB: D1Database
@@ -326,6 +327,72 @@ app.get('/mypage', async (c) => {
   }
 })
 
+// User Profile Page
+app.get('/user/:user_id', async (c) => {
+  const targetUserId = c.req.param('user_id')
+  
+  // Get current user (optional - can view profiles without login)
+  const userCookie = getCookie(c, 'user')
+  let currentUser = null
+  if (userCookie) {
+    try {
+      currentUser = JSON.parse(userCookie)
+      const currentUserData = await c.env.DB.prepare(
+        'SELECT user_id, username, email, credits, avatar_url, avatar_type FROM users WHERE user_id = ?'
+      ).bind(currentUser.user_id).first()
+      currentUser = currentUserData
+    } catch (error) {
+      console.error('Error loading current user:', error)
+    }
+  }
+  
+  try {
+    // Get target user profile
+    const profileUser = await c.env.DB.prepare(
+      'SELECT user_id, username, email, credits, rating, rank, avatar_url, avatar_type, created_at FROM users WHERE user_id = ?'
+    ).bind(targetUserId).first()
+    
+    if (!profileUser) {
+      return c.text('User not found', 404)
+    }
+    
+    // Get debate statistics
+    const debateStats = await c.env.DB.prepare(`
+      SELECT 
+        COUNT(*) as total_debates,
+        SUM(CASE WHEN result = 'win' THEN 1 ELSE 0 END) as wins,
+        SUM(CASE WHEN result = 'loss' THEN 1 ELSE 0 END) as losses,
+        SUM(CASE WHEN result = 'draw' THEN 1 ELSE 0 END) as draws
+      FROM debates 
+      WHERE user_id = ?
+    `).bind(targetUserId).first()
+    
+    // Get community post count
+    const postCount = await c.env.DB.prepare(
+      'SELECT COUNT(*) as total FROM posts WHERE user_id = ?'
+    ).bind(targetUserId).first()
+    
+    // Calculate win rate
+    const total = debateStats?.total_debates || 0
+    const wins = debateStats?.wins || 0
+    const win_rate = total > 0 ? Math.round((wins / total) * 100) : 0
+    
+    const stats = {
+      total_debates: debateStats?.total_debates || 0,
+      wins: wins,
+      losses: debateStats?.losses || 0,
+      draws: debateStats?.draws || 0,
+      win_rate: win_rate,
+      total_posts: postCount?.total || 0
+    }
+    
+    return c.html(<UserProfile profileUser={profileUser as any} currentUser={currentUser as any} stats={stats} />)
+  } catch (error) {
+    console.error('Error loading user profile:', error)
+    return c.text('Error loading profile', 500)
+  }
+})
+
 // Announcements Page
 app.get('/announcements', async (c) => {
   const userCookie = getCookie(c, 'user')
@@ -491,9 +558,28 @@ app.get('/api/avatar/:path{.*}', async (c) => {
 // API: Get Announcements
 app.get('/api/announcements', async (c) => {
   try {
-    const announcements = await c.env.DB.prepare(
-      'SELECT * FROM announcements ORDER BY created_at DESC LIMIT 50'
-    ).all()
+    // Get current user for reaction status
+    const userCookie = getCookie(c, 'user')
+    let currentUserId = null
+    if (userCookie) {
+      try {
+        const user = JSON.parse(userCookie)
+        currentUserId = user.user_id
+      } catch (e) {
+        // Continue without user
+      }
+    }
+    
+    // Get announcements with reaction counts
+    const announcements = await c.env.DB.prepare(`
+      SELECT 
+        a.*,
+        (SELECT COUNT(*) FROM announcement_reactions WHERE announcement_id = a.id) as reaction_count,
+        (SELECT COUNT(*) FROM announcement_reactions WHERE announcement_id = a.id AND user_id = ?) as user_has_reacted
+      FROM announcements a
+      ORDER BY a.created_at DESC
+      LIMIT 50
+    `).bind(currentUserId || '').all()
     
     return c.json({ success: true, announcements: announcements.results || [] })
   } catch (error) {
@@ -532,6 +618,71 @@ app.post('/api/announcements/post', async (c) => {
   } catch (error) {
     console.error('Post announcement error:', error)
     return c.json({ success: false, error: 'Failed to post announcement' }, 500)
+  }
+})
+
+// API: Delete Announcement (Dev Only)
+app.delete('/api/announcements/:id', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    if (!userCookie) {
+      return c.json({ success: false, error: 'Not authenticated' }, 401)
+    }
+    
+    const user = JSON.parse(userCookie)
+    
+    // Only dev can delete
+    if (user.user_id !== 'dev') {
+      return c.json({ success: false, error: 'Permission denied' }, 403)
+    }
+    
+    const announcementId = c.req.param('id')
+    
+    // Delete announcement (reactions will cascade delete)
+    await c.env.DB.prepare(
+      'DELETE FROM announcements WHERE id = ?'
+    ).bind(announcementId).run()
+    
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('Delete announcement error:', error)
+    return c.json({ success: false, error: 'Failed to delete announcement' }, 500)
+  }
+})
+
+// API: Toggle Announcement Reaction
+app.post('/api/announcements/:id/reaction', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    if (!userCookie) {
+      return c.json({ success: false, error: 'Not authenticated' }, 401)
+    }
+    
+    const user = JSON.parse(userCookie)
+    const announcementId = c.req.param('id')
+    const { emoji } = await c.req.json()
+    
+    // Check if reaction exists
+    const existing = await c.env.DB.prepare(
+      'SELECT id FROM announcement_reactions WHERE announcement_id = ? AND user_id = ?'
+    ).bind(announcementId, user.user_id).first()
+    
+    if (existing) {
+      // Remove reaction
+      await c.env.DB.prepare(
+        'DELETE FROM announcement_reactions WHERE announcement_id = ? AND user_id = ?'
+      ).bind(announcementId, user.user_id).run()
+    } else {
+      // Add reaction
+      await c.env.DB.prepare(
+        'INSERT INTO announcement_reactions (announcement_id, user_id, emoji, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)'
+      ).bind(announcementId, user.user_id, emoji || '👍').run()
+    }
+    
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('Announcement reaction error:', error)
+    return c.json({ success: false, error: 'Failed to toggle reaction' }, 500)
   }
 })
 
@@ -597,9 +748,32 @@ app.get('/api/community/posts', async (c) => {
   try {
     const lang = c.req.query('language') || 'ja'
     
-    const posts = await c.env.DB.prepare(
-      'SELECT * FROM community_posts WHERE language = ? ORDER BY created_at DESC LIMIT 50'
-    ).bind(lang).all()
+    // Get current user for reaction status
+    const userCookie = getCookie(c, 'user')
+    let currentUserId = null
+    if (userCookie) {
+      try {
+        const user = JSON.parse(userCookie)
+        currentUserId = user.user_id
+      } catch (e) {
+        // Continue without user
+      }
+    }
+    
+    // Get posts with reaction counts and user avatar info
+    const posts = await c.env.DB.prepare(`
+      SELECT 
+        cp.*,
+        u.avatar_url,
+        u.avatar_type,
+        (SELECT COUNT(*) FROM post_reactions WHERE post_id = cp.id) as reaction_count,
+        (SELECT COUNT(*) FROM post_reactions WHERE post_id = cp.id AND user_id = ?) as user_has_reacted
+      FROM community_posts cp
+      LEFT JOIN users u ON cp.user_id = u.user_id
+      WHERE cp.language = ?
+      ORDER BY cp.created_at DESC
+      LIMIT 100
+    `).bind(currentUserId || '', lang).all()
     
     return c.json({ success: true, posts: posts.results || [] })
   } catch (error) {
@@ -632,6 +806,78 @@ app.post('/api/community/post', async (c) => {
   } catch (error) {
     console.error('Create post error:', error)
     return c.json({ success: false, error: 'Failed to create post' }, 500)
+  }
+})
+
+// API: Delete Community Post
+app.delete('/api/community/post/:id', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    if (!userCookie) {
+      return c.json({ success: false, error: 'Not authenticated' }, 401)
+    }
+    
+    const user = JSON.parse(userCookie)
+    const postId = c.req.param('id')
+    
+    // Check if user owns the post
+    const post = await c.env.DB.prepare(
+      'SELECT user_id FROM community_posts WHERE id = ?'
+    ).bind(postId).first()
+    
+    if (!post) {
+      return c.json({ success: false, error: 'Post not found' }, 404)
+    }
+    
+    if (post.user_id !== user.user_id) {
+      return c.json({ success: false, error: 'Unauthorized' }, 403)
+    }
+    
+    // Delete post (reactions will cascade delete)
+    await c.env.DB.prepare(
+      'DELETE FROM community_posts WHERE id = ?'
+    ).bind(postId).run()
+    
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('Delete post error:', error)
+    return c.json({ success: false, error: 'Failed to delete post' }, 500)
+  }
+})
+
+// API: Toggle Reaction
+app.post('/api/community/post/:id/reaction', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    if (!userCookie) {
+      return c.json({ success: false, error: 'Not authenticated' }, 401)
+    }
+    
+    const user = JSON.parse(userCookie)
+    const postId = c.req.param('id')
+    const { emoji } = await c.req.json()
+    
+    // Check if reaction exists
+    const existing = await c.env.DB.prepare(
+      'SELECT id FROM post_reactions WHERE post_id = ? AND user_id = ?'
+    ).bind(postId, user.user_id).first()
+    
+    if (existing) {
+      // Remove reaction
+      await c.env.DB.prepare(
+        'DELETE FROM post_reactions WHERE post_id = ? AND user_id = ?'
+      ).bind(postId, user.user_id).run()
+    } else {
+      // Add reaction
+      await c.env.DB.prepare(
+        'INSERT INTO post_reactions (post_id, user_id, emoji, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)'
+      ).bind(postId, user.user_id, emoji || '❤️').run()
+    }
+    
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('Reaction error:', error)
+    return c.json({ success: false, error: 'Failed to toggle reaction' }, 500)
   }
 })
 
