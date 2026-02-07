@@ -1183,12 +1183,14 @@
                         
                         // 実際のモデル情報を使用
                         const actualModel = data.model || 'gpt-4o-mini';
-                        addDebateMessageWithTyping(side, data.message, actualModel); // タイピング演出版を使用
+                        
+                        // タイピングが終わるまで待つ
+                        await addDebateMessageWithTyping(side, data.message, actualModel);
                         
                         // 5ターン目に強制評価（デモ用）
                         const turnNumber = conversationHistory.length;
                         
-                        // Continue with opposite side after 3 seconds
+                        // タイピング終了後、3秒待ってから次のターン
                         setTimeout(() => {
                             if (debateActive) {
                                 const nextSide = side === 'agree' ? 'disagree' : 'agree';
@@ -1231,7 +1233,8 @@
             }
 
             // メッセージ追加関数（瞬時表示 + AI評価）
-            function addDebateMessageWithTyping(side, message, actualModel) {
+            async function addDebateMessageWithTyping(side, message, actualModel) {
+                return new Promise((resolve) => {
                 const container = document.getElementById('debateMessages');
                 
                 const bubbleClass = side === 'agree' ? 'bubble-agree' : 'bubble-disagree';
@@ -1257,21 +1260,8 @@
                 
                 container.appendChild(bubbleDiv);
                 
-                // ユーザースクロール検知フラグ
-                let userIsScrolling = false;
-                
-                // ユーザーがホイールまたはタッチでスクロールした
-                const markUserScroll = () => {
-                    userIsScrolling = true;
-                };
-                
-                container.addEventListener('wheel', markUserScroll, { passive: true });
-                container.addEventListener('touchstart', markUserScroll, { passive: true });
-                
-                // 初回表示：最下部にスクロール（DOM更新後に実行）
-                requestAnimationFrame(() => {
-                    container.scrollTop = container.scrollHeight;
-                });
+                // コメント欄と同じロジック：追加前に真下判定
+                const wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 5;
                 
                 // タイピング演出開始
                 const textElement = bubbleDiv.querySelector('.typing-text');
@@ -1283,20 +1273,9 @@
                         textElement.textContent += message.charAt(charIndex);
                         charIndex++;
                         
-                        // ユーザーがスクロールしていない かつ 真下にいる場合のみスクロール
-                        if (!userIsScrolling) {
-                            const isAtBottom = Math.abs(container.scrollHeight - container.scrollTop - container.clientHeight) < 2;
-                            if (isAtBottom) {
-                                requestAnimationFrame(() => {
-                                    container.scrollTop = container.scrollHeight;
-                                });
-                            }
-                        }
-                        
-                        // ユーザーが真下に戻ったらフラグをリセット
-                        const isAtBottom = Math.abs(container.scrollHeight - container.scrollTop - container.clientHeight) < 2;
-                        if (isAtBottom && userIsScrolling) {
-                            userIsScrolling = false;
+                        // コメント欄と同じ：真下にいた場合のみスクロール
+                        if (wasAtBottom) {
+                            container.scrollTop = container.scrollHeight;
                         }
                         
                         setTimeout(typeChar, typingSpeed);
@@ -1312,10 +1291,14 @@
                         if (!fogMode && currentTurn >= 3) {
                             getAIEvaluations(message, side);
                         }
+                        
+                        // Promiseをresolve（タイピング完了を通知）
+                        resolve();
                     }
                 }
                 
                 typeChar();
+                });
             }
 
             // ディベートメッセージをD1に保存
