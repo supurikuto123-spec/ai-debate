@@ -304,6 +304,10 @@
 
                 // Create comment element
                 const commentsList = document.getElementById('commentsList');
+                
+                // コメント追加前に真下にいるかチェック
+                const wasAtBottom = commentsList.scrollHeight - commentsList.scrollTop - commentsList.clientHeight < 50;
+                
                 const commentDiv = document.createElement('div');
                 const stanceClass = userVote === 'agree' ? 'comment-agree' : 'comment-disagree';
                 const stanceColor = userVote === 'agree' ? 'green' : 'red';
@@ -335,10 +339,11 @@
                 // Add to bottom
                 commentsList.appendChild(commentDiv);
                 
-                // 真下にいる場合のみ自動スクロール
-                const isAtBottom = commentsList.scrollHeight - commentsList.scrollTop - commentsList.clientHeight < 100;
-                if (isAtBottom) {
-                    commentsList.scrollTop = commentsList.scrollHeight;
+                // コメント追加前に真下にいた場合のみスクロール
+                if (wasAtBottom) {
+                    requestAnimationFrame(() => {
+                        commentsList.scrollTop = commentsList.scrollHeight;
+                    });
                 }
 
                 // D1に保存
@@ -1150,6 +1155,10 @@
 
             function addDebateMessage(side, message) {
                 const container = document.getElementById('debateMessages');
+                
+                // メッセージ追加前に真下にいるかチェック
+                const wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+                
                 const bubbleClass = side === 'agree' ? 'bubble-agree' : 'bubble-disagree';
                 const aiModel = 'GPT-4o';  // 現在は両方ともOpenAI APIを使用
                 const iconClass = side === 'agree' ? 'fa-brain' : 'fa-lightbulb';
@@ -1171,16 +1180,21 @@
                 
                 container.insertAdjacentHTML('beforeend', bubbleHTML);
                 
-                // 真下にいる場合のみ自動スクロール
-                const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
-                if (isAtBottom) {
-                    container.scrollTop = container.scrollHeight;
+                // メッセージ追加前に真下にいた場合のみスクロール
+                if (wasAtBottom) {
+                    requestAnimationFrame(() => {
+                        container.scrollTop = container.scrollHeight;
+                    });
                 }
             }
 
             // メッセージ追加関数（瞬時表示 + AI評価）
             function addDebateMessageWithTyping(side, message, actualModel) {
                 const container = document.getElementById('debateMessages');
+                
+                // メッセージ追加前に真下にいるかチェック
+                const wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+                
                 const bubbleClass = side === 'agree' ? 'bubble-agree' : 'bubble-disagree';
                 const aiModel = actualModel || 'GPT-4o';  // 実際のモデル情報を使用
                 const iconClass = side === 'agree' ? 'fa-brain' : 'fa-lightbulb';
@@ -1203,20 +1217,12 @@
                 
                 container.appendChild(bubbleDiv);
                 
-                // 真下にいる場合のみ自動スクロール（枠追加直後）
-                requestAnimationFrame(() => {
-                    const scrollHeight = container.scrollHeight;
-                    const scrollTop = container.scrollTop;
-                    const clientHeight = container.clientHeight;
-                    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-                    const isAtBottom = distanceFromBottom < 50; // 50px以内なら真下とみなす
-                    
-                    console.log('Debate scroll check (initial):', { scrollHeight, scrollTop, clientHeight, distanceFromBottom, isAtBottom });
-                    
-                    if (isAtBottom) {
+                // メッセージ追加前に真下にいた場合、初回スクロール
+                if (wasAtBottom) {
+                    requestAnimationFrame(() => {
                         container.scrollTop = container.scrollHeight;
-                    }
-                });
+                    });
+                }
                 
                 // タイピング演出開始
                 const textElement = bubbleDiv.querySelector('.typing-text');
@@ -1228,16 +1234,12 @@
                         textElement.textContent += message.charAt(charIndex);
                         charIndex++;
                         
-                        // タイピング中も真下にいる場合のみ自動スクロール
-                        requestAnimationFrame(() => {
-                            const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-                            const isAtBottom = distanceFromBottom < 50; // 50px以内なら真下
-                            
-                            if (isAtBottom) {
+                        // タイピング中も、元々真下にいた場合のみ自動スクロール
+                        if (wasAtBottom) {
+                            requestAnimationFrame(() => {
                                 container.scrollTop = container.scrollHeight;
-                                console.log('Typing scroll:', { distanceFromBottom, scrolled: true });
-                            }
-                        });
+                            });
+                        }
                         
                         setTimeout(typeChar, typingSpeed);
                     } else {
@@ -1290,21 +1292,13 @@
                     if (data.messages && data.messages.length > 0) {
                         // 新しいメッセージがある場合のみ追加（差分のみ）
                         if (data.messages.length > lastMessageCount) {
-                            const container = document.getElementById('debateMessages');
-                            
-                            // 差分だけを追加
+                            // 差分だけを追加（addDebateMessage内で自動スクロール判定）
                             for (let i = lastMessageCount; i < data.messages.length; i++) {
                                 const msg = data.messages[i];
                                 addDebateMessage(msg.side, msg.content);
                             }
                             
                             lastMessageCount = data.messages.length;
-                            
-                            // 真下にいる場合のみ自動スクロール
-                            const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
-                            if (isAtBottom) {
-                                container.scrollTop = container.scrollHeight;
-                            }
                         }
                     }
                 } catch (error) {
@@ -1325,6 +1319,9 @@
                         // 新しいコメントのみ追加（増分更新）
                         if (data.comments.length > lastCommentCount) {
                             const newComments = data.comments.slice(lastCommentCount);
+                            
+                            // コメント追加前に真下にいるかチェック
+                            const wasAtBottom = commentsList.scrollHeight - commentsList.scrollTop - commentsList.clientHeight < 50;
                             
                             for (const comment of newComments) {
                                 const stanceClass = comment.vote === 'agree' ? 'comment-agree' : 'comment-disagree';
@@ -1355,10 +1352,11 @@
                                 commentsList.appendChild(commentDiv);
                             }
                             
-                            // 真下にいる場合のみ自動スクロール
-                            const isAtBottom = commentsList.scrollHeight - commentsList.scrollTop - commentsList.clientHeight < 100;
-                            if (isAtBottom) {
-                                commentsList.scrollTop = commentsList.scrollHeight;
+                            // コメント追加前に真下にいた場合のみスクロール
+                            if (wasAtBottom) {
+                                requestAnimationFrame(() => {
+                                    commentsList.scrollTop = commentsList.scrollHeight;
+                                });
                             }
                             lastCommentCount = data.comments.length;
                         }
