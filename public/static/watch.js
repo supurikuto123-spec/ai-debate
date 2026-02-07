@@ -218,7 +218,6 @@
                     document.getElementById('agreeBar').style.width = '50%';
                     document.getElementById('disagreeBar').style.width = '50%';
                 }
-                }
             }
 
             // Post comment
