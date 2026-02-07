@@ -311,20 +311,21 @@ app.post('/api/debate/generate', async (c) => {
       content: systemPrompt
     })
     
-    // 2. 会話履歴を全て送信（プレフィックス一致でキャッシュヒット）
+    // 2. 会話履歴を全て送信（user/assistantを交互に配置）
     if (conversationHistory && conversationHistory.length > 0) {
-      for (const msg of conversationHistory) {
-        // 両方のAIの発言をassistantとして記録
+      for (let i = 0; i < conversationHistory.length; i++) {
+        const msg = conversationHistory[i]
+        // 偶数番目はuser、奇数番目はassistant（交互に配置）
         messages.push({
-          role: 'assistant',
+          role: i % 2 === 0 ? 'user' : 'assistant',
           content: msg.content
         })
       }
       
-      // 3. 最後に新しい指示を追加（動的コンテンツ = キャッシュ対象外）
+      // 3. 最後に固定の指示を追加（キャッシュプレフィックスを維持）
       messages.push({
-        role: 'user',
-        content: '上記の議論を踏まえ、新しい視点から反論してください。【重要】必ず180文字以内、句読点（。）で終わること。180文字を超えた場合は即座に無効です。180文字で完結する内容にしてください。'
+        role: conversationHistory.length % 2 === 0 ? 'user' : 'assistant',
+        content: '続けてください。180文字以内、句読点で終わること。'
       })
     } else {
       // 初回は通常通り

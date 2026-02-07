@@ -1126,27 +1126,11 @@
                     ? conversationHistory[conversationHistory.length - 1].content 
                     : '';
                 
-                // テーマごとにテンプレート化されたプロンプト
-                const systemPrompt = side === 'agree' 
-                    ? `【テーマ】${DEBATE_THEME}
-【あなたの立場】${OPINION_A}
+                // 固定のsystemPrompt（キャッシュ対象）
+                const systemPrompt = `あなたはディベートの参加者です。以下のルールを厳守してください：
 
 【厳守事項】
-1. 上記の立場を一貫して主張する
-2. 相手の立場の論点を認めない
-3. 相手の発言の矛盾・弱点を指摘する
-4. 具体的な根拠を示す（データ・事例・統計など）
-5. 180文字ぴったり、句点（。）で終える
-
-【禁止事項】
-- 相手の論点を認める表現（「確かに」「一方で」など）
-- 抽象的で曖昧な表現（「可能性がある」「考えられる」など）
-- 架空の統計や数値`
-                    : `【テーマ】${DEBATE_THEME}
-【あなたの立場】${OPINION_B}
-
-【厳守事項】
-1. 上記の立場を一貫して主張する
+1. 自分の立場を一貫して主張する
 2. 相手の立場の論点を認めない
 3. 相手の発言の矛盾・弱点を指摘する
 4. 具体的な根拠を示す（データ・事例・統計など）
@@ -1157,13 +1141,27 @@
 - 抽象的で曖昧な表現（「可能性がある」「考えられる」など）
 - 架空の統計や数値`;
                 
+                // 初回のみテーマと立場を追加
+                let conversationToSend = conversationHistory;
+                if (conversationHistory.length === 0) {
+                    const initialContext = side === 'agree'
+                        ? `【テーマ】${DEBATE_THEME}\n【あなたの立場】${OPINION_A}`
+                        : `【テーマ】${DEBATE_THEME}\n【あなたの立場】${OPINION_B}`;
+                    
+                    conversationToSend = [{
+                        side: side,
+                        content: initialContext,
+                        role: 'user'
+                    }];
+                };
+                
                 try {
                     const response = await fetch('/api/debate/generate', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 
                             systemPrompt,
-                            conversationHistory, // 全履歴を送信（Prompt Caching対応）
+                            conversationHistory: conversationToSend, // 初回はテーマと立場を含む
                             maxTokens: 220,  // 180文字 ≈ 220トークン
                             temperature: 0.7  // 一貫性重視
                         })
@@ -1270,8 +1268,10 @@
                 container.addEventListener('wheel', markUserScroll, { passive: true });
                 container.addEventListener('touchstart', markUserScroll, { passive: true });
                 
-                // 初回表示：最下部にスクロール
-                container.scrollTop = container.scrollHeight - container.clientHeight;
+                // 初回表示：最下部にスクロール（DOM更新後に実行）
+                requestAnimationFrame(() => {
+                    container.scrollTop = container.scrollHeight;
+                });
                 
                 // タイピング演出開始
                 const textElement = bubbleDiv.querySelector('.typing-text');
@@ -1285,14 +1285,16 @@
                         
                         // ユーザーがスクロールしていない かつ 真下にいる場合のみスクロール
                         if (!userIsScrolling) {
-                            const isAtBottom = container.scrollHeight === container.scrollTop + container.clientHeight;
+                            const isAtBottom = Math.abs(container.scrollHeight - container.scrollTop - container.clientHeight) < 2;
                             if (isAtBottom) {
-                                container.scrollTop = container.scrollHeight - container.clientHeight;
+                                requestAnimationFrame(() => {
+                                    container.scrollTop = container.scrollHeight;
+                                });
                             }
                         }
                         
                         // ユーザーが真下に戻ったらフラグをリセット
-                        const isAtBottom = container.scrollHeight === container.scrollTop + container.clientHeight;
+                        const isAtBottom = Math.abs(container.scrollHeight - container.scrollTop - container.clientHeight) < 2;
                         if (isAtBottom && userIsScrolling) {
                             userIsScrolling = false;
                         }
