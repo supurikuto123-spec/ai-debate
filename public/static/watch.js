@@ -1272,12 +1272,10 @@
                         textElement.textContent += message.charAt(charIndex);
                         charIndex++;
                         
-                        // 下にいる時は常にスクロール（タイピング中だろうが何だろうが）
-                        // 上にいる時は絶対にスクロールしない（強制スクロール禁止）
-                        // 100px以内なら「下にいる」と判定（改行対応、確実にスクロール）
+                        // 真下（5px以内）にいる時のみスクロール
+                        // 上にいる時は絶対にスクロールしない
                         const scrollBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-                        if (scrollBottom < 100) {
-                            // 即座にスクロール（遅延なし、改行後も確実）
+                        if (scrollBottom <= 5) {
                             container.scrollTop = container.scrollHeight;
                         }
                         
