@@ -300,33 +300,30 @@ app.post('/api/debate/generate', async (c) => {
       return c.json({ error: 'OpenAI API key not configured' }, 500)
     }
     
-    // 会話履歴をOpenAI形式のメッセージに変換（Prompt Caching対応）
+    // 会話履歴をOpenAI形式のメッセージに変換
+    // 重要: gpt-4.1-nanoはPrompt Cachingをサポートしていません（キャッシュ0が正常）
     const messages: any[] = []
     
-    // 1. システムプロンプトをキャッシュ対象に設定
+    // 1. システムプロンプト
     messages.push({
       role: 'system',
-      content: systemPrompt,
-      // gpt-4.1-nanoはPrompt Cachingをサポート（75%割引、1024トークン以上で有効）
-      cache_control: { type: 'ephemeral' }
+      content: systemPrompt
     })
     
-    // 2. 会話履歴を全て追加（キャッシュ対象）
+    // 2. 会話履歴: 最新3ターンのみ送信（トークン削減）
     if (conversationHistory && conversationHistory.length > 0) {
-      for (let i = 0; i < conversationHistory.length; i++) {
-        const msg = conversationHistory[i]
-        const isLast = i === conversationHistory.length - 1
-        
+      // 最新3ターンのみ取得（6メッセージ = 3往復）
+      const recentHistory = conversationHistory.slice(-6)
+      
+      for (const msg of recentHistory) {
         // 両方のAIの発言をassistantとして記録
         messages.push({
           role: 'assistant',
-          content: msg.content,
-          // 最後の履歴メッセージにキャッシュマーカーを設定
-          ...(isLast ? { cache_control: { type: 'ephemeral' } } : {})
+          content: msg.content
         })
       }
       
-      // 3. 最後に新しい指示を追加（キャッシュ対象外＝毎回変わる）
+      // 3. 最後に新しい指示を追加
       messages.push({
         role: 'user',
         content: '上記の議論を踏まえ、新しい視点から反論してください。【重要】必ず180文字以内、句読点（。）で終わること。180文字を超えた場合は即座に無効です。180文字で完結する内容にしてください。'
@@ -365,9 +362,10 @@ app.post('/api/debate/generate', async (c) => {
     // 実際に使用されたモデル情報を取得
     const usedModel = data.model || 'gpt-4.1-nano'
     
-    // トークン使用量をログ出力（キャッシュ確認用）
+    // トークン使用量をログ出力
+    // gpt-4.1-nanoはキャッシュ非対応のため、キャッシュ0が正常
     if (data.usage) {
-      console.log(`[Debate] Tokens - Input: ${data.usage.prompt_tokens}, Output: ${data.usage.completion_tokens}, Cache Read: ${data.usage.prompt_tokens_details?.cached_tokens || 0}`)
+      console.log(`[Debate] Tokens - Input: ${data.usage.prompt_tokens}, Output: ${data.usage.completion_tokens}`)
     }
     
     // [意見A], [意見B], [意見C]などのラベルを削除
