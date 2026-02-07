@@ -1261,18 +1261,19 @@
                 
                 // ユーザーのスクロール検知用フラグ
                 let userIsScrolling = false;
-                let scrollTimeout = null;
                 
-                // ユーザーがスクロールしたらフラグを立てる
-                const handleScroll = () => {
+                // ユーザーがスクロール開始
+                const handleScrollStart = () => {
                     userIsScrolling = true;
-                    if (scrollTimeout) clearTimeout(scrollTimeout);
-                    scrollTimeout = setTimeout(() => {
-                        userIsScrolling = false;
-                    }, 150);
                 };
                 
-                container.addEventListener('scroll', handleScroll);
+                // ユーザーがスクロール終了
+                const handleScrollEnd = () => {
+                    userIsScrolling = false;
+                };
+                
+                container.addEventListener('scroll', handleScrollStart);
+                container.addEventListener('scrollend', handleScrollEnd);
                 
                 // タイピング演出開始
                 const textElement = bubbleDiv.querySelector('.typing-text');
