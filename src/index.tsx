@@ -446,13 +446,12 @@ app.post('/api/announcements/post', async (c) => {
       return c.json({ success: false, error: 'Content required' })
     }
     
-    const announcementId = crypto.randomUUID()
-    
+    // Use NULL for id to let autoincrement work
     await c.env.DB.prepare(
-      'INSERT INTO announcements (id, content, type, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)'
-    ).bind(announcementId, content, type || 'announcement').run()
+      'INSERT INTO announcements (content, type, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)'
+    ).bind(content, type || 'announcement').run()
     
-    return c.json({ success: true, announcement_id: announcementId })
+    return c.json({ success: true })
   } catch (error) {
     console.error('Post announcement error:', error)
     return c.json({ success: false, error: 'Failed to post announcement' }, 500)
@@ -547,13 +546,12 @@ app.post('/api/community/post', async (c) => {
       return c.json({ success: false, error: 'Content and language required' })
     }
     
-    const postId = crypto.randomUUID()
-    
+    // Use NULL for id to let autoincrement work
     await c.env.DB.prepare(
-      'INSERT INTO community_posts (id, user_id, language, content, created_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)'
-    ).bind(postId, user.user_id, language, content).run()
+      'INSERT INTO community_posts (user_id, language, content, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)'
+    ).bind(user.user_id, language, content).run()
     
-    return c.json({ success: true, post_id: postId })
+    return c.json({ success: true })
   } catch (error) {
     console.error('Create post error:', error)
     return c.json({ success: false, error: 'Failed to create post' }, 500)
