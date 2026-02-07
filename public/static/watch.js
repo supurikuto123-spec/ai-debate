@@ -50,25 +50,11 @@
             let fogMode = false;  // ゲージ霧モード（残り10%で有効）
             let finalVotingMode = false;  // 最終投票モード（1分猶予）
 
-            // Initialize demo votes (10 random voters)
+            // D1から投票をロード（ランダム票を保護するため無効化）
             async function loadVotesFromD1() {
-                try {
-                    const response = await fetch('/api/votes/' + DEBATE_ID);
-                    const data = await response.json();
-                    
-                    // D1に投票がある場合のみ上書き（初期値20票を保持）
-                    if (data.total > 0) {
-                        voteData.agree = data.agree;
-                        voteData.disagree = data.disagree;
-                        voteData.total = data.total;
-                        
-                        // UIを更新
-                        updateVoteDisplay();
-                        updateViewerCount();
-                    }
-                } catch (error) {
-                    console.error('Failed to load votes:', error);
-                }
+                // ランダム票を上書きしないため、D1からのロードは無効化
+                // ユーザー投票はsubmitVote()で個別に反映
+                console.log('D1 vote loading disabled to protect random votes');
             }
 
             // 10秒ごとに10票の立場をランダムに変更
@@ -514,20 +500,10 @@
             
             // AI投票：3ターン目以降に、人間の投票者数（AI除く）に基づいて配分
             async function performAIVoting(currentSide) {
-                try {
-                    // 現在のターン数をチェック
-                    const currentTurn = conversationHistory.length;
-                    
-                    // 3ターン未満の場合は「AI集計中」のみ表示
-                    if (currentTurn < 3) {
-                        document.getElementById('judge1-eval').textContent = 'AI集計中...';
-                        document.getElementById('judge1-eval').className = 'text-sm text-gray-400';
-                        document.getElementById('judge2-eval').textContent = 'AI集計中...';
-                        document.getElementById('judge2-eval').className = 'text-sm text-gray-400';
-                        document.getElementById('judge3-eval').textContent = 'AI集計中...';
-                        document.getElementById('judge3-eval').className = 'text-sm text-gray-400';
-                        return;
-                    }
+                // AI審査員の評価は不要（集計中表示も不要）
+                // ゲージは何人でも動作するため、AI票は不要
+                return;
+            }
                     
                     // 全ディベート内容を結合
                     const fullDebate = conversationHistory.map(msg => {
@@ -668,28 +644,23 @@
                 const existingIcons = lastBubble.querySelectorAll('.absolute.top-2');
                 existingIcons.forEach(icon => icon.remove());
                 
-                // アイコンをSVGで作成
-                let symbolSvg = '';
-                let symbolColor = '';
+                // アイコンをSVGで作成（●塗りつぶし+符号）
+                let symbolHtml = '';
                 
                 if (evaluation.symbol === '!!') {
-                    symbolColor = '#10b981'; // green
-                    symbolSvg = '<svg width="32" height="32" viewBox="0 0 32 32" style="filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.8));"><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="' + symbolColor + '" font-size="24" font-weight="bold">!!</text></svg>';
+                    symbolHtml = '<div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center shadow-lg" style="filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.8));"><span class="text-white text-xl font-bold">!!</span></div>';
                 } else if (evaluation.symbol === '!') {
-                    symbolColor = '#10b981'; // green
-                    symbolSvg = '<svg width="24" height="32" viewBox="0 0 24 32" style="filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.8));"><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="' + symbolColor + '" font-size="24" font-weight="bold">!</text></svg>';
+                    symbolHtml = '<div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center shadow-lg" style="filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.8));"><span class="text-white text-xl font-bold">!</span></div>';
                 } else if (evaluation.symbol === '?') {
-                    symbolColor = '#f59e0b'; // orange
-                    symbolSvg = '<svg width="24" height="32" viewBox="0 0 24 32" style="filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.8));"><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="' + symbolColor + '" font-size="24" font-weight="bold">?</text></svg>';
+                    symbolHtml = '<div class="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center shadow-lg" style="filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.8));"><span class="text-white text-xl font-bold">?</span></div>';
                 } else if (evaluation.symbol === '??') {
-                    symbolColor = '#ef4444'; // red
-                    symbolSvg = '<svg width="32" height="32" viewBox="0 0 32 32" style="filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.8));"><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="' + symbolColor + '" font-size="24" font-weight="bold">??</text></svg>';
+                    symbolHtml = '<div class="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center shadow-lg" style="filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.8));"><span class="text-white text-xl font-bold">??</span></div>';
                 }
                 
-                // 枠の端（左上または右上）にアイコンを配置
+                // 意見Aは左上固定、意見Bは右上固定
                 const iconDiv = document.createElement('div');
                 iconDiv.className = 'absolute top-2 ' + (side === 'agree' ? 'left-2' : 'right-2');
-                iconDiv.innerHTML = symbolSvg;
+                iconDiv.innerHTML = symbolHtml;
                 
                 // バブルをrelativeに設定
                 lastBubble.style.position = 'relative';
@@ -1284,13 +1255,10 @@
                         textElement.textContent += message.charAt(charIndex);
                         charIndex++;
                         
-                        // タイピング中に真下にいる場合のみスクロール（ユーザーのスワイプを妨げない）
-                        const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 5;
-                        if (isAtBottom) {
-                            requestAnimationFrame(() => {
-                                container.scrollTop = container.scrollHeight;
-                            });
-                        }
+                        // タイピング中は常に最下部にスクロール（文字が読めるように）
+                        requestAnimationFrame(() => {
+                            container.scrollTop = container.scrollHeight;
+                        });
                         
                         setTimeout(typeChar, typingSpeed);
                     } else {
