@@ -300,22 +300,33 @@ app.post('/api/debate/generate', async (c) => {
       return c.json({ error: 'OpenAI API key not configured' }, 500)
     }
     
-    // 会話履歴をOpenAI形式のメッセージに変換
-    const messages: any[] = [
-      { role: 'system', content: systemPrompt }
-    ]
+    // 会話履歴をOpenAI形式のメッセージに変換（Prompt Caching対応）
+    const messages: any[] = []
     
-    // 会話履歴を全て追加（相手の発言を読めるように）
+    // 1. システムプロンプトをキャッシュ対象に設定
+    messages.push({
+      role: 'system',
+      content: systemPrompt,
+      // gpt-4.1-nanoはPrompt Cachingをサポート（75%割引、1024トークン以上で有効）
+      cache_control: { type: 'ephemeral' }
+    })
+    
+    // 2. 会話履歴を全て追加（キャッシュ対象）
     if (conversationHistory && conversationHistory.length > 0) {
-      for (const msg of conversationHistory) {
-        // 両方のAIの発言をassistantとして記録（ラベルなし）
+      for (let i = 0; i < conversationHistory.length; i++) {
+        const msg = conversationHistory[i]
+        const isLast = i === conversationHistory.length - 1
+        
+        // 両方のAIの発言をassistantとして記録
         messages.push({
           role: 'assistant',
-          content: msg.content
+          content: msg.content,
+          // 最後の履歴メッセージにキャッシュマーカーを設定
+          ...(isLast ? { cache_control: { type: 'ephemeral' } } : {})
         })
       }
       
-      // 最後に「相手の発言を踏まえて反論してください」を追加
+      // 3. 最後に新しい指示を追加（キャッシュ対象外＝毎回変わる）
       messages.push({
         role: 'user',
         content: '上記の議論を踏まえ、新しい視点から反論してください。【重要】必ず180文字以内、句読点（。）で終わること。180文字を超えた場合は即座に無効です。180文字で完結する内容にしてください。'
@@ -335,10 +346,10 @@ app.post('/api/debate/generate', async (c) => {
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-nano',  // 最速・最安のモデル
+        model: 'gpt-4.1-nano',  // Prompt Cachingサポート（75%割引）
         messages: messages,
         max_tokens: maxTokens || 220,  // 180文字（日本語） ≈ 220トークン
-        temperature: temperature || 0.9
+        temperature: temperature || 0.7
       })
     })
     
@@ -353,6 +364,11 @@ app.post('/api/debate/generate', async (c) => {
     
     // 実際に使用されたモデル情報を取得
     const usedModel = data.model || 'gpt-4.1-nano'
+    
+    // トークン使用量をログ出力（キャッシュ確認用）
+    if (data.usage) {
+      console.log(`[Debate] Tokens - Input: ${data.usage.prompt_tokens}, Output: ${data.usage.completion_tokens}, Cache Read: ${data.usage.prompt_tokens_details?.cached_tokens || 0}`)
+    }
     
     // [意見A], [意見B], [意見C]などのラベルを削除
     message = message.replace(/^\[意見[ABC]\]:\s*/g, '')
