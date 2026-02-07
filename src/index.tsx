@@ -301,21 +301,40 @@ app.post('/api/debate/generate', async (c) => {
     }
     
     // 会話履歴をOpenAI形式のメッセージに変換
-    const messages: any[] = [
-      { role: 'system', content: systemPrompt }
-    ]
+    const messages: any[] = []
+    
+    // システムプロンプトをキャッシュ可能な形式で追加
+    messages.push({
+      role: 'system',
+      content: [
+        {
+          type: 'text',
+          text: systemPrompt,
+          cache_control: { type: 'ephemeral' }  // システムプロンプトをキャッシュ
+        }
+      ]
+    })
     
     // 会話履歴を全て追加（相手の発言を読めるように）
     if (conversationHistory && conversationHistory.length > 0) {
-      for (const msg of conversationHistory) {
-        // 両方のAIの発言をassistantとして記録（ラベルなし）
+      // 過去の会話履歴は全てキャッシュ対象
+      for (let i = 0; i < conversationHistory.length; i++) {
+        const msg = conversationHistory[i]
+        const isLast = i === conversationHistory.length - 1
+        
         messages.push({
           role: 'assistant',
-          content: msg.content
+          content: isLast ? [
+            {
+              type: 'text',
+              text: msg.content,
+              cache_control: { type: 'ephemeral' }  // 最後の履歴をキャッシュ
+            }
+          ] : msg.content
         })
       }
       
-      // 最後に「相手の発言を踏まえて反論してください」を追加
+      // 最後に「相手の発言を踏まえて反論してください」を追加（キャッシュしない）
       messages.push({
         role: 'user',
         content: '上記の議論を踏まえ、新しい視点から反論してください。【重要】必ず130文字以内、句読点（。）で終わること。130文字を超えた場合は即座に無効です。130文字で完結する内容にしてください。'
