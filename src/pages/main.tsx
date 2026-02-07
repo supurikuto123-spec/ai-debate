@@ -1,3 +1,5 @@
+import { globalNav } from '../components/global-nav';
+
 export const mainPage = (user: any) => `
     <!DOCTYPE html>
     <html lang="ja">
@@ -11,8 +13,10 @@ export const mainPage = (user: any) => `
         <link href="/static/styles.css" rel="stylesheet">
     </head>
     <body class="bg-black text-white overflow-x-hidden">
-        <!-- Navigation -->
-        <nav class="fixed top-0 w-full z-50 bg-black/80 backdrop-blur-md border-b-2 border-cyan-500">
+        ${globalNav(user)}
+        
+        <!-- Top Bar -->
+        <div class="fixed top-0 w-full z-40 bg-black/80 backdrop-blur-md border-b-2 border-cyan-500">
             <div class="container mx-auto px-6 py-4 flex justify-between items-center">
                 <div class="flex items-center space-x-3">
                     <div class="cyber-logo w-10 h-10 flex items-center justify-center">
@@ -26,13 +30,9 @@ export const mainPage = (user: any) => `
                         <span class="text-sm font-bold">${user.credits}</span>
                     </div>
                     <div class="text-sm text-gray-400">@${user.user_id}</div>
-                    <a href="/demo" class="btn-secondary text-sm px-4 py-2">
-                        <i class="fas fa-arrow-left mr-1"></i>マイページ
-                    </a>
-                    <a href="/logout" class="btn-secondary text-sm px-4 py-2">ログアウト</a>
                 </div>
             </div>
-        </nav>
+        </div>
 
         <!-- Main Content -->
         <div class="pt-24 pb-12">

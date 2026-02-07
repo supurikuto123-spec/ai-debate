@@ -1,3 +1,5 @@
+import { globalNav } from '../components/global-nav';
+
 export const watchPage = (user: any, debateId: string) => `
     <!DOCTYPE html>
     <html lang="ja">
@@ -77,6 +79,8 @@ export const watchPage = (user: any, debateId: string) => `
         </style>
     </head>
     <body class="bg-black text-white overflow-x-hidden">
+        ${globalNav(user)}
+        
         <!-- Vote Modal -->
         <div id="voteModal" class="modal">
             <div class="cyber-card max-w-2xl w-full mx-4">

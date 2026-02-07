@@ -7,6 +7,10 @@ import { demoPage } from './pages/demo'
 import { registerPage } from './pages/register'
 import { mainPage } from './pages/main'
 import { watchPage } from './pages/watch'
+import { myPage } from './pages/mypage'
+import { announcementsPage } from './pages/announcements'
+import { archivePage } from './pages/archive'
+import { communityPage } from './pages/community'
 
 type Bindings = {
   DB: D1Database
@@ -288,6 +292,71 @@ app.get('/watch/:debateId', async (c) => {
   }
   
   return c.html(watchPage(user, debateId))
+})
+
+// MyPage
+app.get('/mypage', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  if (!userCookie) {
+    return c.redirect('/')
+  }
+  
+  const user = JSON.parse(userCookie)
+  
+  try {
+    const userData = await c.env.DB.prepare(
+      'SELECT * FROM users WHERE user_id = ?'
+    ).bind(user.user_id).first()
+    
+    if (!userData) {
+      return c.redirect('/')
+    }
+    
+    const enrichedUserData = {
+      ...userData,
+      nickname: userData.nickname || user.username || user.user_id,
+      avatar_type: userData.avatar_type || 'preset',
+      avatar_value: userData.avatar_value || '1'
+    }
+    
+    return c.html(myPage(enrichedUserData))
+  } catch (error) {
+    console.error('Error loading mypage:', error)
+    return c.redirect('/')
+  }
+})
+
+// Announcements Page
+app.get('/announcements', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  if (!userCookie) {
+    return c.redirect('/')
+  }
+  
+  const user = JSON.parse(userCookie)
+  return c.html(announcementsPage(user))
+})
+
+// Archive Page
+app.get('/archive', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  if (!userCookie) {
+    return c.redirect('/')
+  }
+  
+  const user = JSON.parse(userCookie)
+  return c.html(archivePage(user))
+})
+
+// Community Page
+app.get('/community', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  if (!userCookie) {
+    return c.redirect('/')
+  }
+  
+  const user = JSON.parse(userCookie)
+  return c.html(communityPage(user))
 })
 
 // API: Generate AI debate response
