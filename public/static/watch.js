@@ -1259,8 +1259,20 @@
                 
                 container.appendChild(bubbleDiv);
                 
-                // バブル追加直後、最下部にスクロール（初回表示）
-                container.scrollTop = container.scrollHeight;
+                // ユーザーのスクロール検知用フラグ
+                let userIsScrolling = false;
+                let scrollTimeout = null;
+                
+                // ユーザーがスクロールしたらフラグを立てる
+                const handleScroll = () => {
+                    userIsScrolling = true;
+                    if (scrollTimeout) clearTimeout(scrollTimeout);
+                    scrollTimeout = setTimeout(() => {
+                        userIsScrolling = false;
+                    }, 150);
+                };
+                
+                container.addEventListener('scroll', handleScroll);
                 
                 // タイピング演出開始
                 const textElement = bubbleDiv.querySelector('.typing-text');
@@ -1272,11 +1284,13 @@
                         textElement.textContent += message.charAt(charIndex);
                         charIndex++;
                         
-                        // 真下（5px以内）にいる時のみスクロール
-                        // 上にいる時は絶対にスクロールしない
-                        const scrollBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-                        if (scrollBottom <= 5) {
-                            container.scrollTop = container.scrollHeight;
+                        // ユーザーがスクロール中は絶対に自動スクロールしない
+                        if (!userIsScrolling) {
+                            // 真下判定：scrollHeight === scrollTop + clientHeight
+                            const isAtBottom = container.scrollHeight === container.scrollTop + container.clientHeight;
+                            if (isAtBottom) {
+                                container.scrollTop = container.scrollHeight;
+                            }
                         }
                         
                         setTimeout(typeChar, typingSpeed);
