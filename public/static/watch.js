@@ -515,6 +515,11 @@
                     // 現在のターン数をチェック
                     const currentTurn = conversationHistory.length;
                     
+                    // 3ターン未満の場合は「評価中...」のまま
+                    if (currentTurn < 3) {
+                        return;
+                    }
+                    
                     // 全ディベート内容を結合
                     const fullDebate = conversationHistory.map(msg => {
                         const sideName = msg.side === 'agree' ? '意見A' : '意見B';
@@ -535,8 +540,8 @@
                         if (elem && judgment && judgment.winner) {
                             const winner = judgment.winner === 'agree' ? '意見A' : '意見B';
                             const color = judgment.winner === 'agree' ? 'text-green-400' : 'text-red-400';
-                            elem.className = 'text-sm ' + color;
-                            elem.textContent = winner + ' が優勢';
+                            elem.className = 'text-sm font-bold ' + color;
+                            elem.textContent = winner + ' 優勢';
                         }
                     });
                     
@@ -1241,6 +1246,7 @@
                 const bubbleDiv = document.createElement('div');
                 bubbleDiv.className = 'bubble ' + bubbleClass + ' p-4 text-white shadow-lg';
                 bubbleDiv.style.width = '100%';
+                bubbleDiv.style.position = 'relative';  // 符号表示のために必須
                 bubbleDiv.innerHTML = 
                     '<div class="flex items-center gap-3 mb-2">' +
                         '<div class="w-8 h-8 rounded-full bg-gradient-to-br ' + gradientClass + ' flex items-center justify-center flex-shrink-0">' +
@@ -1253,11 +1259,8 @@
                 
                 container.appendChild(bubbleDiv);
                 
-                // バブル追加直後、ユーザーが下にいる場合のみスクロール
-                const wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= 1;
-                if (wasAtBottom) {
-                    container.scrollTop = container.scrollHeight;
-                }
+                // バブル追加直後、最下部にスクロール（初回表示）
+                container.scrollTop = container.scrollHeight;
                 
                 // タイピング演出開始
                 const textElement = bubbleDiv.querySelector('.typing-text');
@@ -1271,9 +1274,9 @@
                         
                         // 下にいる時は常にスクロール（タイピング中だろうが何だろうが）
                         // 上にいる時は絶対にスクロールしない（強制スクロール禁止）
-                        // 1px以内なら「下にいる」と判定（真下のみ）
-                        const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= 1;
-                        if (isAtBottom) {
+                        // 100px以内なら「下にいる」と判定（改行対応、確実にスクロール）
+                        const scrollBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+                        if (scrollBottom < 100) {
                             // 即座にスクロール（遅延なし、改行後も確実）
                             container.scrollTop = container.scrollHeight;
                         }
