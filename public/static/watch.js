@@ -1259,21 +1259,19 @@
                 
                 container.appendChild(bubbleDiv);
                 
-                // ユーザーのスクロール検知用フラグ
+                // ユーザースクロール検知フラグ
                 let userIsScrolling = false;
                 
-                // ユーザーがスクロール開始
-                const handleScrollStart = () => {
+                // ユーザーがホイールまたはタッチでスクロールした
+                const markUserScroll = () => {
                     userIsScrolling = true;
                 };
                 
-                // ユーザーがスクロール終了
-                const handleScrollEnd = () => {
-                    userIsScrolling = false;
-                };
+                container.addEventListener('wheel', markUserScroll, { passive: true });
+                container.addEventListener('touchstart', markUserScroll, { passive: true });
                 
-                container.addEventListener('scroll', handleScrollStart);
-                container.addEventListener('scrollend', handleScrollEnd);
+                // 初回表示：最下部にスクロール
+                container.scrollTop = container.scrollHeight - container.clientHeight;
                 
                 // タイピング演出開始
                 const textElement = bubbleDiv.querySelector('.typing-text');
@@ -1285,13 +1283,18 @@
                         textElement.textContent += message.charAt(charIndex);
                         charIndex++;
                         
-                        // ユーザーがスクロール中は絶対に自動スクロールしない
+                        // ユーザーがスクロールしていない かつ 真下にいる場合のみスクロール
                         if (!userIsScrolling) {
-                            // 真下判定：scrollHeight === scrollTop + clientHeight
                             const isAtBottom = container.scrollHeight === container.scrollTop + container.clientHeight;
                             if (isAtBottom) {
-                                container.scrollTop = container.scrollHeight;
+                                container.scrollTop = container.scrollHeight - container.clientHeight;
                             }
+                        }
+                        
+                        // ユーザーが真下に戻ったらフラグをリセット
+                        const isAtBottom = container.scrollHeight === container.scrollTop + container.clientHeight;
+                        if (isAtBottom && userIsScrolling) {
+                            userIsScrolling = false;
                         }
                         
                         setTimeout(typeChar, typingSpeed);
