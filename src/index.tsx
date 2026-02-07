@@ -354,7 +354,7 @@ app.post('/api/debate/generate', async (c) => {
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o-2024-08-06',  // Prompt Cachingをサポート
         messages: messages,
         max_tokens: maxTokens || 150,  // 130文字（日本語） ≈ 150トークン
         temperature: temperature || 0.9
@@ -371,7 +371,7 @@ app.post('/api/debate/generate', async (c) => {
     let message = data.choices[0].message.content.trim()
     
     // 実際に使用されたモデル情報を取得
-    const usedModel = data.model || 'gpt-4o-mini'
+    const usedModel = data.model || 'gpt-4o-2024-08-06'
     
     // [意見A], [意見B], [意見C]などのラベルを削除
     message = message.replace(/^\[意見[ABC]\]:\s*/g, '')

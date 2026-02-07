@@ -57,6 +57,8 @@
                 // 変更可能な票数を計算（agree と disagree の合計）
                 const maxChanges = Math.min(10, voteData.agree + voteData.disagree);
                 
+                console.log('Random vote change:', { before: { ...voteData }, maxChanges });
+                
                 for (let i = 0; i < maxChanges; i++) {
                     if (Math.random() < 0.5 && voteData.agree > 0) {
                         // agree → disagree に変更
@@ -68,6 +70,8 @@
                         voteData.agree++;
                     }
                 }
+                
+                console.log('Random vote change:', { after: { ...voteData } });
                 
                 updateVoteDisplay();
             }, 10000);  // 10秒ごと
@@ -90,6 +94,7 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             debateId: DEBATE_ID,
+                            userId: currentUser.user_id,
                             vote: side
                         })
                     });
@@ -138,6 +143,7 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             debateId: DEBATE_ID,
+                            userId: currentUser.user_id,
                             vote: side
                         })
                     });
@@ -993,6 +999,9 @@
                     confirmBtn.disabled = true;
                     confirmBtn.textContent = '投票確定済み - 他の参加者を待っています...';
                     showToast('✅ 投票が確定されました');
+                    
+                    // fogModeを解除して数値を表示
+                    fogMode = false;
                     
                     // ゲージを復活させる（アニメーションなし）
                     const agreeBar = document.getElementById('agreeBar');
