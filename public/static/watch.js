@@ -1258,20 +1258,16 @@
                     '</div>' +
                     '<div class="text-sm leading-relaxed typing-text" style="word-wrap: break-word; white-space: pre-wrap;"></div>';
                 
+                // 追加前に真下判定（コメント欄と完全に同じ）
+                const bottomDistance = container.scrollHeight - container.scrollTop - container.clientHeight;
+                const wasAtBottom = bottomDistance < 5;
+                
                 container.appendChild(bubbleDiv);
                 
                 // タイピング演出開始
                 const textElement = bubbleDiv.querySelector('.typing-text');
                 let charIndex = 0;
                 const typingSpeed = 30; // 30ms per character
-                
-                // タイピング開始時に真下判定（DOM更新後）
-                let wasAtBottom = true; // 初回は常にスクロール
-                requestAnimationFrame(() => {
-                    const bottomDistance = container.scrollHeight - container.scrollTop - container.clientHeight;
-                    wasAtBottom = bottomDistance < 5;
-                    console.log('[Debate Scroll] Initial check - bottomDistance:', bottomDistance, 'wasAtBottom:', wasAtBottom);
-                });
                 
                 function typeChar() {
                     if (charIndex < message.length && debateActive) {
@@ -1280,19 +1276,9 @@
                         
                         // コメント欄と完全に同じ：真下にいた場合のみスクロール
                         if (wasAtBottom) {
-                            if (charIndex === 1) {
-                                console.log('[Debate Scroll] Starting scroll, wasAtBottom:', wasAtBottom);
-                            }
                             requestAnimationFrame(() => {
                                 container.scrollTop = container.scrollHeight;
-                                if (charIndex === 1) {
-                                    console.log('[Debate Scroll] Scrolled to:', container.scrollHeight);
-                                }
                             });
-                        } else {
-                            if (charIndex === 1) {
-                                console.log('[Debate Scroll] NOT scrolling, wasAtBottom:', wasAtBottom);
-                            }
                         }
                         
                         setTimeout(typeChar, typingSpeed);
