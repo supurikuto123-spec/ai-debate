@@ -21,9 +21,9 @@
             let userVote = null;
             let hasVoted = false;
             let voteData = {
-                agree: 0,
-                disagree: 0,
-                total: 1  // 初期値: 自分自身（観戦者）
+                agree: 10,  // 初期デモ票
+                disagree: 10,  // 初期デモ票
+                total: 20  // 初期値: デモ票20票
             };
             
             // AI評価システム用グローバル変数
@@ -425,26 +425,18 @@
                     }).join(String.fromCharCode(10));
                     
                     const promptParts = [
-                        '以下のディベート全体を評価してください：',
-                        fullDebate,
+                        '直近3発言：',
+                        fullDebate.split('\n').slice(-3).join('\n'),
                         '',
-                        '最新の発言「' + message + '」を以下の観点で評価：',
-                        '1. 自分の立場を一貫して主張しているか',
-                        '2. 相手の論点を安易に認めていないか',
-                        '3. 具体的なデータや事例を挙げているか',
-                        '4. 論理的に相手の弱点を指摘しているか',
+                        '最新「' + message + '」を評価：',
+                        '1. 立場を守っているか',
+                        '2. 相手を認めていないか',
+                        '3. 具体的に反論しているか',
                         '',
                         '評価基準：',
-                        '- !! : とても良い（形勢が一気に変わるような決定的な発言）',
-                        '- ! : 優れた意見（有利に働く発言）',
-                        '- それ未満の優れた意見 : 符号なし（評価は必要だが表示不要）',
-                        '- ? : 悪手（相手の意見に飲まれている、形勢が逆転しそう）',
-                        '- ?? : 意図不明（何が目的かわからないほど的外れor致命的な失言）',
+                        '!! = 決定的 / ! = 優勢 / ? = 劣勢 / ?? = 致命的',
                         '',
-                        '!! ! ? ?? に当てはまる場合のみ、符号と短いコメント（15文字以内）を返してください。',
-                        'それ以外の場合は符号なしで返してください。',
-                        '',
-                        'Output format: JSON with symbol (!! or ! or ? or ?? or null) and comment (string or empty)'
+                        'JSON: {symbol: "!!" or "!" or "?" or "??" or null, comment: "15字以内"}'
                     ];
                     const prompt = promptParts.join(String.fromCharCode(10));
 
@@ -452,10 +444,10 @@
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            systemPrompt: 'あなたはディベート評価の専門家です。立場の一貫性と具体性を重視して客観的に評価してください。',
+                            systemPrompt: '公平な審査員。立場の一貫性を最重視。',
                             conversationHistory: [{ role: 'user', content: prompt }],
-                            maxTokens: 100,
-                            temperature: 0.7
+                            maxTokens: 60,
+                            temperature: 0.5
                         })
                     });
                     
@@ -1110,21 +1102,48 @@
                 if (!debateActive) return;
                 
                 const turnNumber = conversationHistory.length + 1;
+                
+                // 最後の相手の発言を取得
+                const lastOpponentMessage = conversationHistory.length > 0 
+                    ? conversationHistory[conversationHistory.length - 1].content 
+                    : '';
+                
                 const systemPrompt = side === 'agree' 
-                    ? `ターン${turnNumber}: あなたは賛成側の弁護士です。以下を厳守：
+                    ? `あなたは賛成側の弁護士です。
+
+【厳守事項】
 1. 自分の立場（賛成）を一貫して主張する
-2. 相手の論点を安易に認めない
-3. 必ず具体的なデータ・事例・統計を1つ以上挙げる（国名・年・数値など）
-4. 前回の相手の主張の弱点を指摘する
-5. 130文字ぴったりで、句読点（。）で終える
-6. 抽象論ではなく、具体例で反論する`
-                    : `ターン${turnNumber}: あなたは反対側の弁護士です。以下を厳守：
+2. 相手の立場（反対）の論点を認めない
+3. 相手の発言の矛盾・弱点を指摘する
+4. 具体的な根拠を示す
+5. 180文字ぴったり、句点（。）で終える
+
+【禁止事項】
+- 相手の論点を認める表現
+- 抽象的で曖昧な表現`
+                    : `あなたは反対側の弁護士です。
+
+【厳守事項】
 1. 自分の立場（反対）を一貫して主張する
-2. 相手の論点を安易に認めない
-3. 必ず具体的なデータ・事例・統計を1つ以上挙げる（国名・年・数値など）
-4. 前回の相手の主張の弱点を指摘する
-5. 130文字ぴったりで、句読点（。）で終える
-6. 抽象論ではなく、具体例で反論する`;
+2. 相手の立場（賛成）の論点を認めない
+3. 相手の発言の矛盾・弱点を指摘する
+4. 具体的な根拠を示す
+5. 180文字ぴったり、句点（。）で終える
+
+【禁止事項】
+- 相手の論点を認める表現
+- 抽象的で曖昧な表現`
+
+【厳守事項】
+- 絶対に自分の立場（反対）を守る。相手の主張を認めてはならない。
+- 相手の発言の矛盾・弱点を具体的に指摘する。
+- 事実に基づく反論をする（架空のデータは禁止）。
+- 130文字ぴったり、句点で終える。
+
+【禁止事項】
+- 相手の論点を認める発言（「確かに」「一方で」など）
+- 曖昧な表現（「可能性がある」「考えられる」など）
+- 架空の統計や数値`;
                 
                 try {
                     const response = await fetch('/api/debate/generate', {
@@ -1132,9 +1151,9 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 
                             systemPrompt,
-                            conversationHistory, // 会話履歴を送信
-                            maxTokens: 200,  // 130文字 ≈ 180-200トークン
-                            temperature: 0.7  // 一貫性とバランス重視
+                            conversationHistory: conversationHistory.slice(-3), // 直近3ターンのみ送信
+                            maxTokens: 200,
+                            temperature: 0.5  // 一貫性最優先
                         })
                     });
                     

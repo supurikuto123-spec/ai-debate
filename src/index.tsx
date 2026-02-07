@@ -318,13 +318,13 @@ app.post('/api/debate/generate', async (c) => {
       // 最後に「相手の発言を踏まえて反論してください」を追加
       messages.push({
         role: 'user',
-        content: '上記の議論を踏まえ、新しい視点から反論してください。【重要】必ず180文字以内、句読点（。）で終わること。180文字を超えた場合は即座に無効です。180文字で完結する内容にしてください。具体的なデータや事例を1つ挙げてください。'
+        content: '上記の議論を踏まえ、新しい視点から反論してください。【重要】必ず180文字以内、句読点（。）で終わること。180文字を超えた場合は即座に無効です。180文字で完結する内容にしてください。'
       })
     } else {
       // 初回は通常通り
       messages.push({
         role: 'user',
-        content: '【重要】必ず180文字以内、句読点（。）で終わること。180文字を超えた場合は即座に無効です。180文字で完結する内容にしてください。具体的なデータや事例を1つ挙げてください。簡潔に主張してください。'
+        content: '【重要】必ず180文字以内、句読点（。）で終わること。180文字を超えた場合は即座に無効です。180文字で完結する内容にしてください。簡潔に主張してください。'
       })
     }
     
@@ -357,10 +357,10 @@ app.post('/api/debate/generate', async (c) => {
     // [意見A], [意見B], [意見C]などのラベルを削除
     message = message.replace(/^\[意見[ABC]\]:\s*/g, '')
     
-    // 130文字制限を厳格に実施（必ず句読点で終わるように調整）
-    if (message.length > 130) {
-      // 130文字でカット
-      message = message.substring(0, 130)
+    // 180文字制限を厳格に実施（必ず句読点で終わるように調整）
+    if (message.length > 180) {
+      // 180文字でカット
+      message = message.substring(0, 180)
       
       // 最後の句読点（。、！、？）を探す
       const lastPunctuationIndex = Math.max(
@@ -370,15 +370,15 @@ app.post('/api/debate/generate', async (c) => {
       )
       
       // 句読点が見つかった場合、そこで終了
-      if (lastPunctuationIndex > 80) { // 最低でも80文字は確保
+      if (lastPunctuationIndex > 120) { // 最低でも120文字は確保
         message = message.substring(0, lastPunctuationIndex + 1)
       } else {
         // 句読点がない場合は強制的に「。」を追加
-        message = message.substring(0, 129) + '。'
+        message = message.substring(0, 179) + '。'
       }
     } else if (!message.endsWith('。') && !message.endsWith('！') && !message.endsWith('？')) {
-      // 150文字未満でも句読点で終わっていない場合は「。」を追加
-      if (message.length < 150) {
+      // 180文字未満でも句読点で終わっていない場合は「。」を追加
+      if (message.length < 180) {
         message = message + '。'
       }
     }
