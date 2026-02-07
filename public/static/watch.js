@@ -193,11 +193,11 @@
                     document.getElementById('agreeBar').style.width = '50%';
                     document.getElementById('disagreeBar').style.width = '50%';
                     
-                    // AI審査員も非表示
+                    // AI審査員も「???」表示
                     ['judge1-eval', 'judge2-eval', 'judge3-eval'].forEach(id => {
                         const elem = document.getElementById(id);
                         if (elem) {
-                            elem.textContent = '非公開';
+                            elem.textContent = '???';
                             elem.className = 'text-sm text-gray-400';
                         }
                     });
@@ -650,9 +650,10 @@
                 
                 if (!lastBubble) return;
                 
-                // 既存の符号アイコンを削除（重複防止）
-                const existingIcons = lastBubble.querySelectorAll('.absolute.top-2');
-                existingIcons.forEach(icon => icon.remove());
+                // 既存の符号アイコンがあれば終了（永続表示、重複防止）
+                if (lastBubble.querySelector('.ai-eval-icon')) {
+                    return;
+                }
                 
                 // アイコンをSVGで作成（●塗りつぶし+符号）
                 let symbolHtml = '';
@@ -669,7 +670,7 @@
                 
                 // 意見Aは左上固定、意見Bは右上固定
                 const iconDiv = document.createElement('div');
-                iconDiv.className = 'absolute top-2 ' + (side === 'agree' ? 'left-2' : 'right-2');
+                iconDiv.className = 'ai-eval-icon absolute top-2 ' + (side === 'agree' ? 'left-2' : 'right-2');
                 iconDiv.innerHTML = symbolHtml;
                 
                 // バブルをrelativeに設定
@@ -1281,7 +1282,9 @@
                         // 保存完了後にカウントを増やす（二重表示を防ぐ）
                         lastMessageCount++;
                         
-                        if (!fogMode) {
+                        // 3ターン目以降のみ評価
+                        const currentTurn = conversationHistory.length;
+                        if (!fogMode && currentTurn >= 3) {
                             getAIEvaluations(message, side);
                         }
                     }
