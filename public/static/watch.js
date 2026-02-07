@@ -44,7 +44,8 @@
                     const response = await fetch('/api/votes/' + DEBATE_ID);
                     const data = await response.json();
                     
-                    if (data.agree !== undefined && data.disagree !== undefined) {
+                    // D1に投票がある場合のみ上書き（初期値20票を保持）
+                    if (data.total > 0) {
                         voteData.agree = data.agree;
                         voteData.disagree = data.disagree;
                         voteData.total = data.total;
@@ -312,7 +313,7 @@
                 const commentsList = document.getElementById('commentsList');
                 
                 // コメント追加前に真下にいるかチェック
-                const wasAtBottom = commentsList.scrollHeight - commentsList.scrollTop - commentsList.clientHeight < 50;
+                const wasAtBottom = commentsList.scrollHeight - commentsList.scrollTop - commentsList.clientHeight < 10;
                 
                 const commentDiv = document.createElement('div');
                 const stanceClass = userVote === 'agree' ? 'comment-agree' : 'comment-disagree';
@@ -459,9 +460,13 @@
                     
                     const data = await response.json();
                     
+                    console.log('[AI評価] API応答:', data.message);
+                    
                     try {
                         // JSONパース試行
                         const result = JSON.parse(data.message);
+                        
+                        console.log('[AI評価] JSONパース成功:', result);
                         
                         if (result.symbol && ['!!', '!', '?', '??'].includes(result.symbol)) {
                             return { 
@@ -472,10 +477,12 @@
                             };
                         } else {
                             // 符号なし
+                            console.log('[AI評価] 符号なし:', result);
                             return { symbol: null, comment: '', support: side, shouldVote: false };
                         }
-                    } catch {
+                    } catch (e) {
                         // JSONパース失敗：文字列から符号を抽出
+                        console.log('[AI評価] JSONパース失敗、文字列抽出:', data.message);
                         const message = data.message;
                         if (message.includes('!!')) {
                             return { symbol: '!!', comment: '圧倒的な説得力', support: side, shouldVote: true };
@@ -1201,7 +1208,7 @@
                 const container = document.getElementById('debateMessages');
                 
                 // メッセージ追加前に真下にいるかチェック
-                const wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+                const wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 10;
                 
                 const bubbleClass = side === 'agree' ? 'bubble-agree' : 'bubble-disagree';
                 const aiModel = 'GPT-4o';  // 現在は両方ともOpenAI APIを使用
@@ -1237,7 +1244,7 @@
                 const container = document.getElementById('debateMessages');
                 
                 // メッセージ追加前に真下にいるかチェック
-                const wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+                const wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 10;
                 
                 const bubbleClass = side === 'agree' ? 'bubble-agree' : 'bubble-disagree';
                 const aiModel = actualModel || 'GPT-4o';  // 実際のモデル情報を使用
@@ -1365,7 +1372,7 @@
                             const newComments = data.comments.slice(lastCommentCount);
                             
                             // コメント追加前に真下にいるかチェック
-                            const wasAtBottom = commentsList.scrollHeight - commentsList.scrollTop - commentsList.clientHeight < 50;
+                            const wasAtBottom = commentsList.scrollHeight - commentsList.scrollTop - commentsList.clientHeight < 10;
                             
                             for (const comment of newComments) {
                                 const stanceClass = comment.vote === 'agree' ? 'comment-agree' : 'comment-disagree';
