@@ -183,13 +183,24 @@
 
             // Update vote display
             function updateVoteDisplay() {
-                // fogMode中は「???」表示
+                // fogMode中は「???」表示、票数も非表示
                 if (fogMode) {
                     document.getElementById('agreePercent').textContent = '???';
                     document.getElementById('disagreePercent').textContent = '???';
                     document.getElementById('agreePercentSymbol').textContent = '';
                     document.getElementById('disagreePercentSymbol').textContent = '';
                     document.getElementById('voteStatus').innerHTML = '<i class="fas fa-eye-slash mr-2"></i>非公開中';
+                    document.getElementById('agreeBar').style.width = '50%';
+                    document.getElementById('disagreeBar').style.width = '50%';
+                    
+                    // AI審査員も非表示
+                    ['judge1-eval', 'judge2-eval', 'judge3-eval'].forEach(id => {
+                        const elem = document.getElementById(id);
+                        if (elem) {
+                            elem.textContent = '非公開';
+                            elem.className = 'text-sm text-gray-400';
+                        }
+                    });
                     return;
                 }
                 
@@ -1254,10 +1265,13 @@
                         textElement.textContent += message.charAt(charIndex);
                         charIndex++;
                         
-                        // タイピング中は常に最下部にスクロール（文字が読めるように）
-                        requestAnimationFrame(() => {
-                            container.scrollTop = container.scrollHeight;
-                        });
+                        // タイピング中に真下にいる場合のみスクロール（上で読んでいる時は妨げない）
+                        const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 5;
+                        if (isAtBottom) {
+                            requestAnimationFrame(() => {
+                                container.scrollTop = container.scrollHeight;
+                            });
+                        }
                         
                         setTimeout(typeChar, typingSpeed);
                     } else {
