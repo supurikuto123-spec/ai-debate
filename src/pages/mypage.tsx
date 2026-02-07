@@ -153,8 +153,6 @@ export const myPage = (userData: any) => `
                                 name="user_id" 
                                 value="${userData.user_id}"
                                 placeholder="ユーザーIDを入力"
-                                pattern="[a-zA-Z0-9_-]{3,20}"
-                                title="3-20文字の英数字、ハイフン、アンダースコアのみ"
                                 class="form-input"
                                 required
                             />

@@ -28,8 +28,8 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
       /* Hamburger Button */
       #nav-toggle {
         position: fixed;
-        top: 20px;
-        right: 20px;
+        top: 80px;
+        right: 30px;
         width: 60px;
         height: 60px;
         background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(255, 0, 255, 0.2));

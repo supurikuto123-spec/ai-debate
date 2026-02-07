@@ -286,9 +286,9 @@ app.get('/watch/:debateId', async (c) => {
   const user = JSON.parse(userCookie)
   const debateId = c.req.param('debateId')
   
-  // Dev user - display infinity symbol
+  // Dev user - 500000 credits
   if (user.user_id === 'dev') {
-    user.credits = 1000000
+    user.credits = 500000
   }
   
   return c.html(watchPage(user, debateId))
@@ -357,6 +357,189 @@ app.get('/community', async (c) => {
   
   const user = JSON.parse(userCookie)
   return c.html(communityPage(user))
+})
+
+// API: Profile Update
+app.post('/api/profile/update', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    if (!userCookie) {
+      return c.json({ success: false, error: 'Not authenticated' }, 401)
+    }
+    
+    const user = JSON.parse(userCookie)
+    const { nickname, user_id, avatar_type, avatar_value } = await c.req.json()
+    
+    if (!nickname || !user_id) {
+      return c.json({ success: false, error: '必須項目が入力されていません' })
+    }
+    
+    // Check if user_id is unique (if changed)
+    if (user_id !== user.user_id) {
+      const existing = await c.env.DB.prepare(
+        'SELECT user_id FROM users WHERE user_id = ?'
+      ).bind(user_id).first()
+      
+      if (existing) {
+        return c.json({ success: false, error: 'このユーザーIDは既に使用されています' })
+      }
+    }
+    
+    // Update user profile
+    await c.env.DB.prepare(
+      'UPDATE users SET nickname = ?, user_id = ?, avatar_type = ?, avatar_value = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?'
+    ).bind(nickname, user_id, avatar_type, avatar_value, user.user_id).run()
+    
+    // Get updated user
+    const updatedUser = await c.env.DB.prepare(
+      'SELECT * FROM users WHERE user_id = ?'
+    ).bind(user_id).first()
+    
+    // Update cookie
+    setCookie(c, 'user', JSON.stringify(updatedUser), {
+      path: '/',
+      httpOnly: true,
+      secure: false,
+      sameSite: 'Lax',
+      maxAge: 60 * 60 * 24 * 30
+    })
+    
+    return c.json({ success: true, user: updatedUser })
+  } catch (error) {
+    console.error('Profile update error:', error)
+    return c.json({ success: false, error: 'サーバーエラーが発生しました' }, 500)
+  }
+})
+
+// API: Get Announcements
+app.get('/api/announcements', async (c) => {
+  try {
+    const announcements = await c.env.DB.prepare(
+      'SELECT * FROM announcements ORDER BY created_at DESC LIMIT 50'
+    ).all()
+    
+    return c.json({ success: true, announcements: announcements.results || [] })
+  } catch (error) {
+    console.error('Get announcements error:', error)
+    return c.json({ success: false, error: 'Failed to load announcements' }, 500)
+  }
+})
+
+// API: Get Archive Debates
+app.get('/api/archive/debates', async (c) => {
+  try {
+    const debates = await c.env.DB.prepare(
+      'SELECT * FROM debates ORDER BY created_at DESC LIMIT 50'
+    ).all()
+    
+    return c.json({ success: true, debates: debates.results || [] })
+  } catch (error) {
+    console.error('Get archive debates error:', error)
+    return c.json({ success: false, error: 'Failed to load debates' }, 500)
+  }
+})
+
+// API: Purchase Archive Access
+app.post('/api/archive/purchase', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    if (!userCookie) {
+      return c.json({ success: false, error: 'Not authenticated' }, 401)
+    }
+    
+    const user = JSON.parse(userCookie)
+    const { debate_id } = await c.req.json()
+    
+    // Check credits (dev user has 500000 credits)
+    const userData = await c.env.DB.prepare(
+      'SELECT credits FROM users WHERE user_id = ?'
+    ).bind(user.user_id).first()
+    
+    const currentCredits = user.user_id === 'dev' ? 500000 : (userData?.credits || 0)
+    
+    if (currentCredits < 15) {
+      return c.json({ success: false, error: 'クレジットが不足しています' })
+    }
+    
+    // Deduct credits (only for non-dev users)
+    if (user.user_id !== 'dev') {
+      await c.env.DB.prepare(
+        'UPDATE users SET credits = credits - 15 WHERE user_id = ?'
+      ).bind(user.user_id).run()
+    }
+    
+    // Create session
+    const sessionId = crypto.randomUUID()
+    
+    await c.env.DB.prepare(
+      'INSERT INTO archive_views (id, user_id, debate_id, session_id, created_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)'
+    ).bind(crypto.randomUUID(), user.user_id, debate_id, sessionId).run()
+    
+    return c.json({ success: true, session_id: sessionId })
+  } catch (error) {
+    console.error('Purchase error:', error)
+    return c.json({ success: false, error: 'サーバーエラーが発生しました' }, 500)
+  }
+})
+
+// API: Get Community Posts
+app.get('/api/community/posts', async (c) => {
+  try {
+    const lang = c.req.query('language') || 'ja'
+    
+    const posts = await c.env.DB.prepare(
+      'SELECT * FROM community_posts WHERE language = ? ORDER BY created_at DESC LIMIT 50'
+    ).bind(lang).all()
+    
+    return c.json({ success: true, posts: posts.results || [] })
+  } catch (error) {
+    console.error('Get posts error:', error)
+    return c.json({ success: false, error: 'Failed to load posts' }, 500)
+  }
+})
+
+// API: Create Community Post
+app.post('/api/community/post', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    if (!userCookie) {
+      return c.json({ success: false, error: 'Not authenticated' }, 401)
+    }
+    
+    const user = JSON.parse(userCookie)
+    const { content, language } = await c.req.json()
+    
+    if (!content || !language) {
+      return c.json({ success: false, error: 'Content and language required' })
+    }
+    
+    const postId = crypto.randomUUID()
+    
+    await c.env.DB.prepare(
+      'INSERT INTO community_posts (id, user_id, language, content, created_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)'
+    ).bind(postId, user.user_id, language, content).run()
+    
+    return c.json({ success: true, post_id: postId })
+  } catch (error) {
+    console.error('Create post error:', error)
+    return c.json({ success: false, error: 'Failed to create post' }, 500)
+  }
+})
+
+// API: Community Stats
+app.get('/api/community/stats', async (c) => {
+  try {
+    const lang = c.req.query('language') || 'ja'
+    
+    const result = await c.env.DB.prepare(
+      'SELECT COUNT(*) as count FROM community_posts WHERE language = ?'
+    ).bind(lang).first()
+    
+    return c.json({ success: true, count: result?.count || 0 })
+  } catch (error) {
+    console.error('Get stats error:', error)
+    return c.json({ success: false, count: 0 })
+  }
 })
 
 // API: Generate AI debate response
