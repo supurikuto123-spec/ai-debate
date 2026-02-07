@@ -1260,7 +1260,7 @@
                 
                 container.appendChild(bubbleDiv);
                 
-                // コメント欄と同じロジック：追加前に真下判定
+                // コメント欄と完全に同じロジック：追加前に真下判定
                 const wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 5;
                 
                 // タイピング演出開始
@@ -1273,9 +1273,11 @@
                         textElement.textContent += message.charAt(charIndex);
                         charIndex++;
                         
-                        // コメント欄と同じ：真下にいた場合のみスクロール
+                        // コメント欄と完全に同じ：真下にいた場合のみスクロール
                         if (wasAtBottom) {
-                            container.scrollTop = container.scrollHeight;
+                            requestAnimationFrame(() => {
+                                container.scrollTop = container.scrollHeight;
+                            });
                         }
                         
                         setTimeout(typeChar, typingSpeed);
