@@ -41,11 +41,6 @@
                 }
             }
             
-            // スクロール制御用
-            let isTyping = false;
-            let userIsScrolling = false;
-            let scrollTimeout = null;
-            
             // AI評価システム用グローバル変数
             let aiVotesDistribution = { agree: 0, disagree: 0 };  // 3つのAIの投票配分
             let lastHumanVoterCount = 0;  // 前回の人間のみの投票者数（AI除く）
@@ -325,7 +320,7 @@
                 const commentsList = document.getElementById('commentsList');
                 
                 // コメント追加前に真下にいるかチェック
-                const wasAtBottom = commentsList.scrollHeight - commentsList.scrollTop - commentsList.clientHeight < 10;
+                const wasAtBottom = commentsList.scrollHeight - commentsList.scrollTop - commentsList.clientHeight < 1;
                 
                 const commentDiv = document.createElement('div');
                 const stanceClass = userVote === 'agree' ? 'comment-agree' : 'comment-disagree';
@@ -1266,8 +1261,10 @@
                 
                 container.appendChild(bubbleDiv);
                 
+                // 初期スクロール位置を最下部に設定
+                container.scrollTop = container.scrollHeight;
+                
                 // タイピング演出開始
-                isTyping = true;  // タイピング開始
                 const textElement = bubbleDiv.querySelector('.typing-text');
                 let charIndex = 0;
                 const typingSpeed = 30; // 30ms per character
@@ -1277,13 +1274,16 @@
                         textElement.textContent += message.charAt(charIndex);
                         charIndex++;
                         
-                        // タイピング中は自動スクロールを固定（ユーザー操作を妨げない）
+                        // タイピング中に真下にいる場合のみスクロール（ユーザーのスワイプを妨げない）
+                        const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 1;
+                        if (isAtBottom) {
+                            requestAnimationFrame(() => {
+                                container.scrollTop = container.scrollHeight;
+                            });
+                        }
                         
                         setTimeout(typeChar, typingSpeed);
                     } else {
-                        // タイピング完了
-                        isTyping = false;
-                        
                         // タイピング完了後にD1保存とAI評価
                         saveDebateMessageToD1(side, aiModel, message);
                         
@@ -1362,7 +1362,7 @@
                             const newComments = data.comments.slice(lastCommentCount);
                             
                             // コメント追加前に真下にいるかチェック
-                            const wasAtBottom = commentsList.scrollHeight - commentsList.scrollTop - commentsList.clientHeight < 10;
+                            const wasAtBottom = commentsList.scrollHeight - commentsList.scrollTop - commentsList.clientHeight < 1;
                             
                             for (const comment of newComments) {
                                 const stanceClass = comment.vote === 'agree' ? 'comment-agree' : 'comment-disagree';
@@ -1508,31 +1508,4 @@
                 }
                 
                 console.log('Initialization complete!');
-                
-                // ユーザースクロール検出
-                const debateMessages = document.getElementById('debateMessages');
-                const commentsList = document.getElementById('commentsList');
-                
-                [debateMessages, commentsList].forEach(container => {
-                    if (container) {
-                        container.addEventListener('scroll', () => {
-                            userIsScrolling = true;
-                            clearTimeout(scrollTimeout);
-                            scrollTimeout = setTimeout(() => {
-                                userIsScrolling = false;
-                            }, 1000);  // 1秒間スクロールなしで解除
-                        });
-                        
-                        container.addEventListener('touchstart', () => {
-                            userIsScrolling = true;
-                        });
-                        
-                        container.addEventListener('touchend', () => {
-                            clearTimeout(scrollTimeout);
-                            scrollTimeout = setTimeout(() => {
-                                userIsScrolling = false;
-                            }, 1000);
-                        });
-                    }
-                });
             });
