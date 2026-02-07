@@ -1266,8 +1266,9 @@
                         textElement.textContent += message.charAt(charIndex);
                         charIndex++;
                         
-                        // タイピング中に真下にいる場合のみスクロール（上で読んでいる時は妨げない）
-                        const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 5;
+                        // タイピング中に下部にいる場合のみスクロール（上で読んでいる時は妨げない）
+                        // 100px以内なら「下にいる」と判定（改行後も確実にスクロール）
+                        const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
                         if (isAtBottom) {
                             requestAnimationFrame(() => {
                                 container.scrollTop = container.scrollHeight;
