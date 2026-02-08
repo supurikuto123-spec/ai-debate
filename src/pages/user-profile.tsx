@@ -10,6 +10,7 @@ interface UserProfileProps {
     rank: string
     avatar_url: string | null
     avatar_type: string | null
+    avatar_value: string | null
     created_at: string
   }
   currentUser: {
@@ -34,13 +35,16 @@ export const UserProfile: FC<UserProfileProps> = ({ profileUser, currentUser, st
   const isOwnProfile = currentUser?.user_id === profileUser.user_id
 
   // Avatar display logic
-  const getAvatarUrl = (user: { avatar_url: string | null; avatar_type: string | null; user_id: string }) => {
-    if (user.avatar_url) {
+  const getAvatarUrl = (user: { avatar_url: string | null; avatar_type: string | null; avatar_value?: string | null; user_id: string }) => {
+    // Priority 1: Uploaded avatar (avatar_url starts with /api/avatar/)
+    if (user.avatar_url && user.avatar_url.startsWith('/api/avatar/')) {
       return user.avatar_url
     }
-    if (user.avatar_type) {
-      return `https://api.dicebear.com/7.x/${user.avatar_type}/svg?seed=${user.user_id}`
+    // Priority 2: DiceBear with avatar_type and avatar_value
+    if (user.avatar_type && user.avatar_type !== 'upload') {
+      return `https://api.dicebear.com/7.x/${user.avatar_type}/svg?seed=${user.avatar_value || user.user_id}`
     }
+    // Fallback: Default bottts with user_id as seed
     return `https://api.dicebear.com/7.x/bottts/svg?seed=${user.user_id}`
   }
 

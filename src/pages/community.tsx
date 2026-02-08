@@ -68,17 +68,17 @@ export const communityPage = (userData: any) => `<!DOCTYPE html>
             flex: 1;
             overflow-y: auto;
             overflow-x: hidden;
-            padding: 20px;
+            padding: 12px;
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 8px;
         }
         
         .message-card {
             background: linear-gradient(135deg, rgba(0, 255, 255, 0.05), rgba(255, 0, 255, 0.05));
             border: 1px solid rgba(0, 255, 255, 0.2);
-            border-radius: 12px;
-            padding: 15px;
+            border-radius: 8px;
+            padding: 10px;
             transition: all 0.3s ease;
         }
         
@@ -91,19 +91,19 @@ export const communityPage = (userData: any) => `<!DOCTYPE html>
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 10px;
+            margin-bottom: 6px;
         }
         
         .user-info {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             cursor: pointer;
         }
         
         .user-avatar {
-            width: 40px;
-            height: 40px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             border: 2px solid cyan;
             object-fit: cover;
@@ -113,6 +113,7 @@ export const communityPage = (userData: any) => `<!DOCTYPE html>
             color: cyan;
             font-weight: bold;
             text-decoration: none;
+            font-size: 14px;
         }
         
         .user-name:hover {
@@ -120,7 +121,7 @@ export const communityPage = (userData: any) => `<!DOCTYPE html>
         }
         
         .message-time {
-            font-size: 12px;
+            font-size: 10px;
             color: #888;
         }
         
@@ -128,44 +129,22 @@ export const communityPage = (userData: any) => `<!DOCTYPE html>
             color: #ddd;
             white-space: pre-wrap;
             word-wrap: break-word;
-            margin-bottom: 10px;
-            line-height: 1.6;
-        }
-        
-        .message-actions {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-        }
-        
-        .reaction-btn, .delete-btn {
-            background: none;
-            border: 1px solid rgba(0, 255, 255, 0.3);
-            color: cyan;
-            padding: 5px 12px;
-            border-radius: 15px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        .reaction-btn:hover {
-            background: rgba(0, 255, 255, 0.2);
-            border-color: cyan;
-            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
-        }
-        
-        .reaction-btn.reacted {
-            background: linear-gradient(135deg, rgba(255, 0, 255, 0.3), rgba(255, 0, 128, 0.3));
-            border-color: magenta;
+            line-height: 1.4;
+            font-size: 14px;
         }
         
         .delete-btn {
-            border-color: rgba(255, 0, 0, 0.5);
+            background: none;
+            border: 1px solid rgba(255, 0, 0, 0.5);
             color: #ff6b6b;
+            padding: 4px 8px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
         
         .delete-btn:hover {
@@ -297,10 +276,15 @@ export const communityPage = (userData: any) => `<!DOCTYPE html>
         
         // Get avatar URL
         function getAvatarUrl(post) {
-            if (post.avatar_url) return post.avatar_url;
-            if (post.avatar_type) {
-                return \`https://api.dicebear.com/7.x/\${post.avatar_type}/svg?seed=\${post.user_id}\`;
+            // Priority 1: Uploaded avatar (avatar_url starts with /api/avatar/)
+            if (post.avatar_url && post.avatar_url.startsWith('/api/avatar/')) {
+                return post.avatar_url;
             }
+            // Priority 2: DiceBear with avatar_type and avatar_value
+            if (post.avatar_type && post.avatar_type !== 'upload') {
+                return \`https://api.dicebear.com/7.x/\${post.avatar_type}/svg?seed=\${post.avatar_value || post.user_id}\`;
+            }
+            // Fallback: Default bottts with user_id as seed
             return \`https://api.dicebear.com/7.x/bottts/svg?seed=\${post.user_id}\`;
         }
         
@@ -331,24 +315,6 @@ export const communityPage = (userData: any) => `<!DOCTYPE html>
             }
         }
         
-        // Toggle reaction
-        async function toggleReaction(postId) {
-            try {
-                const response = await fetch(\`/api/community/post/\${postId}/reaction\`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ emoji: '❤️' })
-                });
-                const result = await response.json();
-                
-                if (result.success) {
-                    loadPosts();
-                }
-            } catch (error) {
-                console.error('Reaction error:', error);
-            }
-        }
-        
         // Load posts
         async function loadPosts() {
             try {
@@ -365,27 +331,20 @@ export const communityPage = (userData: any) => `<!DOCTYPE html>
                 
                 container.innerHTML = data.posts.map(post => {
                     const isOwner = post.user_id === currentUser.user_id;
-                    const hasReacted = post.user_has_reacted === 1;
                     
                     return \`
                         <div class="message-card">
                             <div class="message-header">
                                 <div class="user-info" onclick="viewProfile('\${post.user_id}')">
-                                    <img src="\${getAvatarUrl(post)}" alt="\${post.user_id}" class="user-avatar" />
+                                    <img src="\${getAvatarUrl(post)}" alt="\${post.user_id}" class="user-avatar" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=\${post.user_id}'" />
                                     <div>
                                         <div class="user-name">@\${post.user_id}</div>
-                                        <div class="message-time">\${new Date(post.created_at).toLocaleString('ja-JP')}</div>
+                                        <div class="message-time">\${new Date(post.created_at).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
                                     </div>
                                 </div>
+                                \${isOwner ? \`<button class="delete-btn" onclick="deletePost(\${post.id})"><i class="fas fa-trash"></i></button>\` : ''}
                             </div>
                             <div class="message-content">\${escapeHtml(post.content)}</div>
-                            <div class="message-actions">
-                                <button class="reaction-btn \${hasReacted ? 'reacted' : ''}" onclick="toggleReaction(\${post.id})">
-                                    <i class="fas fa-heart"></i>
-                                    <span>\${post.reaction_count || 0}</span>
-                                </button>
-                                \${isOwner ? \`<button class="delete-btn" onclick="deletePost(\${post.id})"><i class="fas fa-trash"></i> 削除</button>\` : ''}
-                            </div>
                         </div>
                     \`;
                 }).join('');

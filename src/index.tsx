@@ -338,7 +338,7 @@ app.get('/user/:user_id', async (c) => {
     try {
       currentUser = JSON.parse(userCookie)
       const currentUserData = await c.env.DB.prepare(
-        'SELECT user_id, username, email, credits, avatar_url, avatar_type FROM users WHERE user_id = ?'
+        'SELECT user_id, username, email, credits, avatar_url, avatar_type, avatar_value FROM users WHERE user_id = ?'
       ).bind(currentUser.user_id).first()
       currentUser = currentUserData
     } catch (error) {
@@ -349,7 +349,7 @@ app.get('/user/:user_id', async (c) => {
   try {
     // Get target user profile
     const profileUser = await c.env.DB.prepare(
-      'SELECT user_id, username, email, credits, rating, rank, avatar_url, avatar_type, created_at FROM users WHERE user_id = ?'
+      'SELECT user_id, username, email, credits, rating, rank, avatar_url, avatar_type, avatar_value, created_at FROM users WHERE user_id = ?'
     ).bind(targetUserId).first()
     
     if (!profileUser) {
