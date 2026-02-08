@@ -67,6 +67,7 @@ export const communityPage = (userData: any) => `<!DOCTYPE html>
         .chat-messages {
             flex: 1;
             overflow-y: auto;
+            overflow-x: hidden;
             padding: 20px;
             display: flex;
             flex-direction: column;
@@ -174,6 +175,7 @@ export const communityPage = (userData: any) => `<!DOCTYPE html>
         
         .chat-input-area {
             padding: 20px;
+            padding-bottom: 120px; /* Add space for hamburger button */
             background: linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(255, 0, 255, 0.1));
             border-top: 2px solid cyan;
             flex-shrink: 0;
@@ -388,7 +390,7 @@ export const communityPage = (userData: any) => `<!DOCTYPE html>
                     \`;
                 }).join('');
                 
-                // Auto scroll to bottom on initial load
+                // Auto scroll to bottom after loading
                 setTimeout(() => {
                     container.scrollTop = container.scrollHeight;
                 }, 100);

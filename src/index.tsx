@@ -356,20 +356,17 @@ app.get('/user/:user_id', async (c) => {
       return c.text('User not found', 404)
     }
     
-    // Get debate statistics
-    const debateStats = await c.env.DB.prepare(`
-      SELECT 
-        COUNT(*) as total_debates,
-        SUM(CASE WHEN result = 'win' THEN 1 ELSE 0 END) as wins,
-        SUM(CASE WHEN result = 'loss' THEN 1 ELSE 0 END) as losses,
-        SUM(CASE WHEN result = 'draw' THEN 1 ELSE 0 END) as draws
-      FROM debates 
-      WHERE user_id = ?
-    `).bind(targetUserId).first()
+    // Get debate statistics (debates table doesn't have these columns yet, using dummy data)
+    const debateStats = {
+      total_debates: 0,
+      wins: 0,
+      losses: 0,
+      draws: 0
+    }
     
     // Get community post count
     const postCount = await c.env.DB.prepare(
-      'SELECT COUNT(*) as total FROM posts WHERE user_id = ?'
+      'SELECT COUNT(*) as total FROM community_posts WHERE user_id = ?'
     ).bind(targetUserId).first()
     
     // Calculate win rate
@@ -764,14 +761,15 @@ app.get('/api/community/posts', async (c) => {
     const posts = await c.env.DB.prepare(`
       SELECT 
         cp.*,
-        u.avatar_url,
-        u.avatar_type,
+        COALESCE(u.avatar_url, '') as avatar_url,
+        COALESCE(u.avatar_type, 'bottts') as avatar_type,
+        COALESCE(u.avatar_value, '1') as avatar_value,
         (SELECT COUNT(*) FROM post_reactions WHERE post_id = cp.id) as reaction_count,
         (SELECT COUNT(*) FROM post_reactions WHERE post_id = cp.id AND user_id = ?) as user_has_reacted
       FROM community_posts cp
       LEFT JOIN users u ON cp.user_id = u.user_id
       WHERE cp.language = ?
-      ORDER BY cp.created_at DESC
+      ORDER BY cp.created_at ASC
       LIMIT 100
     `).bind(currentUserId || '', lang).all()
     

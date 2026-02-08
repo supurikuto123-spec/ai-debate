@@ -29,7 +29,7 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
       #nav-toggle {
         position: fixed;
         bottom: 30px;
-        left: 30px;
+        right: 30px;
         width: 70px;
         height: 70px;
         background: linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(255, 0, 255, 0.3));
