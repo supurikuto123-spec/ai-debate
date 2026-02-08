@@ -432,7 +432,7 @@ app.post('/api/profile/update', async (c) => {
     }
     
     const user = JSON.parse(userCookie)
-    const { nickname, user_id, avatar_type, avatar_value } = await c.req.json()
+    const { nickname, user_id, avatar_type, avatar_value, avatar_url } = await c.req.json()
     
     if (!nickname || !user_id) {
       return c.json({ success: false, error: '必須項目が入力されていません' })
@@ -449,10 +449,10 @@ app.post('/api/profile/update', async (c) => {
       }
     }
     
-    // Update user profile
+    // Update user profile (including avatar_url)
     await c.env.DB.prepare(
-      'UPDATE users SET nickname = ?, user_id = ?, avatar_type = ?, avatar_value = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?'
-    ).bind(nickname, user_id, avatar_type, avatar_value, user.user_id).run()
+      'UPDATE users SET nickname = ?, user_id = ?, avatar_type = ?, avatar_value = ?, avatar_url = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?'
+    ).bind(nickname, user_id, avatar_type || 'bottts', avatar_value || '1', avatar_url || null, user.user_id).run()
     
     // Get updated user
     const updatedUser = await c.env.DB.prepare(

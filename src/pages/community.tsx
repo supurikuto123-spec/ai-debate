@@ -263,6 +263,7 @@ export const communityPage = (userData: any) => `<!DOCTYPE html>
     <script>
         const currentUser = { user_id: '${userData.user_id}', username: '${userData.username || userData.user_id}' };
         let currentLang = 'ja';
+        let isUserAtBottom = true; // Track if user is at bottom
         let userReactions = {}; // Track user's reactions
         
         const langNames = {
@@ -349,9 +350,11 @@ export const communityPage = (userData: any) => `<!DOCTYPE html>
                     \`;
                 }).join('');
                 
-                // Auto scroll to bottom after loading
+                // Only auto scroll to bottom if user was already at bottom
                 setTimeout(() => {
-                    container.scrollTop = container.scrollHeight;
+                    if (isUserAtBottom) {
+                        container.scrollTop = container.scrollHeight;
+                    }
                 }, 100);
             } catch (error) {
                 console.error('Load posts error:', error);
@@ -447,6 +450,17 @@ export const communityPage = (userData: any) => `<!DOCTYPE html>
                 loadStats();
             });
         });
+        
+        // Track scroll position to determine if user is at bottom
+        const messagesContainer = document.getElementById('messages-container');
+        if (messagesContainer) {
+            messagesContainer.addEventListener('scroll', () => {
+                const threshold = 50; // 50px from bottom
+                const position = messagesContainer.scrollTop + messagesContainer.clientHeight;
+                const height = messagesContainer.scrollHeight;
+                isUserAtBottom = (height - position) < threshold;
+            });
+        }
         
         // Initial load
         loadPosts();

@@ -294,6 +294,7 @@ export const myPage = (userData: any) => `
                 e.preventDefault();
                 
                 let avatarValue = selectedAvatarValue;
+                let avatarUrl = null;
                 
                 // Upload image if selected
                 if (uploadedFile) {
@@ -312,7 +313,9 @@ export const myPage = (userData: any) => `
                             return;
                         }
                         
+                        avatarUrl = uploadResult.url;
                         avatarValue = uploadResult.url;
+                        selectedAvatarType = 'upload';
                     } catch (error) {
                         console.error('Upload error:', error);
                         alert('画像のアップロードエラー');
@@ -324,7 +327,8 @@ export const myPage = (userData: any) => `
                     nickname: document.getElementById('nickname').value,
                     user_id: document.getElementById('user_id').value,
                     avatar_type: selectedAvatarType,
-                    avatar_value: avatarValue
+                    avatar_value: avatarValue,
+                    avatar_url: avatarUrl
                 };
 
                 try {
