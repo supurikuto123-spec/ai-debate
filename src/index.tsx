@@ -323,6 +323,24 @@ app.get('/watch/:debateId', async (c) => {
   return c.html(watchPage(user, debateId))
 })
 
+// Watch page with query parameter
+app.get('/watch', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  if (!userCookie) {
+    return c.redirect('/')
+  }
+  
+  const user = JSON.parse(userCookie)
+  const debateId = c.req.query('id') || 'default'
+  
+  // Dev user - 500000 credits
+  if (user.user_id === 'dev') {
+    user.credits = 500000
+  }
+  
+  return c.html(watchPage(user, debateId))
+})
+
 // MyPage
 app.get('/mypage', async (c) => {
   const userCookie = getCookie(c, 'user')

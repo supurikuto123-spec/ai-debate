@@ -15,25 +15,6 @@ export const mainPage = (user: any, debates: any[] = []) => `
     <body class="bg-black text-white overflow-x-hidden">
         ${globalNav(user)}
         
-        <!-- Top Bar -->
-        <div class="fixed top-0 w-full z-40 bg-black/80 backdrop-blur-md border-b-2 border-cyan-500">
-            <div class="container mx-auto px-6 py-4 flex justify-between items-center" style="margin-top: 100px;">
-                <div class="flex items-center space-x-3">
-                    <div class="cyber-logo w-10 h-10 flex items-center justify-center">
-                        <i class="fas fa-brain text-cyan-400 text-2xl"></i>
-                    </div>
-                    <span class="text-2xl font-bold cyber-text">AI Debate</span>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <div class="credit-display">
-                        <i class="fas fa-coins text-yellow-400"></i>
-                        <span class="text-sm font-bold">${user.credits}</span>
-                    </div>
-                    <div class="text-sm text-gray-400">@${user.user_id}</div>
-                </div>
-            </div>
-        </div>
-
         <!-- Main Content -->
         <div class="pt-24 pb-12">
             <div class="cyber-grid"></div>
