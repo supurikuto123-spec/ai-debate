@@ -39,7 +39,7 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
       /* Hamburger Button */
       #nav-toggle {
         position: fixed;
-        top: 20px;
+        top: 100px;
         right: 20px;
         width: 70px;
         height: 70px;

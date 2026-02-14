@@ -62,16 +62,6 @@ export const ticketsPage = (user: any) => `
                                placeholder="問題の概要を入力してください">
                     </div>
                     <div>
-                        <label class="block text-sm font-bold mb-2">優先度</label>
-                        <select id="ticket-priority" 
-                                class="w-full bg-gray-900 border border-cyan-500 rounded px-4 py-2 text-white">
-                            <option value="low">低</option>
-                            <option value="normal" selected>普通</option>
-                            <option value="high">高</option>
-                            <option value="urgent">緊急</option>
-                        </select>
-                    </div>
-                    <div>
                         <label class="block text-sm font-bold mb-2">詳細 *</label>
                         <textarea id="ticket-message" required rows="6"
                                   class="w-full bg-gray-900 border border-cyan-500 rounded px-4 py-2 text-white"
@@ -156,9 +146,6 @@ export const ticketsPage = (user: any) => `
                                     <span class="status-\${ticket.status}">
                                         <i class="fas fa-circle mr-1"></i>\${getStatusLabel(ticket.status)}
                                     </span>
-                                    <span class="priority-\${ticket.priority}">
-                                        <i class="fas fa-flag mr-1"></i>\${getPriorityLabel(ticket.priority)}
-                                    </span>
                                 </div>
                             </div>
                             <i class="fas fa-chevron-right text-cyan-400"></i>
@@ -177,15 +164,6 @@ export const ticketsPage = (user: any) => `
                 return labels[status] || status;
             }
             
-            function getPriorityLabel(priority) {
-                const labels = {
-                    low: '低',
-                    normal: '普通',
-                    high: '高',
-                    urgent: '緊急'
-                };
-                return labels[priority] || priority;
-            }
             
             // New ticket
             document.getElementById('new-ticket-btn').addEventListener('click', () => {
@@ -201,13 +179,12 @@ export const ticketsPage = (user: any) => `
                 
                 const subject = document.getElementById('ticket-subject').value;
                 const message = document.getElementById('ticket-message').value;
-                const priority = document.getElementById('ticket-priority').value;
                 
                 try {
                     const response = await fetch('/api/tickets/create', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ subject, message, priority })
+                        body: JSON.stringify({ subject, message })
                     });
                     
                     const data = await response.json();
@@ -302,10 +279,7 @@ export const ticketsPage = (user: any) => `
             .status-resolved { color: #34d399; }
             .status-closed { color: #9ca3af; }
             
-            .priority-low { color: #9ca3af; }
-            .priority-normal { color: #60a5fa; }
-            .priority-high { color: #fb923c; }
-            .priority-urgent { color: #ef4444; }
+
         </style>
     </body>
     </html>

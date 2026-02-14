@@ -16,7 +16,7 @@ export const mainPage = (user: any, debates: any[] = []) => `
         ${globalNav(user)}
         
         <!-- Top Bar -->
-        <div class="fixed top-0 w-full z-40 bg-black/80 backdrop-blur-md border-b-2 border-cyan-500">
+        <div class="fixed top-0 w-full z-40 bg-black/80 backdrop-blur-md border-b-2 border-cyan-500" style="margin-top: 100px;">
             <div class="container mx-auto px-6 py-4 flex justify-between items-center">
                 <div class="flex items-center space-x-3">
                     <div class="cyber-logo w-10 h-10 flex items-center justify-center">

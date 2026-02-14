@@ -1866,7 +1866,7 @@ app.post('/api/tickets/create', async (c) => {
     }
     
     const user = JSON.parse(userCookie)
-    const { subject, message, priority } = await c.req.json()
+    const { subject, message } = await c.req.json()
     
     if (!subject || !message) {
       return c.json({ success: false, error: 'Subject and message are required' }, 400)
@@ -1887,9 +1887,9 @@ app.post('/api/tickets/create', async (c) => {
     
     // Create ticket
     await c.env.DB.prepare(`
-      INSERT INTO support_tickets (id, user_id, subject, message, status, priority, created_at, updated_at)
-      VALUES (?, ?, ?, ?, 'open', ?, datetime('now'), datetime('now'))
-    `).bind(ticketId, user.user_id, subject, message, priority || 'normal').run()
+      INSERT INTO support_tickets (id, user_id, subject, message, status, created_at, updated_at)
+      VALUES (?, ?, ?, ?, 'open', datetime('now'), datetime('now'))
+    `).bind(ticketId, user.user_id, subject, message).run()
     
     // Create first message
     await c.env.DB.prepare(`
