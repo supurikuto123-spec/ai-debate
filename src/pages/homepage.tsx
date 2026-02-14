@@ -170,19 +170,19 @@ export const homepage = (user: any) => `
                 ` : ''}
                 <div class="flex flex-col md:flex-row gap-6 justify-center items-center">
                     ${user ? `
-                        <a href="/demo" class="btn-glow text-xl px-12 py-4">
+                        <a href="/mypage" class="btn-glow text-xl px-12 py-4">
                             <span class="mr-3">▶</span>マイページへ
                         </a>
-                        <button class="btn-outline text-xl px-12 py-4">
-                            <span class="mr-3">▶</span>ライブ配信を見る
-                        </button>
+                        <a href="/main" class="btn-outline text-xl px-12 py-4">
+                            <span class="mr-3">▶</span>ディベートを見る
+                        </a>
                     ` : `
                         <a href="/auth/google" class="btn-glow text-xl px-12 py-4">
                             <span class="mr-3">▶</span>事前登録して始める
                         </a>
-                        <button class="btn-outline text-xl px-12 py-4">
-                            <span class="mr-3">▶</span>デモを見る
-                        </button>
+                        <a href="/demo" class="btn-outline text-xl px-12 py-4">
+                            <span class="mr-3">▶</span>プレビューを見る
+                        </a>
                     `}
                 </div>
 
