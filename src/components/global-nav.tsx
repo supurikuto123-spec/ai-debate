@@ -288,9 +288,9 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
           <i class="fas fa-user"></i>
           <span>マイページ</span>
         </a>
-        <a href="/contact" class="nav-link">
-          <i class="fas fa-envelope"></i>
-          <span>お問い合わせ</span>
+        <a href="/tickets" class="nav-link">
+          <i class="fas fa-ticket-alt"></i>
+          <span>サポートチケット</span>
         </a>
       </div>
 
