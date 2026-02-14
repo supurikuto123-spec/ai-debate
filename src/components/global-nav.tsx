@@ -1,8 +1,16 @@
 // Global Navigation Component - Cyberpunk Hamburger Menu
-export const globalNav = (user: { credits: number; user_id: string; avatar_type?: string; avatar_value?: string }) => {
-  const avatarUrl = user.avatar_type === 'upload' 
-    ? user.avatar_value 
-    : `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.avatar_value || '1'}`;
+export const globalNav = (user: { credits: number; user_id: string; avatar_type?: string; avatar_value?: string; avatar_url?: string }) => {
+  // Avatar display logic with proper priority
+  const getAvatarUrl = () => {
+    if (user.avatar_url && user.avatar_url.startsWith('/api/avatar/')) {
+      return user.avatar_url;
+    }
+    if (user.avatar_type && user.avatar_type !== 'upload') {
+      return `https://api.dicebear.com/7.x/${user.avatar_type}/svg?seed=${user.avatar_value || user.user_id}`;
+    }
+    return `https://api.dicebear.com/7.x/bottts/svg?seed=${user.user_id}`;
+  };
+  const avatarUrl = getAvatarUrl();
 
   return `
     <!-- Global Navigation -->
@@ -28,8 +36,8 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
       /* Hamburger Button */
       #nav-toggle {
         position: fixed;
-        bottom: 30px;
-        right: 30px;
+        top: 20px;
+        right: 20px;
         width: 70px;
         height: 70px;
         background: linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(255, 0, 255, 0.3));
@@ -252,11 +260,11 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
 
       <!-- Navigation Links -->
       <div class="nav-links">
-        <a href="/main" class="nav-link">
-          <i class="fas fa-home"></i>
-          <span>メインページ</span>
+        <a href="/announcements" class="nav-link">
+          <i class="fas fa-bullhorn"></i>
+          <span>お知らせ</span>
         </a>
-        <a href="/watch/1" class="nav-link">
+        <a href="/main" class="nav-link">
           <i class="fas fa-eye"></i>
           <span>観戦</span>
         </a>
@@ -264,17 +272,21 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
           <i class="fas fa-archive"></i>
           <span>アーカイブ</span>
         </a>
+        <a href="/theme-vote" class="nav-link">
+          <i class="fas fa-vote-yea"></i>
+          <span>テーマ投票</span>
+        </a>
         <a href="/community" class="nav-link">
           <i class="fas fa-users"></i>
           <span>コミュニティ</span>
         </a>
-        <a href="/announcements" class="nav-link">
-          <i class="fas fa-bullhorn"></i>
-          <span>お知らせ</span>
-        </a>
         <a href="/mypage" class="nav-link">
           <i class="fas fa-user"></i>
           <span>マイページ</span>
+        </a>
+        <a href="/contact" class="nav-link">
+          <i class="fas fa-envelope"></i>
+          <span>お問い合わせ</span>
         </a>
       </div>
 
@@ -282,6 +294,19 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
       <a href="/logout" class="nav-logout">
         <i class="fas fa-sign-out-alt"></i> ログアウト
       </a>
+      
+      <!-- Legal Links -->
+      <div style="padding: 20px 30px; border-top: 1px solid rgba(0, 255, 255, 0.2);">
+        <a href="/terms" style="display: block; color: #888; font-size: 0.85rem; padding: 8px 0; text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='#00ffff'" onmouseout="this.style.color='#888'">
+          <i class="fas fa-file-contract" style="margin-right: 8px;"></i>利用規約
+        </a>
+        <a href="/privacy" style="display: block; color: #888; font-size: 0.85rem; padding: 8px 0; text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='#00ffff'" onmouseout="this.style.color='#888'">
+          <i class="fas fa-shield-alt" style="margin-right: 8px;"></i>プライバシーポリシー
+        </a>
+        <a href="/legal" style="display: block; color: #888; font-size: 0.85rem; padding: 8px 0; text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='#00ffff'" onmouseout="this.style.color='#888'">
+          <i class="fas fa-gavel" style="margin-right: 8px;"></i>特定商取引法
+        </a>
+      </div>
     </nav>
 
     <!-- Navigation Script -->

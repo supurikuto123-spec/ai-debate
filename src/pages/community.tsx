@@ -154,7 +154,7 @@ export const communityPage = (userData: any) => `<!DOCTYPE html>
         
         .chat-input-area {
             padding: 20px;
-            padding-bottom: 120px; /* Add space for hamburger button */
+            padding-bottom: 20px;
             background: linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(255, 0, 255, 0.1));
             border-top: 2px solid cyan;
             flex-shrink: 0;

@@ -12,6 +12,11 @@ import { announcementsPage } from './pages/announcements'
 import { archivePage } from './pages/archive'
 import { communityPage } from './pages/community'
 import { UserProfile } from './pages/user-profile'
+import { termsPage } from './pages/terms'
+import { privacyPage } from './pages/privacy'
+import { legalPage } from './pages/legal'
+import { contactPage } from './pages/contact'
+import { themeVotePage } from './pages/theme-vote'
 
 type Bindings = {
   DB: D1Database
@@ -421,6 +426,61 @@ app.get('/community', async (c) => {
   
   const user = JSON.parse(userCookie)
   return c.html(communityPage(user))
+})
+
+// Terms Page
+app.get('/terms', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  if (!userCookie) {
+    return c.redirect('/')
+  }
+  
+  const user = JSON.parse(userCookie)
+  return c.html(termsPage(user))
+})
+
+// Privacy Page
+app.get('/privacy', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  if (!userCookie) {
+    return c.redirect('/')
+  }
+  
+  const user = JSON.parse(userCookie)
+  return c.html(privacyPage(user))
+})
+
+// Legal Page
+app.get('/legal', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  if (!userCookie) {
+    return c.redirect('/')
+  }
+  
+  const user = JSON.parse(userCookie)
+  return c.html(legalPage(user))
+})
+
+// Contact Page
+app.get('/contact', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  if (!userCookie) {
+    return c.redirect('/')
+  }
+  
+  const user = JSON.parse(userCookie)
+  return c.html(contactPage(user))
+})
+
+// Theme Vote Page
+app.get('/theme-vote', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  if (!userCookie) {
+    return c.redirect('/')
+  }
+  
+  const user = JSON.parse(userCookie)
+  return c.html(themeVotePage(user))
 })
 
 // API: Profile Update
@@ -1451,6 +1511,193 @@ app.get('/api/stats/users', async (c) => {
   } catch (error) {
     console.error('Error getting user count:', error)
     return c.json({ count: 0 })
+  }
+})
+
+// API: Contact form submission
+app.post('/api/contact', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    if (!userCookie) {
+      return c.json({ success: false, error: 'Not authenticated' }, 401)
+    }
+    
+    const user = JSON.parse(userCookie)
+    const { category, email, subject, message } = await c.req.json()
+    
+    if (!category || !email || !subject || !message) {
+      return c.json({ success: false, error: 'Missing required fields' }, 400)
+    }
+    
+    // Store in database
+    await c.env.DB.prepare(`
+      INSERT INTO contact_messages (user_id, email, category, subject, message, created_at)
+      VALUES (?, ?, ?, ?, ?, datetime('now'))
+    `).bind(user.user_id, email, category, subject, message).run()
+    
+    console.log('Contact form submission:', { user_id: user.user_id, category, subject })
+    
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('Contact error:', error)
+    return c.json({ success: false, error: 'Failed to submit' }, 500)
+  }
+})
+
+// API: Get theme votes
+app.get('/api/theme-votes', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    let currentUserId = null
+    if (userCookie) {
+      const user = JSON.parse(userCookie)
+      currentUserId = user.user_id
+    }
+    
+    const category = c.req.query('category') || 'all'
+    const sort = c.req.query('sort') || 'votes'
+    
+    let query = `
+      SELECT 
+        tp.id,
+        tp.title,
+        tp.agree_opinion,
+        tp.disagree_opinion,
+        tp.category,
+        tp.proposed_by,
+        tp.vote_count,
+        tp.created_at,
+        CASE WHEN tv.user_id IS NOT NULL THEN 1 ELSE 0 END as has_voted
+      FROM theme_proposals tp
+      LEFT JOIN theme_votes tv ON tp.id = tv.theme_id AND tv.user_id = ?
+      WHERE tp.status = 'active'
+    `
+    
+    const params = [currentUserId || '']
+    
+    if (category !== 'all') {
+      query += ' AND tp.category = ?'
+      params.push(category)
+    }
+    
+    if (sort === 'votes') {
+      query += ' ORDER BY tp.vote_count DESC, tp.created_at DESC'
+    } else {
+      query += ' ORDER BY tp.created_at DESC'
+    }
+    
+    const stmt = c.env.DB.prepare(query).bind(...params)
+    const { results } = await stmt.all()
+    
+    return c.json({ success: true, themes: results || [] })
+  } catch (error) {
+    console.error('Get themes error:', error)
+    return c.json({ success: false, error: 'Failed to load themes' }, 500)
+  }
+})
+
+// API: Propose theme
+app.post('/api/theme-votes/propose', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    if (!userCookie) {
+      return c.json({ success: false, error: 'Not authenticated' }, 401)
+    }
+    
+    const user = JSON.parse(userCookie)
+    
+    // Check if user has enough credits
+    if (user.user_id !== 'dev' && user.credits < 10) {
+      return c.json({ success: false, error: 'クレジットが不足しています' }, 400)
+    }
+    
+    const { title, agree_opinion, disagree_opinion, category } = await c.req.json()
+    
+    if (!title || !agree_opinion || !disagree_opinion) {
+      return c.json({ success: false, error: 'Missing required fields' }, 400)
+    }
+    
+    // Insert theme proposal
+    await c.env.DB.prepare(`
+      INSERT INTO theme_proposals (title, agree_opinion, disagree_opinion, category, proposed_by, created_at)
+      VALUES (?, ?, ?, ?, ?, datetime('now'))
+    `).bind(title, agree_opinion, disagree_opinion, category || 'other', user.user_id).run()
+    
+    // Deduct credits (unless dev user)
+    if (user.user_id !== 'dev') {
+      await c.env.DB.prepare(`
+        UPDATE users SET credits = credits - 10 WHERE user_id = ?
+      `).bind(user.user_id).run()
+      
+      await c.env.DB.prepare(`
+        INSERT INTO credit_transactions (user_id, amount, type, reason, created_at)
+        VALUES (?, ?, ?, ?, datetime('now'))
+      `).bind(user.user_id, -10, 'spend', 'テーマ提案').run()
+    }
+    
+    console.log('Theme proposal:', { user_id: user.user_id, title })
+    
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('Submit theme error:', error)
+    return c.json({ success: false, error: 'Failed to submit' }, 500)
+  }
+})
+
+// API: Vote for theme
+app.post('/api/theme-votes/:id/vote', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    if (!userCookie) {
+      return c.json({ success: false, error: 'Not authenticated' }, 401)
+    }
+    
+    const user = JSON.parse(userCookie)
+    const themeId = c.req.param('id')
+    
+    // Check if user has enough credits
+    if (user.user_id !== 'dev' && user.credits < 5) {
+      return c.json({ success: false, error: 'クレジットが不足しています' }, 400)
+    }
+    
+    // Check if already voted
+    const existingVote = await c.env.DB.prepare(`
+      SELECT id FROM theme_votes WHERE theme_id = ? AND user_id = ?
+    `).bind(themeId, user.user_id).first()
+    
+    if (existingVote) {
+      return c.json({ success: false, error: 'すでに投票済みです' }, 400)
+    }
+    
+    // Insert vote
+    await c.env.DB.prepare(`
+      INSERT INTO theme_votes (theme_id, user_id, created_at)
+      VALUES (?, ?, datetime('now'))
+    `).bind(themeId, user.user_id).run()
+    
+    // Increment vote count
+    await c.env.DB.prepare(`
+      UPDATE theme_proposals SET vote_count = vote_count + 1 WHERE id = ?
+    `).bind(themeId).run()
+    
+    // Deduct credits (unless dev user)
+    if (user.user_id !== 'dev') {
+      await c.env.DB.prepare(`
+        UPDATE users SET credits = credits - 5 WHERE user_id = ?
+      `).bind(user.user_id).run()
+      
+      await c.env.DB.prepare(`
+        INSERT INTO credit_transactions (user_id, amount, type, reason, created_at)
+        VALUES (?, ?, ?, ?, datetime('now'))
+      `).bind(user.user_id, -5, 'spend', 'テーマ投票').run()
+    }
+    
+    console.log('Theme vote:', { user_id: user.user_id, theme_id: themeId })
+    
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('Vote theme error:', error)
+    return c.json({ success: false, error: 'Failed to vote' }, 500)
   }
 })
 
