@@ -296,8 +296,24 @@
                 if (text === '!stop' && currentUser.user_id === 'dev') {
                     input.value = '';
                     if (debateActive) {
+                        // デベート完全停止とクリーンアップ
                         debateActive = false;
-                        showToast('ディベートを停止しました');
+                        clearInterval(debateTimer);
+                        conversationHistory = [];
+                        
+                        // コメント入力を再有効化
+                        const commentInput = document.getElementById('commentInput');
+                        if (commentInput) {
+                            commentInput.disabled = false;
+                            commentInput.placeholder = 'コメントを入力...';
+                        }
+                        const commentBtn = document.querySelector('button[onclick="submitComment()"]');
+                        if (commentBtn) {
+                            commentBtn.disabled = false;
+                            commentBtn.style.opacity = '1';
+                        }
+                        
+                        showToast('✅ ディベートを停止しました（新規開始可能）');
                     } else {
                         showToast('ディベートは実行されていません');
                     }
@@ -1089,6 +1105,18 @@
 
             // 最終結果表示
             function showFinalResults() {
+                // デベート終了時にコメント入力を無効化
+                const commentInput = document.getElementById('commentInput');
+                if (commentInput) {
+                    commentInput.disabled = true;
+                    commentInput.placeholder = 'ディベートが終了しました';
+                }
+                const commentBtn = document.querySelector('button[onclick="submitComment()"]');
+                if (commentBtn) {
+                    commentBtn.disabled = true;
+                    commentBtn.style.opacity = '0.5';
+                }
+                
                 const agreePercent = Math.round((voteData.agree / voteData.total) * 100);
                 const disagreePercent = 100 - agreePercent;
                 const winner = voteData.agree > voteData.disagree ? '意見A' : '意見B';
@@ -1120,8 +1148,8 @@
                     '</div>' +
                     '<div class="text-center">' +
                         '<p class="text-lg text-gray-400 mb-6">総投票数: ' + voteData.total + ' 人</p>' +
-                        '<button onclick="location.href=\'/\'" class="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 px-8 rounded-lg">' +
-                            '<i class="fas fa-home mr-2"></i>トップページへ' +
+                        '<button onclick="location.href=\'/main\'" class="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 px-8 rounded-lg">' +
+                            '<i class="fas fa-home mr-2"></i>メインページへ' +
                         '</button>' +
                     '</div>' +
                 '</div>';
