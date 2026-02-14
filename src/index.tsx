@@ -210,27 +210,28 @@ app.get('/demo', async (c) => {
 
 // Main page (Development Preview) - Always 100 credits (except dev users)
 app.get('/main', async (c) => {
-  const userCookie = getCookie(c, 'user')
-  if (!userCookie) {
-    return c.redirect('/')
-  }
-  
-  const user = JSON.parse(userCookie)
-  
-  // Dev user (user_id='dev') has infinite credits - no charge
-  const isDevUser = user.user_id === 'dev'
-  
-  if (!isDevUser) {
-    // Check if this is the first access to /main
-    const firstAccess = await c.env.DB.prepare(`
-      SELECT COUNT(*) as count FROM credit_transactions 
-      WHERE user_id = ? AND reason = 'main_page_access'
-    `).bind(user.user_id).first()
+  try {
+    const userCookie = getCookie(c, 'user')
+    if (!userCookie) {
+      return c.redirect('/')
+    }
     
-    if (!firstAccess || firstAccess.count === 0) {
-      // First time accessing /main - charge 100 credits
-      if (user.credits < 100) {
-        return c.html(`
+    const user = JSON.parse(userCookie)
+    
+    // Dev user (user_id='dev') has infinite credits - no charge
+    const isDevUser = user.user_id === 'dev'
+    
+    if (!isDevUser) {
+      // Check if this is the first access to /main
+      const firstAccess = await c.env.DB.prepare(`
+        SELECT COUNT(*) as count FROM credit_transactions 
+        WHERE user_id = ? AND reason = 'main_page_access'
+      `).bind(user.user_id).first()
+      
+      if (!firstAccess || firstAccess.count === 0) {
+        // First time accessing /main - charge 100 credits
+        if (user.credits < 100) {
+          return c.html(`
           <!DOCTYPE html>
           <html lang="ja">
           <head>
@@ -298,6 +299,10 @@ app.get('/main', async (c) => {
   })
   
   return c.html(mainPage(user, debates))
+  } catch (error) {
+    console.error('Main page error:', error)
+    return c.text('Internal Server Error: ' + error.message, 500)
+  }
 })
 
 // Watch debate page (Development)

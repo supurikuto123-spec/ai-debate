@@ -170,8 +170,8 @@ export const homepage = (user: any) => `
                 ` : ''}
                 <div class="flex flex-col md:flex-row gap-6 justify-center items-center">
                     ${user ? `
-                        <a href="/mypage" class="btn-glow text-xl px-12 py-4">
-                            <span class="mr-3">▶</span>マイページへ
+                        <a href="/main" class="btn-glow text-xl px-12 py-4">
+                            <span class="mr-3">▶</span>メインページへ
                         </a>
                     ` : `
                         <a href="/auth/google" class="btn-glow text-xl px-12 py-4">

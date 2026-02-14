@@ -70,6 +70,7 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
         border-radius: 3px;
         transition: all 0.3s ease;
         box-shadow: 0 0 15px rgba(0, 255, 255, 0.8);
+        pointer-events: none;
       }
 
       #nav-toggle.active span:nth-child(1) {
