@@ -112,7 +112,7 @@ export const myPage = (userData: any) => `
                         <div class="mb-4">
                             <img 
                                 id="current-avatar" 
-                                src="${userData.avatar_type === 'upload' ? userData.avatar_value : `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.avatar_value || '1'}`}" 
+                                src="${userData.avatar_url && userData.avatar_url.startsWith('/api/avatar/') ? userData.avatar_url : (userData.avatar_type && userData.avatar_type !== 'upload' ? `https://api.dicebear.com/7.x/${userData.avatar_type}/svg?seed=${userData.avatar_value || userData.user_id}` : `https://api.dicebear.com/7.x/bottts/svg?seed=${userData.user_id}`)}" 
                                 alt="Current Avatar" 
                                 class="current-avatar mx-auto"
                             />
@@ -172,7 +172,7 @@ export const myPage = (userData: any) => `
                             <div class="grid grid-cols-5 gap-4 mb-4">
                                 ${Array.from({length: 20}, (_, i) => i + 1).map(seed => `
                                     <img 
-                                        src="https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}" 
+                                        src="https://api.dicebear.com/7.x/${avatarType}/svg?seed=${seed}" 
                                         alt="Avatar ${seed}" 
                                         class="avatar-preset ${userData.avatar_type === 'preset' && userData.avatar_value === seed.toString() ? 'selected' : ''}"
                                         data-seed="${seed}"
@@ -247,7 +247,7 @@ export const myPage = (userData: any) => `
                 }
                 
                 document.getElementById('current-avatar').src = 
-                    \`https://api.dicebear.com/7.x/avataaars/svg?seed=\${value}\`;
+                    \`https://api.dicebear.com/7.x/\${avatarType}/svg?seed=\${value}\`;
                 
                 // Hide upload preview
                 document.getElementById('upload-preview').classList.add('hidden');

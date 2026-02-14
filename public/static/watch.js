@@ -1167,6 +1167,13 @@
             // アーカイブ保存関数
             async function saveToArchive(winner, agreePercent, disagreePercent) {
                 try {
+                    // Simulate AI judges votes (3 judges)
+                    const aiJudgesVotes = [
+                        { judge: 'Judge-GPT', vote: winner === '意見A' ? 'agree' : 'disagree' },
+                        { judge: 'Judge-Claude', vote: winner === '意見A' ? 'agree' : 'disagree' },
+                        { judge: 'Judge-Gemini', vote: winner === '意見A' ? 'agree' : 'disagree' }
+                    ];
+                    
                     const response = await fetch('/api/archive/save', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -1179,7 +1186,8 @@
                             agree_votes: voteData.agree,
                             disagree_votes: voteData.disagree,
                             winner: winner === '意見A' ? 'agree' : 'disagree',
-                            messages: JSON.stringify(conversationHistory)
+                            messages: JSON.stringify(conversationHistory),
+                            ai_judges_votes: JSON.stringify(aiJudgesVotes)
                         })
                     });
                     

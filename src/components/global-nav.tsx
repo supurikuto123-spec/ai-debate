@@ -2,12 +2,15 @@
 export const globalNav = (user: { credits: number; user_id: string; avatar_type?: string; avatar_value?: string; avatar_url?: string }) => {
   // Avatar display logic with proper priority
   const getAvatarUrl = () => {
-    if (user.avatar_url && user.avatar_url.startsWith('/api/avatar/')) {
+    // Priority 1: Custom uploaded avatar (any avatar_url)
+    if (user.avatar_url) {
       return user.avatar_url;
     }
+    // Priority 2: DiceBear generated avatar
     if (user.avatar_type && user.avatar_type !== 'upload') {
       return `https://api.dicebear.com/7.x/${user.avatar_type}/svg?seed=${user.avatar_value || user.user_id}`;
     }
+    // Fallback: default avatar
     return `https://api.dicebear.com/7.x/bottts/svg?seed=${user.user_id}`;
   };
   const avatarUrl = getAvatarUrl();
