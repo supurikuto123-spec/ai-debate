@@ -333,12 +333,20 @@ app.get('/mypage', async (c) => {
   const user = JSON.parse(userCookie)
   
   try {
-    const userData = await c.env.DB.prepare(
+    let userData = await c.env.DB.prepare(
       'SELECT * FROM users WHERE user_id = ?'
     ).bind(user.user_id).first()
     
     if (!userData) {
-      return c.redirect('/')
+      // Create user if not exists
+      await c.env.DB.prepare(`
+        INSERT INTO users (user_id, username, email, credits, created_at)
+        VALUES (?, ?, ?, 500, datetime('now'))
+      `).bind(user.user_id, user.username || user.user_id, user.email || '').run()
+      
+      userData = await c.env.DB.prepare(
+        'SELECT * FROM users WHERE user_id = ?'
+      ).bind(user.user_id).first()
     }
     
     const enrichedUserData = {
