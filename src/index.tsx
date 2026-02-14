@@ -1720,9 +1720,9 @@ app.post('/api/theme-votes/propose', async (c) => {
       `).bind(user.user_id).run()
       
       await c.env.DB.prepare(`
-        INSERT INTO credit_transactions (user_id, amount, type, reason, created_at)
-        VALUES (?, ?, ?, ?, datetime('now'))
-      `).bind(user.user_id, -10, 'spend', 'テーマ提案').run()
+        INSERT INTO credit_transactions (id, user_id, amount, type, reason, created_at)
+        VALUES (?, ?, ?, ?, ?, datetime('now'))
+      `).bind(crypto.randomUUID(), user.user_id, -10, 'spend', 'テーマ提案').run()
     }
     
     console.log('Theme proposal:', { user_id: user.user_id, title })
@@ -1777,9 +1777,9 @@ app.post('/api/theme-votes/:id/vote', async (c) => {
       `).bind(user.user_id).run()
       
       await c.env.DB.prepare(`
-        INSERT INTO credit_transactions (user_id, amount, type, reason, created_at)
-        VALUES (?, ?, ?, ?, datetime('now'))
-      `).bind(user.user_id, -5, 'spend', 'テーマ投票').run()
+        INSERT INTO credit_transactions (id, user_id, amount, type, reason, created_at)
+        VALUES (?, ?, ?, ?, ?, datetime('now'))
+      `).bind(crypto.randomUUID(), user.user_id, -5, 'spend', 'テーマ投票').run()
     }
     
     console.log('Theme vote:', { user_id: user.user_id, theme_id: themeId })

@@ -124,9 +124,9 @@ export const demoPage = (user: any) => `
                             <div class="progress-status pulse">▶</div>
                             <div class="progress-content">
                                 <h4 class="text-lg font-bold">フェーズ 2：コア機能開発</h4>
-                                <p class="text-sm text-gray-400">AIディベートエンジン、観戦システム実装中</p>
+                                <p class="text-sm text-gray-400">AIディベートエンジン、観戦システム</p>
                             </div>
-                            <div class="progress-badge current">開発中</div>
+                            <div class="progress-badge current">デモ</div>
                         </div>
 
                         <div class="progress-item upcoming">
@@ -143,9 +143,9 @@ export const demoPage = (user: any) => `
                 <!-- Access Main Page Button (Development) -->
                 <div class="max-w-3xl mx-auto mb-12">
                     <div class="cta-box">
-                        <h3 class="text-3xl font-bold mb-4 cyber-text">🎮 開発中プレビュー</h3>
+                        <h3 class="text-3xl font-bold mb-4 cyber-text">🎮 デモプレビュー</h3>
                         <p class="text-lg text-gray-300 mb-6">
-                            現在開発中のメインページをご覧いただけます<br>
+                            AI vs AI ディベートのデモをご覧いただけます<br>
                             <span class="text-yellow-400 font-bold">（閲覧権: 100クレジット消費）</span>
                         </p>
                         <a href="/main" class="btn-primary inline-block text-xl px-8 py-4">
@@ -153,7 +153,7 @@ export const demoPage = (user: any) => `
                             メインページを見る
                         </a>
                         <p class="text-sm text-gray-500 mt-4">
-                            ※ 開発中のため、一部機能は動作しません
+                            ※ 初回アクセス時のみクレジットを消費します
                         </p>
                     </div>
                 </div>
