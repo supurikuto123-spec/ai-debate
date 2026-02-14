@@ -112,7 +112,7 @@ export const myPage = (userData: any) => `
                         <div class="mb-4">
                             <img 
                                 id="current-avatar" 
-                                src="${userData.avatar_url && userData.avatar_url.startsWith('/api/avatar/') ? userData.avatar_url : (userData.avatar_type && userData.avatar_type !== 'upload' ? `https://api.dicebear.com/7.x/${userData.avatar_type}/svg?seed=${userData.avatar_value || userData.user_id}` : `https://api.dicebear.com/7.x/bottts/svg?seed=${userData.user_id}`)}" 
+                                src="${userData.avatar_url ? userData.avatar_url : (userData.avatar_type && userData.avatar_type !== 'upload' ? `https://api.dicebear.com/7.x/${userData.avatar_type}/svg?seed=${userData.avatar_value || userData.user_id}` : `https://api.dicebear.com/7.x/bottts/svg?seed=${userData.user_id}`)}" 
                                 alt="Current Avatar" 
                                 class="current-avatar mx-auto"
                             />

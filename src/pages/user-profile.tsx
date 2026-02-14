@@ -37,7 +37,7 @@ export const UserProfile: FC<UserProfileProps> = ({ profileUser, currentUser, st
   // Avatar display logic
   const getAvatarUrl = (user: { avatar_url: string | null; avatar_type: string | null; avatar_value?: string | null; user_id: string }) => {
     // Priority 1: Uploaded avatar (avatar_url starts with /api/avatar/)
-    if (user.avatar_url && user.avatar_url.startsWith('/api/avatar/')) {
+    if (user.avatar_url) {
       return user.avatar_url
     }
     // Priority 2: DiceBear with avatar_type and avatar_value

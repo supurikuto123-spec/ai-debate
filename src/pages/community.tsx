@@ -278,7 +278,7 @@ export const communityPage = (userData: any) => `<!DOCTYPE html>
         // Get avatar URL
         function getAvatarUrl(post) {
             // Priority 1: Uploaded avatar (avatar_url starts with /api/avatar/)
-            if (post.avatar_url && post.avatar_url.startsWith('/api/avatar/')) {
+            if (post.avatar_url) {
                 return post.avatar_url;
             }
             // Priority 2: DiceBear with avatar_type and avatar_value
