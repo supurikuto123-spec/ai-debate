@@ -746,9 +746,23 @@ app.post('/api/announcements/:id/reaction', async (c) => {
 // API: Get Archive Debates
 app.get('/api/archive/debates', async (c) => {
   try {
-    const debates = await c.env.DB.prepare(
-      'SELECT * FROM debates ORDER BY created_at DESC LIMIT 50'
-    ).all()
+    const debates = await c.env.DB.prepare(`
+      SELECT 
+        id,
+        debate_id,
+        title as theme,
+        agree_position as opinion_a,
+        disagree_position as opinion_b,
+        agree_votes,
+        disagree_votes,
+        winner,
+        'completed' as status,
+        (LENGTH(messages) - LENGTH(REPLACE(messages, 'content', ''))) / LENGTH('content') as message_count,
+        created_at
+      FROM archived_debates 
+      ORDER BY archived_at DESC 
+      LIMIT 50
+    `).all()
     
     return c.json({ success: true, debates: debates.results || [] })
   } catch (error) {
@@ -797,6 +811,38 @@ app.post('/api/archive/purchase', async (c) => {
   } catch (error) {
     console.error('Purchase error:', error)
     return c.json({ success: false, error: 'サーバーエラーが発生しました' }, 500)
+  }
+})
+
+// API: Save Debate to Archive
+app.post('/api/archive/save', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    if (!userCookie) {
+      return c.json({ success: false, error: 'Not authenticated' }, 401)
+    }
+    
+    const user = JSON.parse(userCookie)
+    
+    // Only dev can save to archive
+    if (user.user_id !== 'dev') {
+      return c.json({ success: false, error: 'Permission denied' }, 403)
+    }
+    
+    const { debate_id, title, topic, agree_position, disagree_position, agree_votes, disagree_votes, winner, messages } = await c.req.json()
+    
+    // Insert into archived_debates table
+    await c.env.DB.prepare(`
+      INSERT INTO archived_debates (debate_id, title, topic, agree_position, disagree_position, agree_votes, disagree_votes, winner, messages, created_at, archived_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    `).bind(debate_id, title, topic, agree_position, disagree_position, agree_votes, disagree_votes, winner, messages).run()
+    
+    console.log('Debate archived:', { debate_id, title, winner })
+    
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('Archive save error:', error)
+    return c.json({ success: false, error: 'Failed to save archive' }, 500)
   }
 })
 

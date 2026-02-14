@@ -57,18 +57,21 @@
                 console.log('D1 vote loading disabled to protect random votes');
             }
 
-            // 10秒ごとに10票の立場をランダムに変更
+            // 10秒ごとにA/B各5票ずつの立場をランダムに変更
             setInterval(() => {
                 console.log('Random vote change:', { before: { ...voteData } });
                 
-                // 10票の立場をランダムに変更
-                for (let i = 0; i < 10; i++) {
-                    if (Math.random() < 0.5 && voteData.agree > 0) {
-                        // agree → disagree に変更
+                // A側の5票をランダムに変更（agree → disagree）
+                for (let i = 0; i < 5; i++) {
+                    if (voteData.agree > 0) {
                         voteData.agree--;
                         voteData.disagree++;
-                    } else if (voteData.disagree > 0) {
-                        // disagree → agree に変更
+                    }
+                }
+                
+                // B側の5票をランダムに変更（disagree → agree）
+                for (let i = 0; i < 5; i++) {
+                    if (voteData.disagree > 0) {
                         voteData.disagree--;
                         voteData.agree++;
                     }
@@ -251,6 +254,16 @@
                     input.value = '';
                     showToast('ディベートを開始します...');
                     startDebate();
+                    return;
+                }
+
+                // Check for !sa command (dev user only) - ディベート開始 + アーカイブ自動保存
+                if (text === '!sa' && currentUser.user_id === 'dev') {
+                    input.value = '';
+                    showToast('ディベートを開始します（アーカイブ保存有効）...');
+                    startDebate();
+                    // アーカイブフラグをセット
+                    window.archiveOnComplete = true;
                     return;
                 }
 
@@ -1114,6 +1127,40 @@
                 '</div>';
                 
                 document.body.appendChild(resultModal);
+                
+                // !saコマンドが使われた場合、アーカイブに保存
+                if (window.archiveOnComplete) {
+                    saveToArchive(winner, agreePercent, disagreePercent);
+                }
+            }
+            
+            // アーカイブ保存関数
+            async function saveToArchive(winner, agreePercent, disagreePercent) {
+                try {
+                    const response = await fetch('/api/archive/save', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            debate_id: DEBATE_ID,
+                            title: document.querySelector('.match-title')?.textContent || 'AI Debate',
+                            topic: DEBATE_THEME,
+                            agree_position: OPINION_A,
+                            disagree_position: OPINION_B,
+                            agree_votes: voteData.agree,
+                            disagree_votes: voteData.disagree,
+                            winner: winner === '意見A' ? 'agree' : 'disagree',
+                            messages: JSON.stringify(conversationHistory)
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    if (result.success) {
+                        showToast('✅ ディベートがアーカイブに保存されました');
+                        window.archiveOnComplete = false;
+                    }
+                } catch (error) {
+                    console.error('Archive save error:', error);
+                }
             }
 
             async function generateAIResponse(side) {
