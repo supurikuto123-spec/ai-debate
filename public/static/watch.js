@@ -1125,7 +1125,7 @@
                 // 結果モーダルを作成
                 const resultModal = document.createElement('div');
                 resultModal.className = 'fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center z-50';
-                resultModal.innerHTML = '<div class="cyber-card max-w-2xl w-full mx-4">' +
+                resultModal.innerHTML = '<div class="cyber-card max-w-3xl w-full mx-4">' +
                     '<h2 class="text-4xl font-bold text-center mb-8">' +
                         '<i class="fas fa-trophy mr-3 text-yellow-400"></i>' +
                         '最終結果' +
@@ -1136,12 +1136,14 @@
                     '</div>' +
                     '<div class="grid grid-cols-2 gap-6 mb-8">' +
                         '<div class="text-center p-6 bg-green-500/20 rounded">' +
-                            '<p class="text-xl mb-2">意見A</p>' +
+                            '<p class="text-xl mb-2">意見A (Agree)</p>' +
+                            '<p class="text-sm text-cyan-300 mb-3"><i class="fas fa-brain mr-2"></i>GPT-4o</p>' +
                             '<p class="text-4xl font-bold text-green-400">' + agreePercent + '%</p>' +
                             '<p class="text-sm text-gray-400 mt-2">' + voteData.agree + ' 票</p>' +
                         '</div>' +
                         '<div class="text-center p-6 bg-red-500/20 rounded">' +
-                            '<p class="text-xl mb-2">意見B</p>' +
+                            '<p class="text-xl mb-2">意見B (Disagree)</p>' +
+                            '<p class="text-sm text-magenta-300 mb-3"><i class="fas fa-lightbulb mr-2"></i>Claude-3.5</p>' +
                             '<p class="text-4xl font-bold text-red-400">' + disagreePercent + '%</p>' +
                             '<p class="text-sm text-gray-400 mt-2">' + voteData.disagree + ' 票</p>' +
                         '</div>' +

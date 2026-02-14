@@ -1,12 +1,12 @@
 import { globalNav } from '../components/global-nav';
 
-export const mainPage = (user: any) => `
+export const mainPage = (user: any, debates: any[] = []) => `
     <!DOCTYPE html>
     <html lang="ja">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=1280, initial-scale=0.5, maximum-scale=1.0, user-scalable=yes">
-        <title>メインページ - AI Debate | 開発中プレビュー</title>
+        <title>メインページ - AI Debate</title>
         <meta name="robots" content="noindex, nofollow">
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
@@ -47,10 +47,6 @@ export const mainPage = (user: any) => `
                     <p class="text-xl text-cyan-300 neon-text">
                         現在開催中のディベートマッチ
                     </p>
-                    <div class="inline-block mt-4 px-6 py-2 bg-yellow-500/20 border-2 border-yellow-500 rounded">
-                        <i class="fas fa-exclamation-triangle text-yellow-400 mr-2"></i>
-                        <span class="text-yellow-300 font-bold">開発中プレビュー版</span>
-                    </div>
                 </div>
 
                 <!-- Filter Tabs -->
@@ -70,14 +66,24 @@ export const mainPage = (user: any) => `
                 </div>
 
                 <!-- Match Grid -->
-                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-                    <!-- Match 1: Live -->
-                    <div class="match-card live" data-category="live">
+                <div id="debate-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+                    ${debates.length > 0 ? debates.map(debate => `
+                    <div class="match-card ${debate.status}" data-category="${debate.status}">
+                        ${debate.status === 'live' ? `
                         <div class="match-status live">
                             <i class="fas fa-circle pulse"></i> LIVE
                         </div>
+                        ` : debate.status === 'upcoming' ? `
+                        <div class="match-status upcoming">
+                            <i class="fas fa-clock"></i> 予定
+                        </div>
+                        ` : `
+                        <div class="match-status finished">
+                            <i class="fas fa-check-circle"></i> 終了
+                        </div>
+                        `}
                         <div class="match-header">
-                            <h3 class="match-title">AIは人類の仕事を奪うのか</h3>
+                            <h3 class="match-title">${debate.topic || 'ディベートテーマ'}</h3>
                             <div class="match-type ai-vs-ai">
                                 <i class="fas fa-microchip"></i> AI vs AI
                             </div>
@@ -85,16 +91,14 @@ export const mainPage = (user: any) => `
                         <div class="match-details">
                             <div class="match-time">
                                 <i class="fas fa-calendar-alt text-cyan-400 mr-2"></i>
-                                2026/01/28 15:00
+                                ${debate.created_at ? new Date(debate.created_at).toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '日時未定'}
                             </div>
-                            <div class="match-duration">
-                                <i class="fas fa-hourglass-half text-magenta-400 mr-2"></i>
-                                残り 12分
-                            </div>
+                            ${debate.viewers !== undefined ? `
                             <div class="match-viewers">
                                 <i class="fas fa-users text-green-400 mr-2"></i>
-                                127人 観戦中
+                                ${debate.viewers}人 観戦中
                             </div>
+                            ` : ''}
                         </div>
                         <div class="match-ais">
                             <div class="ai-card pro">
@@ -113,10 +117,26 @@ export const mainPage = (user: any) => `
                                 </div>
                             </div>
                         </div>
-                        <a href="/watch/1" class="match-watch-btn live block text-center no-underline">
-                            <i class="fas fa-eye mr-2"></i>今すぐ観戦
+                        <a href="/watch?id=${debate.id}" class="match-watch-btn ${debate.status} block text-center no-underline">
+                            <i class="fas fa-eye mr-2"></i>${debate.status === 'live' ? '今すぐ観戦' : debate.status === 'upcoming' ? '予約する' : '結果を見る'}
                         </a>
                     </div>
+                    `).join('') : `
+                    <!-- Empty State -->
+                    <div class="col-span-full flex flex-col items-center justify-center py-20">
+                        <div class="text-center">
+                            <i class="fas fa-inbox text-gray-600 text-6xl mb-6"></i>
+                            <h3 class="text-2xl font-bold text-gray-400 mb-4">現在開催中のディベートはありません</h3>
+                            <p class="text-gray-500 mb-8">
+                                新しいディベートが開催されるまでお待ちください。<br>
+                                または、デモページでディベートの様子をご覧いただけます。
+                            </p>
+                            <a href="/demo" class="btn-primary px-8 py-3 inline-block">
+                                <i class="fas fa-play mr-2"></i>デモを見る
+                            </a>
+                        </div>
+                    </div>
+                    `}
                 </div>
             </div>
         </div>
@@ -142,13 +162,6 @@ export const mainPage = (user: any) => `
                             card.style.display = 'none';
                         }
                     });
-                });
-            });
-
-            // Watch button clicks
-            document.querySelectorAll('.match-watch-btn').forEach(button => {
-                button.addEventListener('click', () => {
-                    showToast('🚧 この機能は開発中です。正式リリースをお待ちください！');
                 });
             });
 

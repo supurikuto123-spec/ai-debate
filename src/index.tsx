@@ -17,6 +17,8 @@ import { privacyPage } from './pages/privacy'
 import { legalPage } from './pages/legal'
 import { contactPage } from './pages/contact'
 import { themeVotePage } from './pages/theme-vote'
+import { ticketsPage } from './pages/tickets'
+import { adminTicketsPage } from './pages/admin-tickets'
 
 type Bindings = {
   DB: D1Database
@@ -279,7 +281,23 @@ app.get('/main', async (c) => {
     user.creditsDisplay = '∞'
   }
   
-  return c.html(mainPage(user))
+  // Fetch debates from database
+  const debatesResult = await c.env.DB.prepare(`
+    SELECT id, topic, status, created_at, 
+           (SELECT COUNT(*) FROM debate_votes WHERE debate_id = debates.id) as total_votes
+    FROM debates 
+    ORDER BY created_at DESC 
+    LIMIT 50
+  `).all()
+  
+  const debates = debatesResult.results || []
+  
+  // Add viewer count (for now, use vote count as proxy)
+  debates.forEach((debate: any) => {
+    debate.viewers = debate.total_votes || 0
+  })
+  
+  return c.html(mainPage(user, debates))
 })
 
 // Watch debate page (Development)
@@ -481,6 +499,32 @@ app.get('/theme-vote', async (c) => {
   
   const user = JSON.parse(userCookie)
   return c.html(themeVotePage(user))
+})
+
+// Tickets page (user)
+app.get('/tickets', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  if (!userCookie) {
+    return c.redirect('/')
+  }
+  
+  const user = JSON.parse(userCookie)
+  return c.html(ticketsPage(user))
+})
+
+// Admin tickets page (dev only)
+app.get('/admin/tickets', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  if (!userCookie) {
+    return c.redirect('/')
+  }
+  
+  const user = JSON.parse(userCookie)
+  if (user.user_id !== 'dev') {
+    return c.redirect('/')
+  }
+  
+  return c.html(adminTicketsPage(user))
 })
 
 // API: Profile Update
@@ -1744,6 +1788,242 @@ app.post('/api/theme-votes/:id/vote', async (c) => {
   } catch (error) {
     console.error('Vote theme error:', error)
     return c.json({ success: false, error: 'Failed to vote' }, 500)
+  }
+})
+
+// ==================== Support Ticket System APIs ====================
+
+// API: Get user's tickets
+app.get('/api/tickets', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    if (!userCookie) {
+      return c.json({ success: false, error: 'Not authenticated' }, 401)
+    }
+    
+    const user = JSON.parse(userCookie)
+    
+    const tickets = await c.env.DB.prepare(`
+      SELECT id, subject, status, priority, created_at, updated_at
+      FROM support_tickets
+      WHERE user_id = ?
+      ORDER BY created_at DESC
+    `).bind(user.user_id).all()
+    
+    return c.json({ success: true, tickets: tickets.results || [] })
+  } catch (error) {
+    console.error('Get tickets error:', error)
+    return c.json({ success: false, error: 'Failed to get tickets' }, 500)
+  }
+})
+
+// API: Get all tickets (dev only)
+app.get('/api/admin/tickets', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    if (!userCookie) {
+      return c.json({ success: false, error: 'Not authenticated' }, 401)
+    }
+    
+    const user = JSON.parse(userCookie)
+    if (user.user_id !== 'dev') {
+      return c.json({ success: false, error: 'Permission denied' }, 403)
+    }
+    
+    const tickets = await c.env.DB.prepare(`
+      SELECT t.id, t.user_id, t.subject, t.status, t.priority, t.created_at, t.updated_at,
+             u.nickname, u.email
+      FROM support_tickets t
+      LEFT JOIN users u ON t.user_id = u.user_id
+      ORDER BY 
+        CASE 
+          WHEN t.status = 'open' THEN 1
+          WHEN t.status = 'in_progress' THEN 2
+          WHEN t.status = 'resolved' THEN 3
+          ELSE 4
+        END,
+        t.created_at DESC
+    `).all()
+    
+    return c.json({ success: true, tickets: tickets.results || [] })
+  } catch (error) {
+    console.error('Get admin tickets error:', error)
+    return c.json({ success: false, error: 'Failed to get tickets' }, 500)
+  }
+})
+
+// API: Create new ticket
+app.post('/api/tickets/create', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    if (!userCookie) {
+      return c.json({ success: false, error: 'Not authenticated' }, 401)
+    }
+    
+    const user = JSON.parse(userCookie)
+    const { subject, message, priority } = await c.req.json()
+    
+    if (!subject || !message) {
+      return c.json({ success: false, error: 'Subject and message are required' }, 400)
+    }
+    
+    // Check for open ticket
+    const openTicket = await c.env.DB.prepare(`
+      SELECT id FROM support_tickets 
+      WHERE user_id = ? AND status IN ('open', 'in_progress')
+    `).bind(user.user_id).first()
+    
+    if (openTicket) {
+      return c.json({ success: false, error: '未解決のチケットが既に存在します。新しいチケットは前のチケットが解決されてから作成できます。' }, 400)
+    }
+    
+    const ticketId = crypto.randomUUID()
+    const messageId = crypto.randomUUID()
+    
+    // Create ticket
+    await c.env.DB.prepare(`
+      INSERT INTO support_tickets (id, user_id, subject, message, status, priority, created_at, updated_at)
+      VALUES (?, ?, ?, ?, 'open', ?, datetime('now'), datetime('now'))
+    `).bind(ticketId, user.user_id, subject, message, priority || 'normal').run()
+    
+    // Create first message
+    await c.env.DB.prepare(`
+      INSERT INTO ticket_messages (id, ticket_id, user_id, message, is_staff_reply, created_at)
+      VALUES (?, ?, ?, ?, 0, datetime('now'))
+    `).bind(messageId, ticketId, user.user_id, message).run()
+    
+    return c.json({ success: true, ticket_id: ticketId })
+  } catch (error) {
+    console.error('Create ticket error:', error)
+    return c.json({ success: false, error: 'Failed to create ticket' }, 500)
+  }
+})
+
+// API: Get ticket messages
+app.get('/api/tickets/:id/messages', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    if (!userCookie) {
+      return c.json({ success: false, error: 'Not authenticated' }, 401)
+    }
+    
+    const user = JSON.parse(userCookie)
+    const ticketId = c.req.param('id')
+    
+    // Verify ticket ownership or dev user
+    const ticket = await c.env.DB.prepare(`
+      SELECT user_id FROM support_tickets WHERE id = ?
+    `).bind(ticketId).first()
+    
+    if (!ticket) {
+      return c.json({ success: false, error: 'Ticket not found' }, 404)
+    }
+    
+    if (ticket.user_id !== user.user_id && user.user_id !== 'dev') {
+      return c.json({ success: false, error: 'Permission denied' }, 403)
+    }
+    
+    const messages = await c.env.DB.prepare(`
+      SELECT m.id, m.message, m.is_staff_reply, m.created_at, u.nickname, u.user_id
+      FROM ticket_messages m
+      LEFT JOIN users u ON m.user_id = u.user_id
+      WHERE m.ticket_id = ?
+      ORDER BY m.created_at ASC
+    `).bind(ticketId).all()
+    
+    return c.json({ success: true, messages: messages.results || [] })
+  } catch (error) {
+    console.error('Get ticket messages error:', error)
+    return c.json({ success: false, error: 'Failed to get messages' }, 500)
+  }
+})
+
+// API: Add message to ticket
+app.post('/api/tickets/:id/reply', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    if (!userCookie) {
+      return c.json({ success: false, error: 'Not authenticated' }, 401)
+    }
+    
+    const user = JSON.parse(userCookie)
+    const ticketId = c.req.param('id')
+    const { message } = await c.req.json()
+    
+    if (!message) {
+      return c.json({ success: false, error: 'Message is required' }, 400)
+    }
+    
+    // Verify ticket ownership or dev user
+    const ticket = await c.env.DB.prepare(`
+      SELECT user_id, status FROM support_tickets WHERE id = ?
+    `).bind(ticketId).first()
+    
+    if (!ticket) {
+      return c.json({ success: false, error: 'Ticket not found' }, 404)
+    }
+    
+    if (ticket.user_id !== user.user_id && user.user_id !== 'dev') {
+      return c.json({ success: false, error: 'Permission denied' }, 403)
+    }
+    
+    const messageId = crypto.randomUUID()
+    const isStaffReply = user.user_id === 'dev' ? 1 : 0
+    
+    // Add message
+    await c.env.DB.prepare(`
+      INSERT INTO ticket_messages (id, ticket_id, user_id, message, is_staff_reply, created_at)
+      VALUES (?, ?, ?, ?, ?, datetime('now'))
+    `).bind(messageId, ticketId, user.user_id, message, isStaffReply).run()
+    
+    // Update ticket timestamp and status if staff replied
+    if (isStaffReply) {
+      await c.env.DB.prepare(`
+        UPDATE support_tickets 
+        SET updated_at = datetime('now'), status = 'in_progress'
+        WHERE id = ?
+      `).bind(ticketId).run()
+    }
+    
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('Reply ticket error:', error)
+    return c.json({ success: false, error: 'Failed to reply' }, 500)
+  }
+})
+
+// API: Update ticket status (dev only)
+app.post('/api/admin/tickets/:id/status', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    if (!userCookie) {
+      return c.json({ success: false, error: 'Not authenticated' }, 401)
+    }
+    
+    const user = JSON.parse(userCookie)
+    if (user.user_id !== 'dev') {
+      return c.json({ success: false, error: 'Permission denied' }, 403)
+    }
+    
+    const ticketId = c.req.param('id')
+    const { status } = await c.req.json()
+    
+    if (!['open', 'in_progress', 'resolved', 'closed'].includes(status)) {
+      return c.json({ success: false, error: 'Invalid status' }, 400)
+    }
+    
+    await c.env.DB.prepare(`
+      UPDATE support_tickets 
+      SET status = ?, 
+          updated_at = datetime('now'),
+          resolved_at = CASE WHEN ? IN ('resolved', 'closed') THEN datetime('now') ELSE resolved_at END
+      WHERE id = ?
+    `).bind(status, status, ticketId).run()
+    
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('Update ticket status error:', error)
+    return c.json({ success: false, error: 'Failed to update status' }, 500)
   }
 })
 

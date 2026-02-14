@@ -173,15 +173,12 @@ export const homepage = (user: any) => `
                         <a href="/mypage" class="btn-glow text-xl px-12 py-4">
                             <span class="mr-3">▶</span>マイページへ
                         </a>
-                        <a href="/main" class="btn-outline text-xl px-12 py-4">
-                            <span class="mr-3">▶</span>ディベートを見る
-                        </a>
                     ` : `
                         <a href="/auth/google" class="btn-glow text-xl px-12 py-4">
                             <span class="mr-3">▶</span>事前登録して始める
                         </a>
                         <a href="/demo" class="btn-outline text-xl px-12 py-4">
-                            <span class="mr-3">▶</span>プレビューを見る
+                            <span class="mr-3">▶</span>デモを見る
                         </a>
                     `}
                 </div>
