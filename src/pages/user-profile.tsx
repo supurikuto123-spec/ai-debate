@@ -59,7 +59,7 @@ export const UserProfile: FC<UserProfileProps> = ({ profileUser, currentUser, st
     <html lang="ja">
     <head>
         <meta charset="UTF-8" />
-        <meta name="viewport" content="width=1280, initial-scale=0.5, maximum-scale=1.0, user-scalable=yes" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
         <title>{profileUser.username} - プロフィール | AI Debate</title>
         <style>{`
             * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -186,6 +186,19 @@ export const UserProfile: FC<UserProfileProps> = ({ profileUser, currentUser, st
                 background: white; transition: all 0.3s;
             }
             .toggle-switch.on::after { left: 27px; }
+            @media (max-width: 768px) {
+                .profile-header { flex-direction: column; text-align: center; gap: 20px; padding: 25px 15px; }
+                .avatar-large { width: 100px; height: 100px; }
+                .profile-username { font-size: 24px; }
+                .profile-id { font-size: 14px; }
+                .profile-badges { justify-content: center; }
+                .badge { font-size: 12px; padding: 6px 12px; }
+                .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+                .stat-value { font-size: 32px; }
+                .stat-card { padding: 20px 15px; }
+                .container { padding: 20px 10px; }
+                .back-button { width: 44px; height: 44px; top: 15px; left: 15px; font-size: 18px; }
+            }
         `}</style>
     </head>
     <body>

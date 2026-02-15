@@ -1175,16 +1175,6 @@ app.post('/api/commands/execute', async (c) => {
     
     const cmd = command.trim()
     
-    // !s - Start debate
-    if (cmd === '!s') {
-      return c.json({ success: true, action: 'start_debate' })
-    }
-    
-    // !sa - Start debate with archive
-    if (cmd === '!sa') {
-      return c.json({ success: true, action: 'start_debate_archive' })
-    }
-    
     // !dela - Delete current debate and start new with random theme
     if (cmd === '!dela') {
       // Delete existing debate data
@@ -1246,21 +1236,6 @@ app.post('/api/commands/execute', async (c) => {
           disagree_opinion: randomTheme.disagree_opinion
         }
       })
-    }
-    
-    // !stop - Stop debate
-    if (cmd === '!stop') {
-      return c.json({ success: true, action: 'stop_debate' })
-    }
-    
-    // !deld - Delete debate messages only
-    if (cmd === '!deld') {
-      if (debateId) {
-        try {
-          await c.env.DB.prepare('DELETE FROM debate_messages WHERE debate_id = ?').bind(debateId).run()
-        } catch (e) { }
-      }
-      return c.json({ success: true, action: 'delete_debate_messages' })
     }
     
     // !s-x - Schedule debate (x minutes later, 0 = immediate then auto-archive)
@@ -1363,6 +1338,59 @@ app.get('/api/debate/model-info', async (c) => {
     model: 'gpt-4.1-nano',
     display_name: 'GPT-4.1 Nano'
   })
+})
+
+// API: Get user's own stats (for mypage)
+app.get('/api/user/stats', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    if (!userCookie) return c.json({ success: false, error: 'Not authenticated' }, 401)
+    const user = JSON.parse(userCookie)
+    
+    // Get post count
+    let totalPosts = 0
+    try {
+      const postCount = await c.env.DB.prepare('SELECT COUNT(*) as total FROM community_posts WHERE user_id = ?').bind(user.user_id).first()
+      totalPosts = (postCount?.total as number) || 0
+    } catch (e) { }
+    
+    // Get debate statistics from archived/completed debates
+    let totalDebates = 0, wins = 0, losses = 0, draws = 0
+    try {
+      // Count archived debates where user participated (voted)
+      const debateVotes = await c.env.DB.prepare(`
+        SELECT dv.vote, d.winner FROM debate_votes dv 
+        JOIN debates d ON dv.debate_id = d.id 
+        WHERE dv.user_id = ? AND d.status = 'completed'
+      `).bind(user.user_id).all()
+      
+      if (debateVotes.results) {
+        totalDebates = debateVotes.results.length
+        debateVotes.results.forEach((v: any) => {
+          if (!v.winner) draws++
+          else if (v.vote === v.winner) wins++
+          else losses++
+        })
+      }
+    } catch (e) { }
+    
+    const winRate = totalDebates > 0 ? Math.round((wins / totalDebates) * 100) : 0
+    
+    return c.json({
+      success: true,
+      stats: {
+        total_debates: totalDebates,
+        wins,
+        losses,
+        draws,
+        win_rate: winRate,
+        total_posts: totalPosts
+      }
+    })
+  } catch (error) {
+    console.error('Get user stats error:', error)
+    return c.json({ success: true, stats: { total_debates: 0, wins: 0, losses: 0, draws: 0, win_rate: 0, total_posts: 0 } })
+  }
 })
 
 // API: Purchase Archive Access
@@ -2444,6 +2472,36 @@ app.post('/api/theme-votes/:id/adopt', async (c) => {
   } catch (error) {
     console.error('Adopt theme error:', error)
     return c.json({ success: false, error: 'Failed to adopt theme' }, 500)
+  }
+})
+
+// API: Delete theme (dev only)
+app.post('/api/theme-votes/:id/delete', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    if (!userCookie) {
+      return c.json({ success: false, error: 'Not authenticated' }, 401)
+    }
+    
+    const user = JSON.parse(userCookie)
+    if (user.user_id !== 'dev') {
+      return c.json({ success: false, error: 'Permission denied' }, 403)
+    }
+    
+    const themeId = c.req.param('id')
+    
+    // Delete votes first
+    try {
+      await c.env.DB.prepare('DELETE FROM theme_votes WHERE theme_id = ?').bind(themeId).run()
+    } catch (e) { }
+    
+    // Delete the theme
+    await c.env.DB.prepare('DELETE FROM theme_proposals WHERE id = ?').bind(themeId).run()
+    
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('Delete theme error:', error)
+    return c.json({ success: false, error: 'Failed to delete theme' }, 500)
   }
 })
 

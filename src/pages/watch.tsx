@@ -6,7 +6,7 @@ export const watchPage = (user: any, debateId: string) => `
     <html lang="ja">
     <head>
         <meta charset="UTF-8">
-        <meta name="viewport" content="width=1280, initial-scale=0.5, maximum-scale=1.0, user-scalable=yes">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
         <title>ディベート観戦 - AI Debate</title>
         <meta name="robots" content="noindex, nofollow">
         <script src="https://cdn.tailwindcss.com"></script>
@@ -28,6 +28,21 @@ export const watchPage = (user: any, debateId: string) => `
                 background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
                 border-radius: 16px 0 16px 16px;
                 border-right: 4px solid #f87171;
+            }
+            @media (max-width: 768px) {
+                .bubble { max-width: 95%; }
+                nav .container { padding: 8px 12px; }
+                nav .text-2xl { font-size: 1rem; }
+                nav .text-sm { font-size: 0.7rem; }
+                .cyber-card { padding: 12px; }
+                .grid-cols-3 { grid-template-columns: 1fr !important; }
+                .col-span-2 { grid-column: span 1 !important; }
+                .col-span-1 { grid-column: span 1 !important; }
+                .grid-cols-2 { grid-template-columns: 1fr !important; }
+                .text-3xl { font-size: 1.3rem; }
+                .text-2xl { font-size: 1.1rem; }
+                h1.text-3xl { font-size: 1.2rem; word-break: break-word; }
+                .grid.grid-cols-3 { gap: 12px; }
             }
             .modal {
                 display: flex;
@@ -165,9 +180,9 @@ export const watchPage = (user: any, debateId: string) => `
                                 <span>
                                     <i class="fas fa-clock mr-2 text-magenta-400"></i>残り時間: <span id="remainingTime">1:00</span>
                                 </span>
-                                <span class="text-green-400">
-                                    <div class="w-2 h-2 bg-green-400 rounded-full inline-block mr-2 animate-pulse"></div>
-                                    LIVE
+                                <span id="debateLiveStatus" class="text-yellow-400">
+                                    <div class="w-2 h-2 bg-yellow-400 rounded-full inline-block mr-2"></div>
+                                    待機中
                                 </span>
                                 <span>
                                     <i class="fas fa-eye mr-2 text-yellow-400"></i><span id="viewerCount">1</span>人が観戦中
@@ -242,8 +257,9 @@ export const watchPage = (user: any, debateId: string) => `
                             
                             <div id="debateMessages" class="flex flex-col space-y-4" style="height: 600px; overflow-y: auto; scroll-behavior: smooth;">
                                 <div class="text-center text-gray-400 p-8">
-                                    <i class="fas fa-info-circle text-4xl mb-4 text-cyan-400"></i>
-                                    <p class="text-lg">devユーザーでコメント欄に <span class="text-cyan-300 font-bold">!s</span> と入力してディベートを開始</p>
+                                    <i class="fas fa-hourglass-half text-4xl mb-4 text-cyan-400"></i>
+                                    <p class="text-lg">ディベート開始待ち</p>
+                                    <p class="text-sm text-gray-500 mt-2">メニューの「コマンド」タブから <code class="text-cyan-300">!s-0</code> で即時開始できます</p>
                                 </div>
                             </div>
                         </div>
@@ -352,6 +368,22 @@ export const watchPage = (user: any, debateId: string) => `
                 </div>
             </div>
         </div>
+
+        <!-- Footer -->
+        <footer class="border-t border-cyan-500/20 mt-12 py-8 bg-black/80">
+            <div class="container mx-auto px-4">
+                <div class="flex flex-wrap justify-center gap-4 md:gap-8 text-sm text-gray-400">
+                    <a href="/main" class="hover:text-cyan-400 transition-colors">メインページ</a>
+                    <a href="/archive" class="hover:text-cyan-400 transition-colors">アーカイブ</a>
+                    <a href="/community" class="hover:text-cyan-400 transition-colors">コミュニティ</a>
+                    <a href="/terms" class="hover:text-cyan-400 transition-colors">利用規約</a>
+                    <a href="/privacy" class="hover:text-cyan-400 transition-colors">プライバシーポリシー</a>
+                    <a href="/legal" class="hover:text-cyan-400 transition-colors">特定商取引法</a>
+                    <a href="/tickets" class="hover:text-cyan-400 transition-colors">サポート</a>
+                </div>
+                <p class="text-center text-gray-600 text-xs mt-4">&copy; 2025 AI Debate Arena. All rights reserved.</p>
+            </div>
+        </footer>
 
         <!-- Toast Notification -->
         <div id="toast" class="fixed bottom-8 right-8 bg-cyan-500 text-black px-6 py-3 rounded-lg shadow-lg hidden z-50">

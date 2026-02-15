@@ -157,11 +157,9 @@ export const themeVotePage = (user: any) => `
                     <button class="sort-tab" data-sort="recent" onclick="changeSort('recent')">
                         <i class="fas fa-clock mr-1"></i>新着順
                     </button>
-                    ${user.user_id === 'dev' ? `
                     <button class="sort-tab" data-sort="adopted" onclick="changeSort('adopted')">
                         <i class="fas fa-check-circle mr-1"></i>採用済み
                     </button>
-                    ` : ''}
                 </div>
 
                 <!-- Themes List -->
@@ -370,6 +368,12 @@ export const themeVotePage = (user: any) => `
                                     <i class="fas fa-\${theme.adopted ? 'check-circle' : 'star'} mr-1"></i>
                                     \${theme.adopted ? '採用済' : '採用'}
                                 </button>
+                                <button
+                                    onclick="deleteTheme('\${theme.id}')"
+                                    class="adopt-btn" style="border-color:rgba(239,68,68,0.4);color:#f87171;background:rgba(239,68,68,0.15);"
+                                >
+                                    <i class="fas fa-trash mr-1"></i>削除
+                                </button>
                             \` : ''}
                         </div>
                     </div>
@@ -467,6 +471,28 @@ export const themeVotePage = (user: any) => `
             } catch (error) {
                 console.error('Adopt error:', error);
                 alert('採用操作に失敗しました');
+            }
+        }
+
+        // Delete theme (dev only)
+        async function deleteTheme(themeId) {
+            if (!isDev) return;
+            if (!confirm('このテーマを削除しますか？')) return;
+            
+            try {
+                const response = await fetch(\`/api/theme-votes/\${themeId}/delete\`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const result = await response.json();
+                if (result.success) {
+                    loadThemes();
+                } else {
+                    alert(result.error || 'テーマの削除に失敗しました');
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                alert('テーマの削除に失敗しました');
             }
         }
 

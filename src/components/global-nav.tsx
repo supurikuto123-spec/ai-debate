@@ -182,7 +182,7 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
         </div>
         
         <div style="margin-bottom:20px;">
-          <input id="cmd-input" type="text" placeholder="コマンドを入力... (例: !sa, !dela, !s-1)"
+          <input id="cmd-input" type="text" placeholder="コマンドを入力... (例: !s-0, !s-5, !@user+coin100)"
             style="width:100%;padding:14px 18px;background:#111;border:2px solid #00ffff;border-radius:10px;color:#fff;font-size:16px;font-family:monospace;outline:none;"
             onkeydown="if(event.key==='Enter')executeCmd()">
           <button onclick="executeCmd()" style="width:100%;margin-top:10px;padding:12px;background:linear-gradient(135deg,rgba(0,255,255,0.3),rgba(255,0,255,0.3));border:2px solid #00ffff;border-radius:10px;color:#00ffff;font-weight:bold;font-size:16px;cursor:pointer;">
@@ -197,32 +197,24 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
           <h3 style="color:#9ca3af;font-size:14px;margin-bottom:15px;">利用可能なコマンド:</h3>
           <div style="display:grid;gap:10px;">
             <div style="padding:10px 14px;background:rgba(0,255,255,0.05);border:1px solid rgba(0,255,255,0.2);border-radius:8px;">
-              <code style="color:#22c55e;">!sa</code>
-              <span style="color:#9ca3af;font-size:13px;margin-left:10px;">ディベート開始（アーカイブ保存付き）</span>
-            </div>
-            <div style="padding:10px 14px;background:rgba(0,255,255,0.05);border:1px solid rgba(0,255,255,0.2);border-radius:8px;">
-              <code style="color:#22c55e;">!s</code>
-              <span style="color:#9ca3af;font-size:13px;margin-left:10px;">ディベート開始</span>
-            </div>
-            <div style="padding:10px 14px;background:rgba(0,255,255,0.05);border:1px solid rgba(0,255,255,0.2);border-radius:8px;">
-              <code style="color:#22c55e;">!dela</code>
-              <span style="color:#9ca3af;font-size:13px;margin-left:10px;">現在のディベート削除 → ランダムテーマで新規開始</span>
+              <code style="color:#22c55e;">!s-0</code>
+              <span style="color:#9ca3af;font-size:13px;margin-left:10px;">即時開始＋終了後自動アーカイブ</span>
             </div>
             <div style="padding:10px 14px;background:rgba(0,255,255,0.05);border:1px solid rgba(0,255,255,0.2);border-radius:8px;">
               <code style="color:#22c55e;">!s-1</code>
-              <span style="color:#9ca3af;font-size:13px;margin-left:10px;">1分後にディベート予約</span>
+              <span style="color:#9ca3af;font-size:13px;margin-left:10px;">1分後にディベート開始予約</span>
             </div>
             <div style="padding:10px 14px;background:rgba(0,255,255,0.05);border:1px solid rgba(0,255,255,0.2);border-radius:8px;">
               <code style="color:#22c55e;">!s-x</code>
-              <span style="color:#9ca3af;font-size:13px;margin-left:10px;">x分後に予約（0=即時開始+自動アーカイブ）</span>
+              <span style="color:#9ca3af;font-size:13px;margin-left:10px;">x分後に予約開始（x=数字）</span>
             </div>
             <div style="padding:10px 14px;background:rgba(0,255,255,0.05);border:1px solid rgba(0,255,255,0.2);border-radius:8px;">
               <code style="color:#22c55e;">!@xxx+coiny</code>
               <span style="color:#9ca3af;font-size:13px;margin-left:10px;">ユーザーxxxにyコイン付与</span>
             </div>
             <div style="padding:10px 14px;background:rgba(0,255,255,0.05);border:1px solid rgba(0,255,255,0.2);border-radius:8px;">
-              <code style="color:#22c55e;">!stop</code>
-              <span style="color:#9ca3af;font-size:13px;margin-left:10px;">ディベート停止</span>
+              <code style="color:#22c55e;">!dela</code>
+              <span style="color:#9ca3af;font-size:13px;margin-left:10px;">現在のディベート削除 → ランダムテーマで新規</span>
             </div>
           </div>
         </div>
@@ -274,18 +266,13 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
             resultEl.style.color = '#22c55e';
             
             switch(data.action) {
-              case 'start_debate':
-                resultEl.textContent = '✅ ディベートを開始します...';
-                if (typeof window.startDebate === 'function') { closeCmdPanel(); window.startDebate(); }
-                else { resultEl.textContent = '⚠️ 観戦ページ(/watch)でのみ使用可能です'; resultEl.style.color = '#f59e0b'; }
-                break;
               case 'start_debate_archive':
-                resultEl.textContent = '✅ ディベートを開始します（アーカイブ保存有効）...';
+                resultEl.textContent = '✅ ディベートを即時開始します（終了後自動アーカイブ）...';
                 window.archiveOnComplete = true;
-                if (data.schedule_minutes === 0) {
-                  if (typeof window.startDebate === 'function') { closeCmdPanel(); window.startDebate(); }
-                  else { resultEl.textContent = '⚠️ 観戦ページ(/watch)でのみ使用可能です'; resultEl.style.color = '#f59e0b'; }
-                } else if (typeof window.startDebate === 'function') { closeCmdPanel(); window.startDebate(); }
+                // Update live status indicator
+                const liveEl = document.getElementById('debateLiveStatus');
+                if (liveEl) { liveEl.innerHTML = '<div class="w-2 h-2 bg-green-400 rounded-full inline-block mr-2" style="animation:pulse 1s infinite;"></div>LIVE'; liveEl.className = 'text-green-400'; }
+                if (typeof window.startDebate === 'function') { closeCmdPanel(); window.startDebate(); }
                 else { resultEl.textContent = '⚠️ 観戦ページ(/watch)でのみ使用可能です'; resultEl.style.color = '#f59e0b'; }
                 break;
               case 'schedule_debate':
@@ -293,6 +280,9 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
                 if (typeof window.startDebate === 'function') {
                   const mins = data.schedule_minutes;
                   resultEl.textContent += ' カウントダウン開始...';
+                  // Update status to scheduled
+                  const liveEl2 = document.getElementById('debateLiveStatus');
+                  if (liveEl2) { liveEl2.innerHTML = '<div class="w-2 h-2 bg-blue-400 rounded-full inline-block mr-2" style="animation:pulse 1s infinite;"></div>予約済み'; liveEl2.className = 'text-blue-400'; }
                   let remaining = mins * 60;
                   const timer = setInterval(() => {
                     remaining--;
@@ -300,6 +290,8 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
                       clearInterval(timer);
                       resultEl.textContent = '🚀 予約時間です！ディベートを開始します...';
                       window.archiveOnComplete = true;
+                      const liveEl3 = document.getElementById('debateLiveStatus');
+                      if (liveEl3) { liveEl3.innerHTML = '<div class="w-2 h-2 bg-green-400 rounded-full inline-block mr-2" style="animation:pulse 1s infinite;"></div>LIVE'; liveEl3.className = 'text-green-400'; }
                       closeCmdPanel();
                       window.startDebate();
                     } else {
@@ -308,19 +300,13 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
                       resultEl.textContent = '⏳ ディベート開始まで: ' + m + ':' + String(s).padStart(2,'0');
                     }
                   }, 1000);
+                } else {
+                  resultEl.textContent = '⚠️ 観戦ページ(/watch)でのみ使用可能です'; resultEl.style.color = '#f59e0b';
                 }
                 break;
               case 'dela':
                 resultEl.innerHTML = '✅ ディベート削除完了！新テーマ: <strong style="color:#00ffff;">' + (data.theme ? data.theme.title : '不明') + '</strong>';
-                // Reload page to load new theme
                 setTimeout(() => { location.reload(); }, 1500);
-                break;
-              case 'stop_debate':
-                resultEl.textContent = '✅ ディベートを停止しました';
-                if (typeof window.debateActive !== 'undefined') { window.debateActive = false; }
-                break;
-              case 'delete_debate_messages':
-                resultEl.textContent = '✅ ディベート履歴を削除しました';
                 break;
               case 'grant_coins':
                 resultEl.textContent = '✅ @' + data.target + ' に ' + data.amount + ' コインを付与しました！';

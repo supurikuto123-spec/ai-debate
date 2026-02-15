@@ -6,7 +6,7 @@ export const mainPage = (user: any, debates: any[] = []) => `
     <html lang="ja">
     <head>
         <meta charset="UTF-8">
-        <meta name="viewport" content="width=1280, initial-scale=0.5, maximum-scale=1.0, user-scalable=yes">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
         <title>メインページ - AI Debate</title>
         <meta name="robots" content="noindex, nofollow">
         <script src="https://cdn.tailwindcss.com"></script>
@@ -122,6 +122,24 @@ export const mainPage = (user: any, debates: any[] = []) => `
                 <div id="archive-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12" style="display:none;"></div>
             </div>
         </div>
+
+        <!-- Footer -->
+        <footer class="border-t border-cyan-500/20 py-8 bg-black/80">
+            <div class="container mx-auto px-4">
+                <div class="flex flex-wrap justify-center gap-4 md:gap-8 text-sm text-gray-400">
+                    <a href="/announcements" class="hover:text-cyan-400 transition-colors">お知らせ</a>
+                    <a href="/archive" class="hover:text-cyan-400 transition-colors">アーカイブ</a>
+                    <a href="/theme-vote" class="hover:text-cyan-400 transition-colors">テーマ投票</a>
+                    <a href="/community" class="hover:text-cyan-400 transition-colors">コミュニティ</a>
+                    <a href="/mypage" class="hover:text-cyan-400 transition-colors">マイページ</a>
+                    <a href="/terms" class="hover:text-cyan-400 transition-colors">利用規約</a>
+                    <a href="/privacy" class="hover:text-cyan-400 transition-colors">プライバシーポリシー</a>
+                    <a href="/legal" class="hover:text-cyan-400 transition-colors">特定商取引法</a>
+                    <a href="/tickets" class="hover:text-cyan-400 transition-colors">サポート</a>
+                </div>
+                <p class="text-center text-gray-600 text-xs mt-4">&copy; 2025 AI Debate Arena. All rights reserved.</p>
+            </div>
+        </footer>
 
         <div id="toast" class="toast">
             <i class="fas fa-info-circle mr-2"></i>

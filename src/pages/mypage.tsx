@@ -1,7 +1,7 @@
 import { globalNav } from '../components/global-nav';
 import { i18nScript } from '../components/i18n';
 
-export const myPage = (userData: any) => {
+export const myPage = (userData: any, stats?: any) => {
   const avatarType = userData.avatar_type || 'bottts';
   const avatarStyles = ['bottts', 'pixel-art', 'identicon', 'thumbs', 'shapes'];
   
@@ -251,6 +251,61 @@ export const myPage = (userData: any) => {
                         <span class="text-red-300 font-bold" id="error-text"></span>
                     </div>
                 </div>
+
+                <!-- Statistics Section -->
+                <div class="profile-card mt-8">
+                    <h2 class="text-2xl font-bold text-cyan-400 mb-6 flex items-center">
+                        <i class="fas fa-chart-bar mr-3"></i>統計情報
+                    </h2>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4" id="stats-grid">
+                        <div class="text-center p-4 bg-black/40 rounded-lg border border-cyan-500/20">
+                            <div class="text-3xl font-bold text-cyan-400" id="stat-total-debates">-</div>
+                            <div class="text-sm text-gray-400 mt-1">総ディベート数</div>
+                        </div>
+                        <div class="text-center p-4 bg-black/40 rounded-lg border border-green-500/20">
+                            <div class="text-3xl font-bold text-green-400" id="stat-wins">-</div>
+                            <div class="text-sm text-gray-400 mt-1">勝利数</div>
+                        </div>
+                        <div class="text-center p-4 bg-black/40 rounded-lg border border-red-500/20">
+                            <div class="text-3xl font-bold text-red-400" id="stat-losses">-</div>
+                            <div class="text-sm text-gray-400 mt-1">敗北数</div>
+                        </div>
+                        <div class="text-center p-4 bg-black/40 rounded-lg border border-yellow-500/20">
+                            <div class="text-3xl font-bold text-yellow-400" id="stat-draws">-</div>
+                            <div class="text-sm text-gray-400 mt-1">引き分け</div>
+                        </div>
+                        <div class="text-center p-4 bg-black/40 rounded-lg border border-purple-500/20">
+                            <div class="text-3xl font-bold text-purple-400" id="stat-win-rate">-%</div>
+                            <div class="text-sm text-gray-400 mt-1">勝率</div>
+                            <div class="w-full h-2 bg-gray-800 rounded-full mt-2 overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full" id="stat-win-bar" style="width:0%;transition:width 0.5s;"></div>
+                            </div>
+                        </div>
+                        <div class="text-center p-4 bg-black/40 rounded-lg border border-blue-500/20">
+                            <div class="text-3xl font-bold text-blue-400" id="stat-posts">-</div>
+                            <div class="text-sm text-gray-400 mt-1">コミュニティ投稿</div>
+                        </div>
+                    </div>
+                    <div class="mt-4 text-center">
+                        <a href="/user/${userData.user_id}" class="text-cyan-400 hover:text-cyan-300 text-sm transition-colors">
+                            <i class="fas fa-external-link-alt mr-1"></i>公開プロフィールを見る
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <footer class="border-t border-cyan-500/20 mt-12 pt-8 pb-4">
+                    <div class="flex flex-wrap justify-center gap-4 md:gap-6 text-sm text-gray-400">
+                        <a href="/main" class="hover:text-cyan-400 transition-colors">メインページ</a>
+                        <a href="/archive" class="hover:text-cyan-400 transition-colors">アーカイブ</a>
+                        <a href="/community" class="hover:text-cyan-400 transition-colors">コミュニティ</a>
+                        <a href="/terms" class="hover:text-cyan-400 transition-colors">利用規約</a>
+                        <a href="/privacy" class="hover:text-cyan-400 transition-colors">プライバシーポリシー</a>
+                        <a href="/legal" class="hover:text-cyan-400 transition-colors">特定商取引法</a>
+                        <a href="/tickets" class="hover:text-cyan-400 transition-colors">サポート</a>
+                    </div>
+                    <p class="text-center text-gray-600 text-xs mt-4">&copy; 2025 AI Debate Arena. All rights reserved.</p>
+                </footer>
             </div>
         </div>
 
@@ -259,6 +314,25 @@ export const myPage = (userData: any) => {
             let selectedAvatarType = '${userData.avatar_type || avatarType}';
             let selectedAvatarValue = '${userData.avatar_value || '1'}';
             let uploadedFile = null;
+
+            // Load stats from user profile API
+            (async function loadStats() {
+                try {
+                    const res = await fetch('/api/user/stats');
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.success) {
+                            document.getElementById('stat-total-debates').textContent = data.stats.total_debates;
+                            document.getElementById('stat-wins').textContent = data.stats.wins;
+                            document.getElementById('stat-losses').textContent = data.stats.losses;
+                            document.getElementById('stat-draws').textContent = data.stats.draws;
+                            document.getElementById('stat-win-rate').textContent = data.stats.win_rate + '%';
+                            document.getElementById('stat-win-bar').style.width = data.stats.win_rate + '%';
+                            document.getElementById('stat-posts').textContent = data.stats.total_posts;
+                        }
+                    }
+                } catch(e) { console.error('Stats load error:', e); }
+            })();
 
             function renderAvatarGrid(style) {
                 const grid = document.getElementById('avatar-grid');
