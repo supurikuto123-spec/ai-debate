@@ -858,7 +858,11 @@ app.get('/api/archive/debates', async (c) => {
         disagree_votes,
         winner,
         'completed' as status,
-        (LENGTH(messages) - LENGTH(REPLACE(messages, 'content', ''))) / LENGTH('content') as message_count,
+        CASE 
+          WHEN messages IS NOT NULL AND LENGTH(messages) > 2
+          THEN (LENGTH(messages) - LENGTH(REPLACE(messages, '"content"', ''))) / LENGTH('"content"')
+          ELSE 0
+        END as message_count,
         created_at
       FROM archived_debates 
       ORDER BY archived_at DESC 
@@ -869,6 +873,26 @@ app.get('/api/archive/debates', async (c) => {
   } catch (error) {
     console.error('Get archive debates error:', error)
     return c.json({ success: false, error: 'Failed to load debates' }, 500)
+  }
+})
+
+// API: Get Archive Debate Detail (with messages)
+app.get('/api/archive/detail/:id', async (c) => {
+  try {
+    const archiveId = c.req.param('id')
+    
+    const debate = await c.env.DB.prepare(`
+      SELECT * FROM archived_debates WHERE id = ?
+    `).bind(archiveId).first()
+    
+    if (!debate) {
+      return c.json({ success: false, error: 'Archive not found' }, 404)
+    }
+    
+    return c.json({ success: true, debate })
+  } catch (error) {
+    console.error('Get archive detail error:', error)
+    return c.json({ success: false, error: 'Failed to load archive detail' }, 500)
   }
 })
 

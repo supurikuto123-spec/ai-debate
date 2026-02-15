@@ -1,34 +1,31 @@
 -- ============================================
 -- AI Debate カラム追加マイグレーション
--- ALTER TABLEは1つずつ実行する必要あり（既存カラムでエラー）
--- deploy_vps.sh で自動的に1行ずつ実行されます
+-- 既存DBに新しいカラムを追加（エラーは無視してOK）
+-- 実行: npx wrangler d1 execute ai-debate-db --remote --file=./migrate_alter_columns.sql
 -- ============================================
 
--- users テーブルのカラム追加
-ALTER TABLE users ADD COLUMN avatar_url TEXT;
-ALTER TABLE users ADD COLUMN avatar_type TEXT DEFAULT 'bottts';
-ALTER TABLE users ADD COLUMN avatar_value TEXT DEFAULT '1';
-ALTER TABLE users ADD COLUMN nickname TEXT;
+-- users テーブルに新カラム追加
+-- SQLiteのALTER TABLEはIF NOT EXISTSをサポートしないため
+-- 各コマンドを個別に実行し、既存カラムの場合はエラーを無視する
 
--- theme_proposals テーブルのカラム追加
-ALTER TABLE theme_proposals ADD COLUMN agree_opinion TEXT;
-ALTER TABLE theme_proposals ADD COLUMN disagree_opinion TEXT;
-ALTER TABLE theme_proposals ADD COLUMN category TEXT DEFAULT 'other';
-ALTER TABLE theme_proposals ADD COLUMN proposed_by TEXT;
+-- 以下を1行ずつ実行してください（エラーが出ても続行）：
+-- npx wrangler d1 execute ai-debate-db --remote --command="ALTER TABLE users ADD COLUMN avatar_url TEXT;"
+-- npx wrangler d1 execute ai-debate-db --remote --command="ALTER TABLE users ADD COLUMN avatar_type TEXT DEFAULT 'bottts';"
+-- npx wrangler d1 execute ai-debate-db --remote --command="ALTER TABLE users ADD COLUMN avatar_value TEXT DEFAULT '1';"
+-- npx wrangler d1 execute ai-debate-db --remote --command="ALTER TABLE users ADD COLUMN nickname TEXT;"
+-- npx wrangler d1 execute ai-debate-db --remote --command="ALTER TABLE theme_proposals ADD COLUMN agree_opinion TEXT;"
+-- npx wrangler d1 execute ai-debate-db --remote --command="ALTER TABLE theme_proposals ADD COLUMN disagree_opinion TEXT;"
+-- npx wrangler d1 execute ai-debate-db --remote --command="ALTER TABLE theme_proposals ADD COLUMN category TEXT DEFAULT 'other';"
+-- npx wrangler d1 execute ai-debate-db --remote --command="ALTER TABLE theme_proposals ADD COLUMN proposed_by TEXT DEFAULT '';"
+-- npx wrangler d1 execute ai-debate-db --remote --command="ALTER TABLE debate_messages ADD COLUMN ai_evaluation TEXT;"
+-- npx wrangler d1 execute ai-debate-db --remote --command="ALTER TABLE debates ADD COLUMN completed_at DATETIME;"
+-- npx wrangler d1 execute ai-debate-db --remote --command="ALTER TABLE debates ADD COLUMN winner TEXT;"
+-- npx wrangler d1 execute ai-debate-db --remote --command="ALTER TABLE debates ADD COLUMN judge_evaluations TEXT;"
+-- npx wrangler d1 execute ai-debate-db --remote --command="ALTER TABLE debates ADD COLUMN status TEXT DEFAULT 'pending';"
+-- npx wrangler d1 execute ai-debate-db --remote --command="UPDATE debates SET status='live' WHERE id='default';"
 
--- debate_messages テーブルのカラム追加
-ALTER TABLE debate_messages ADD COLUMN ai_evaluation TEXT;
-
--- debates テーブルのカラム追加
-ALTER TABLE debates ADD COLUMN completed_at DATETIME;
-ALTER TABLE debates ADD COLUMN winner TEXT;
-ALTER TABLE debates ADD COLUMN judge_evaluations TEXT;
-ALTER TABLE debates ADD COLUMN status TEXT DEFAULT 'pending';
-
--- インデックス追加
-CREATE INDEX IF NOT EXISTS idx_theme_proposals_category ON theme_proposals(category);
-CREATE INDEX IF NOT EXISTS idx_theme_proposals_proposed_by ON theme_proposals(proposed_by);
-
--- デフォルトディベートのstatus設定
-UPDATE debates SET status = 'pending' WHERE status IS NULL;
-UPDATE debates SET status = 'live' WHERE id = 'default';
+-- theme_proposals テーブルの修正
+-- 旧スキーマ: user_id, description カラムがある
+-- 新スキーマ: proposed_by, agree_opinion, disagree_opinion, category カラムが必要
+-- user_idカラムが既にある場合、proposed_byにコピー:
+-- npx wrangler d1 execute ai-debate-db --remote --command="UPDATE theme_proposals SET proposed_by = user_id WHERE proposed_by IS NULL OR proposed_by = '';"

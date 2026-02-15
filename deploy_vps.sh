@@ -1,96 +1,81 @@
 #!/bin/bash
-# ============================================
-# AI Debate VPS 本番デプロイスクリプト
-# VPSのプロジェクトディレクトリで実行してください
-# ============================================
+# AI Debate VPS デプロイスクリプト
+# 使用方法: cd /var/www/ai-debate && chmod +x deploy_vps.sh && ./deploy_vps.sh
+
 set -e
 
-echo "=========================================="
-echo "  AI Debate 本番デプロイ開始"
-echo "=========================================="
+echo "=============================="
+echo " AI Debate - VPS デプロイ"
+echo "=============================="
 
-# 現在のディレクトリ確認
+# Check if in project directory
 if [ ! -f "package.json" ]; then
-  echo "ERROR: package.json が見つかりません。プロジェクトディレクトリで実行してください。"
-  exit 1
+    echo "Error: package.json not found. Run from project root."
+    exit 1
 fi
 
-# Step 1: バックアップ
+# Backup
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 echo ""
 echo "[1/6] バックアップ作成中..."
-BACKUP_DIR="../ai-debate-backup-$(date +%Y%m%d_%H%M%S)"
-cp -r . "$BACKUP_DIR"
-echo "  -> バックアップ先: $BACKUP_DIR"
+if [ -d "../ai-debate-backup-${TIMESTAMP}" ]; then
+    echo "  バックアップディレクトリが既に存在します。スキップ。"
+else
+    cp -r . "../ai-debate-backup-${TIMESTAMP}" 2>/dev/null || echo "  バックアップをスキップ"
+fi
 
-# Step 2: Git pull
+# Pull latest code
 echo ""
 echo "[2/6] 最新コードを取得中..."
-git fetch origin
-git pull origin main
-echo "  -> コード更新完了"
+git pull origin main || echo "  git pull failed - continuing with local code"
 
-# Step 3: 依存関係インストール
+# Install dependencies
 echo ""
-echo "[3/6] 依存関係をインストール中..."
+echo "[3/6] 依存パッケージをインストール中..."
 npm install
-echo "  -> npm install 完了"
 
-# Step 4: ビルド
+# Build
 echo ""
 echo "[4/6] ビルド中..."
 npm run build
-echo "  -> ビルド完了"
 
-# Step 5: D1マイグレーション
+# Run migrations
 echo ""
-echo "[5/6] D1マイグレーション適用中..."
-
-echo "  -> [Step 5a] テーブル作成（CREATE TABLE IF NOT EXISTS）..."
-npx wrangler d1 execute ai-debate-db --remote --file=./migrate_production.sql
-echo "  -> テーブル作成完了"
+echo "[5/6] データベースマイグレーション実行中..."
+echo "  メインマイグレーション..."
+npx wrangler d1 execute ai-debate-db --local --file=./migrate_production.sql 2>&1 || echo "  メインマイグレーション: 一部スキップ（既存テーブル）"
 
 echo ""
-echo "  -> [Step 5b] カラム追加（ALTER TABLE）... ※既存カラムのエラーは無視してOK"
-# ALTER TABLEは1行ずつ実行（既にカラムがあるとエラーになるが問題なし）
-npx wrangler d1 execute ai-debate-db --remote --command="ALTER TABLE users ADD COLUMN avatar_url TEXT;" 2>/dev/null || echo "    (avatar_url: 既に存在 - スキップ)"
-npx wrangler d1 execute ai-debate-db --remote --command="ALTER TABLE users ADD COLUMN avatar_type TEXT DEFAULT 'bottts';" 2>/dev/null || echo "    (avatar_type: 既に存在 - スキップ)"
-npx wrangler d1 execute ai-debate-db --remote --command="ALTER TABLE users ADD COLUMN avatar_value TEXT DEFAULT '1';" 2>/dev/null || echo "    (avatar_value: 既に存在 - スキップ)"
-npx wrangler d1 execute ai-debate-db --remote --command="ALTER TABLE users ADD COLUMN nickname TEXT;" 2>/dev/null || echo "    (nickname: 既に存在 - スキップ)"
-npx wrangler d1 execute ai-debate-db --remote --command="ALTER TABLE theme_proposals ADD COLUMN agree_opinion TEXT;" 2>/dev/null || echo "    (agree_opinion: 既に存在 - スキップ)"
-npx wrangler d1 execute ai-debate-db --remote --command="ALTER TABLE theme_proposals ADD COLUMN disagree_opinion TEXT;" 2>/dev/null || echo "    (disagree_opinion: 既に存在 - スキップ)"
-npx wrangler d1 execute ai-debate-db --remote --command="ALTER TABLE theme_proposals ADD COLUMN category TEXT DEFAULT 'other';" 2>/dev/null || echo "    (category: 既に存在 - スキップ)"
-npx wrangler d1 execute ai-debate-db --remote --command="ALTER TABLE theme_proposals ADD COLUMN proposed_by TEXT;" 2>/dev/null || echo "    (proposed_by: 既に存在 - スキップ)"
-npx wrangler d1 execute ai-debate-db --remote --command="ALTER TABLE debate_messages ADD COLUMN ai_evaluation TEXT;" 2>/dev/null || echo "    (ai_evaluation: 既に存在 - スキップ)"
-npx wrangler d1 execute ai-debate-db --remote --command="ALTER TABLE debates ADD COLUMN completed_at DATETIME;" 2>/dev/null || echo "    (completed_at: 既に存在 - スキップ)"
-npx wrangler d1 execute ai-debate-db --remote --command="ALTER TABLE debates ADD COLUMN winner TEXT;" 2>/dev/null || echo "    (winner: 既に存在 - スキップ)"
-npx wrangler d1 execute ai-debate-db --remote --command="ALTER TABLE debates ADD COLUMN judge_evaluations TEXT;" 2>/dev/null || echo "    (judge_evaluations: 既に存在 - スキップ)"
-npx wrangler d1 execute ai-debate-db --remote --command="ALTER TABLE debates ADD COLUMN status TEXT DEFAULT 'pending';" 2>/dev/null || echo "    (status: 既に存在 - スキップ)"
+echo "  カラム追加マイグレーション..."
+npx wrangler d1 execute ai-debate-db --local --command="ALTER TABLE users ADD COLUMN avatar_url TEXT;" 2>/dev/null || echo "  avatar_url: skip"
+npx wrangler d1 execute ai-debate-db --local --command="ALTER TABLE users ADD COLUMN avatar_type TEXT DEFAULT 'bottts';" 2>/dev/null || echo "  avatar_type: skip"
+npx wrangler d1 execute ai-debate-db --local --command="ALTER TABLE users ADD COLUMN avatar_value TEXT DEFAULT '1';" 2>/dev/null || echo "  avatar_value: skip"
+npx wrangler d1 execute ai-debate-db --local --command="ALTER TABLE users ADD COLUMN nickname TEXT;" 2>/dev/null || echo "  nickname: skip"
+npx wrangler d1 execute ai-debate-db --local --command="ALTER TABLE theme_proposals ADD COLUMN agree_opinion TEXT;" 2>/dev/null || echo "  agree_opinion: skip"
+npx wrangler d1 execute ai-debate-db --local --command="ALTER TABLE theme_proposals ADD COLUMN disagree_opinion TEXT;" 2>/dev/null || echo "  disagree_opinion: skip"
+npx wrangler d1 execute ai-debate-db --local --command="ALTER TABLE theme_proposals ADD COLUMN category TEXT DEFAULT 'other';" 2>/dev/null || echo "  category: skip"
+npx wrangler d1 execute ai-debate-db --local --command="ALTER TABLE theme_proposals ADD COLUMN proposed_by TEXT DEFAULT '';" 2>/dev/null || echo "  proposed_by: skip"
+npx wrangler d1 execute ai-debate-db --local --command="UPDATE theme_proposals SET proposed_by = user_id WHERE proposed_by IS NULL OR proposed_by = '';" 2>/dev/null || echo "  proposed_by copy: skip"
+npx wrangler d1 execute ai-debate-db --local --command="ALTER TABLE debate_messages ADD COLUMN ai_evaluation TEXT;" 2>/dev/null || echo "  ai_evaluation: skip"
+npx wrangler d1 execute ai-debate-db --local --command="ALTER TABLE debates ADD COLUMN completed_at DATETIME;" 2>/dev/null || echo "  completed_at: skip"
+npx wrangler d1 execute ai-debate-db --local --command="ALTER TABLE debates ADD COLUMN winner TEXT;" 2>/dev/null || echo "  winner: skip"
+npx wrangler d1 execute ai-debate-db --local --command="ALTER TABLE debates ADD COLUMN judge_evaluations TEXT;" 2>/dev/null || echo "  judge_evaluations: skip"
+npx wrangler d1 execute ai-debate-db --local --command="ALTER TABLE debates ADD COLUMN status TEXT DEFAULT 'pending';" 2>/dev/null || echo "  status: skip"
+npx wrangler d1 execute ai-debate-db --local --command="UPDATE debates SET status='live' WHERE id='default';" 2>/dev/null || echo "  default status: skip"
 
+# Restart service
 echo ""
-echo "  -> [Step 5c] インデックス作成..."
-npx wrangler d1 execute ai-debate-db --remote --command="CREATE INDEX IF NOT EXISTS idx_theme_proposals_category ON theme_proposals(category);" 2>/dev/null || true
-npx wrangler d1 execute ai-debate-db --remote --command="CREATE INDEX IF NOT EXISTS idx_theme_proposals_proposed_by ON theme_proposals(proposed_by);" 2>/dev/null || true
-
-echo ""
-echo "  -> [Step 5d] デフォルトデータ設定..."
-npx wrangler d1 execute ai-debate-db --remote --command="UPDATE debates SET status = 'pending' WHERE status IS NULL;" 2>/dev/null || true
-npx wrangler d1 execute ai-debate-db --remote --command="UPDATE debates SET status = 'live' WHERE id = 'default';" 2>/dev/null || true
-echo "  -> マイグレーション完了"
-
-# Step 6: サービス再起動
-echo ""
-echo "[6/6] サービス再起動中..."
+echo "[6/6] サービスを再起動中..."
 if command -v pm2 &> /dev/null; then
-  pm2 restart ai-debate 2>/dev/null || pm2 restart all
-  echo "  -> PM2 再起動完了"
+    pm2 restart ai-debate 2>/dev/null || pm2 start ecosystem.config.cjs 2>/dev/null || echo "  PM2再起動失敗"
 elif command -v systemctl &> /dev/null; then
-  sudo systemctl restart ai-debate 2>/dev/null || echo "  -> systemctl restart 失敗。手動で再起動してください。"
+    sudo systemctl restart ai-debate 2>/dev/null || echo "  systemctl再起動失敗"
 else
-  echo "  -> プロセスマネージャが見つかりません。手動で再起動してください。"
+    echo "  サービス管理ツールが見つかりません。手動で再起動してください。"
 fi
 
 echo ""
-echo "=========================================="
-echo "  デプロイ完了!"
-echo "  サイトで確認してください"
-echo "=========================================="
+echo "=============================="
+echo " デプロイ完了！"
+echo " サイト: https://ai-debate.jp"
+echo "=============================="

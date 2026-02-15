@@ -13,6 +13,10 @@ CREATE TABLE IF NOT EXISTS users (
   google_id TEXT UNIQUE NOT NULL,
   credits INTEGER DEFAULT 500,
   is_pre_registration INTEGER DEFAULT 1,
+  nickname TEXT,
+  avatar_type TEXT DEFAULT 'bottts',
+  avatar_value TEXT DEFAULT '1',
+  avatar_url TEXT,
   rating INTEGER DEFAULT 1200,
   rank TEXT DEFAULT 'Bronze',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -61,6 +65,7 @@ CREATE TABLE IF NOT EXISTS debate_messages (
   side TEXT NOT NULL CHECK(side IN ('agree', 'disagree')),
   model TEXT NOT NULL,
   content TEXT NOT NULL,
+  ai_evaluation TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -77,6 +82,10 @@ CREATE TABLE IF NOT EXISTS debates (
   disagree_position TEXT NOT NULL,
   time_limit INTEGER DEFAULT 600,
   char_limit INTEGER DEFAULT 180,
+  status TEXT DEFAULT 'pending',
+  completed_at DATETIME,
+  winner TEXT,
+  judge_evaluations TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -140,7 +149,7 @@ CREATE INDEX IF NOT EXISTS idx_community_posts_created_at ON community_posts(cre
 CREATE INDEX IF NOT EXISTS idx_community_posts_user_id ON community_posts(user_id);
 CREATE INDEX IF NOT EXISTS idx_announcements_created_at ON announcements(created_at);
 
--- === アーカイブ・テーマ・コンタクト テーブル ===
+-- === アーカイブテーブル ===
 CREATE TABLE IF NOT EXISTS archived_debates (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   debate_id TEXT UNIQUE NOT NULL,
@@ -157,15 +166,17 @@ CREATE TABLE IF NOT EXISTS archived_debates (
   archived_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- === テーマ提案テーブル（agree_opinion, disagree_opinion, category, proposed_by カラム付き）===
 CREATE TABLE IF NOT EXISTS theme_proposals (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id TEXT NOT NULL,
   title TEXT NOT NULL,
-  description TEXT,
+  agree_opinion TEXT,
+  disagree_opinion TEXT,
+  category TEXT DEFAULT 'other',
+  proposed_by TEXT NOT NULL,
   vote_count INTEGER DEFAULT 0,
-  status TEXT DEFAULT 'pending',
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(user_id)
+  status TEXT DEFAULT 'active',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS theme_votes (
@@ -174,8 +185,7 @@ CREATE TABLE IF NOT EXISTS theme_votes (
   user_id TEXT NOT NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(theme_id, user_id),
-  FOREIGN KEY (theme_id) REFERENCES theme_proposals(id) ON DELETE CASCADE,
-  FOREIGN KEY (user_id) REFERENCES users(user_id)
+  FOREIGN KEY (theme_id) REFERENCES theme_proposals(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS contact_messages (
@@ -193,6 +203,7 @@ CREATE TABLE IF NOT EXISTS contact_messages (
 CREATE INDEX IF NOT EXISTS idx_archived_debates_debate_id ON archived_debates(debate_id);
 CREATE INDEX IF NOT EXISTS idx_archived_debates_created_at ON archived_debates(created_at);
 CREATE INDEX IF NOT EXISTS idx_theme_proposals_status ON theme_proposals(status);
+CREATE INDEX IF NOT EXISTS idx_theme_proposals_proposed_by ON theme_proposals(proposed_by);
 CREATE INDEX IF NOT EXISTS idx_theme_votes_theme_id ON theme_votes(theme_id);
 CREATE INDEX IF NOT EXISTS idx_contact_messages_user_id ON contact_messages(user_id);
 
@@ -210,8 +221,7 @@ CREATE INDEX IF NOT EXISTS idx_archive_views_user_id ON archive_views(user_id);
 CREATE INDEX IF NOT EXISTS idx_archive_views_debate_id ON archive_views(debate_id);
 CREATE INDEX IF NOT EXISTS idx_archive_views_session_id ON archive_views(session_id);
 
--- === support_tickets テーブル（安全な作成 - priority列なし最終形）===
--- 注意: 既存テーブルの移行ではなく、IF NOT EXISTSで安全に作成
+-- === support_tickets テーブル ===
 CREATE TABLE IF NOT EXISTS support_tickets (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,
@@ -246,5 +256,5 @@ CREATE INDEX IF NOT EXISTS idx_ticket_messages_user_id ON ticket_messages(user_i
 
 -- === デフォルトディベートを確実に設定 ===
 DELETE FROM debates WHERE id = 'default';
-INSERT INTO debates (id, title, topic, agree_position, disagree_position, created_at)
-VALUES ('default', 'AIは仕事を創出するか奪うか', 'AIと雇用の関係', 'AIは仕事を創出する', 'AIは仕事を奪う', datetime('now'));
+INSERT INTO debates (id, title, topic, agree_position, disagree_position, status, created_at)
+VALUES ('default', 'AIは仕事を創出するか奪うか', 'AIと雇用の関係', 'AIは仕事を創出する', 'AIは仕事を奪う', 'live', datetime('now'));

@@ -1,9 +1,9 @@
 import { globalNav } from '../components/global-nav';
 
-const AVATAR_TYPE = 'bottts';
-
 export const myPage = (userData: any) => {
-  const avatarType = userData.avatar_type || AVATAR_TYPE;
+  const avatarType = userData.avatar_type || 'bottts';
+  const avatarStyles = ['bottts', 'pixel-art', 'identicon', 'thumbs', 'shapes'];
+  
   return `
     <!DOCTYPE html>
     <html lang="ja">
@@ -16,12 +16,14 @@ export const myPage = (userData: any) => {
         <link href="/static/styles.css" rel="stylesheet">
         <style>
             .avatar-preset {
-                width: 80px;
-                height: 80px;
+                width: 70px;
+                height: 70px;
                 border-radius: 50%;
                 cursor: pointer;
                 transition: all 0.3s ease;
                 border: 3px solid transparent;
+                background: rgba(0, 20, 40, 0.8);
+                object-fit: cover;
             }
             
             .avatar-preset:hover {
@@ -50,10 +52,11 @@ export const myPage = (userData: any) => {
                 border-radius: 50%;
                 border: 4px solid #00ffff;
                 box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+                background: rgba(0, 20, 40, 0.8);
+                object-fit: cover;
             }
 
             .form-label {
-                font-family: 'Orbitron', sans-serif;
                 color: #00ffff;
                 font-weight: 700;
                 margin-bottom: 8px;
@@ -82,7 +85,6 @@ export const myPage = (userData: any) => {
                 border-radius: 10px;
                 padding: 15px 40px;
                 color: white;
-                font-family: 'Orbitron', sans-serif;
                 font-weight: 700;
                 cursor: pointer;
                 transition: all 0.3s ease;
@@ -93,6 +95,25 @@ export const myPage = (userData: any) => {
                 background: linear-gradient(135deg, rgba(0, 255, 255, 0.5), rgba(255, 0, 255, 0.5));
                 box-shadow: 0 0 30px rgba(0, 255, 255, 0.6);
                 transform: translateY(-2px);
+            }
+
+            .style-tab {
+                padding: 6px 14px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 13px;
+                transition: all 0.2s;
+                background: rgba(6, 182, 212, 0.1);
+                border: 1px solid rgba(6, 182, 212, 0.3);
+                color: #06b6d4;
+            }
+            .style-tab:hover {
+                background: rgba(6, 182, 212, 0.2);
+            }
+            .style-tab.active {
+                background: rgba(6, 182, 212, 0.3);
+                border-color: #06b6d4;
+                color: #fff;
             }
         </style>
     </head>
@@ -119,12 +140,13 @@ export const myPage = (userData: any) => {
                                 src="${userData.avatar_url ? userData.avatar_url : (userData.avatar_type && userData.avatar_type !== 'upload' ? `https://api.dicebear.com/7.x/${userData.avatar_type}/svg?seed=${userData.avatar_value || userData.user_id}` : `https://api.dicebear.com/7.x/bottts/svg?seed=${userData.user_id}`)}" 
                                 alt="Current Avatar" 
                                 class="current-avatar mx-auto"
+                                onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${userData.user_id}'"
                             />
                         </div>
                         <div class="text-2xl font-bold text-cyan-400">@${userData.user_id}</div>
                         <div class="text-lg text-gray-300 mt-2">${userData.nickname || 'No Nickname'}</div>
                         <div class="mt-3 text-yellow-400 font-bold text-xl">
-                            <i class="fas fa-coins mr-2"></i>${userData.credits.toLocaleString()} Credits
+                            <i class="fas fa-coins mr-2"></i>${userData.user_id === 'dev' ? '∞' : (userData.credits || 0).toLocaleString()} Credits
                         </div>
                     </div>
 
@@ -172,17 +194,19 @@ export const myPage = (userData: any) => {
                                 <i class="fas fa-user-circle mr-2"></i>アバター選択
                             </label>
                             
-                            <!-- Avatar Presets Grid -->
-                            <div class="grid grid-cols-5 gap-4 mb-4">
-                                ${Array.from({length: 20}, (_, i) => i + 1).map(seed => `
-                                    <img 
-                                        src="https://api.dicebear.com/7.x/${avatarType}/svg?seed=${seed}" 
-                                        alt="Avatar ${seed}" 
-                                        class="avatar-preset ${(userData.avatar_type === avatarType || userData.avatar_type === 'preset') && userData.avatar_value === seed.toString() ? 'selected' : ''}"
-                                        data-seed="${seed}"
-                                        onclick="selectAvatar('${avatarType}', '${seed}')"
-                                    />
+                            <!-- Avatar Style Tabs -->
+                            <div class="flex flex-wrap gap-2 mb-4">
+                                ${avatarStyles.map(style => `
+                                    <button type="button" class="style-tab ${style === avatarType ? 'active' : ''}" 
+                                            data-style="${style}" onclick="switchAvatarStyle('${style}')">
+                                        ${style === 'bottts' ? 'ロボット' : style === 'pixel-art' ? 'ピクセル' : style === 'identicon' ? 'パターン' : style === 'thumbs' ? 'サムネ' : 'シェイプ'}
+                                    </button>
                                 `).join('')}
+                            </div>
+                            
+                            <!-- Avatar Presets Grid -->
+                            <div id="avatar-grid" class="grid grid-cols-5 sm:grid-cols-8 gap-3 mb-4">
+                                <!-- Will be populated by JS -->
                             </div>
 
                             <!-- Upload Option -->
@@ -202,7 +226,7 @@ export const myPage = (userData: any) => {
                                 </div>
                             </div>
 
-                            <input type="hidden" id="avatar_type" name="avatar_type" value="${userData.avatar_type || 'preset'}">
+                            <input type="hidden" id="avatar_type" name="avatar_type" value="${userData.avatar_type || 'bottts'}">
                             <input type="hidden" id="avatar_value" name="avatar_value" value="${userData.avatar_value || '1'}">
                         </div>
 
@@ -230,10 +254,40 @@ export const myPage = (userData: any) => {
         </div>
 
         <script>
-            const AVATAR_STYLE = '${avatarType}';
+            let currentAvatarStyle = '${avatarType}';
             let selectedAvatarType = '${userData.avatar_type || avatarType}';
             let selectedAvatarValue = '${userData.avatar_value || '1'}';
             let uploadedFile = null;
+
+            function renderAvatarGrid(style) {
+                const grid = document.getElementById('avatar-grid');
+                const seeds = [];
+                for (let i = 1; i <= 24; i++) {
+                    seeds.push(i);
+                }
+                
+                grid.innerHTML = seeds.map(seed => {
+                    const isSelected = (selectedAvatarType === style) && selectedAvatarValue === seed.toString();
+                    return '<img ' +
+                        'src="https://api.dicebear.com/7.x/' + style + '/svg?seed=' + seed + '" ' +
+                        'alt="Avatar ' + seed + '" ' +
+                        'class="avatar-preset ' + (isSelected ? 'selected' : '') + '" ' +
+                        'data-style="' + style + '" ' +
+                        'data-seed="' + seed + '" ' +
+                        'loading="lazy" ' +
+                        'onclick="selectAvatar(\\'' + style + '\\', \\'' + seed + '\\')" ' +
+                        'onerror="this.style.display=\\'none\\'" ' +
+                    '/>';
+                }).join('');
+            }
+
+            function switchAvatarStyle(style) {
+                currentAvatarStyle = style;
+                document.querySelectorAll('.style-tab').forEach(tab => {
+                    tab.classList.toggle('active', tab.dataset.style === style);
+                });
+                renderAvatarGrid(style);
+            }
 
             function selectAvatar(type, value) {
                 selectedAvatarType = type;
@@ -246,13 +300,13 @@ export const myPage = (userData: any) => {
                     img.classList.remove('selected');
                 });
                 
-                const selectedImg = document.querySelector(\`img[data-seed="\${value}"]\`);
+                const selectedImg = document.querySelector('img[data-style="' + type + '"][data-seed="' + value + '"]');
                 if (selectedImg) {
                     selectedImg.classList.add('selected');
                 }
                 
                 document.getElementById('current-avatar').src = 
-                    \`https://api.dicebear.com/7.x/\${AVATAR_STYLE}/svg?seed=\${value}\`;
+                    'https://api.dicebear.com/7.x/' + type + '/svg?seed=' + value;
                 
                 // Hide upload preview
                 document.getElementById('upload-preview').classList.add('hidden');
@@ -263,13 +317,11 @@ export const myPage = (userData: any) => {
                 const file = event.target.files[0];
                 if (!file) return;
                 
-                // Validate file size (max 2MB)
                 if (file.size > 2 * 1024 * 1024) {
                     alert('ファイルサイズは2MB以下にしてください');
                     return;
                 }
                 
-                // Validate file type
                 if (!file.type.startsWith('image/')) {
                     alert('画像ファイルを選択してください');
                     return;
@@ -277,20 +329,18 @@ export const myPage = (userData: any) => {
                 
                 uploadedFile = file;
                 
-                // Preview
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     document.getElementById('upload-preview-img').src = e.target.result;
                     document.getElementById('upload-preview').classList.remove('hidden');
                     document.getElementById('current-avatar').src = e.target.result;
                     
-                    // Deselect presets
                     document.querySelectorAll('.avatar-preset').forEach(img => {
                         img.classList.remove('selected');
                     });
                     
                     selectedAvatarType = 'upload';
-                    selectedAvatarValue = ''; // Will be set after upload
+                    selectedAvatarValue = '';
                 };
                 reader.readAsDataURL(file);
             }
@@ -301,7 +351,6 @@ export const myPage = (userData: any) => {
                 let avatarValue = selectedAvatarValue;
                 let avatarUrl = null;
                 
-                // Upload image if selected
                 if (uploadedFile) {
                     try {
                         const uploadFormData = new FormData();
@@ -364,6 +413,9 @@ export const myPage = (userData: any) => {
                     document.getElementById('success-message').classList.add('hidden');
                 }
             });
+
+            // Initialize avatar grid
+            renderAvatarGrid(currentAvatarStyle);
         </script>
     </body>
     </html>

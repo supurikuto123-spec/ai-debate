@@ -225,7 +225,7 @@ export const termsPage = (user: any) => `
             </div>
             
             <div class="text-center mt-8">
-                <a href="/community" class="btn-primary inline-block">
+                <a href="javascript:void(0)" onclick="history.back()" class="btn-primary inline-block">
                     <i class="fas fa-arrow-left mr-2"></i>戻る
                 </a>
             </div>
