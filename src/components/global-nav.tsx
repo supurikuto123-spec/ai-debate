@@ -258,7 +258,7 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
         <img src="${avatarUrl}" alt="Avatar" class="nav-avatar">
         <div class="nav-username">@${user.user_id}</div>
         <div class="nav-credits">
-          <i class="fas fa-coins"></i> ${user.user_id === 'dev' ? '∞' : (user.credits || 0).toLocaleString()} Credits
+          <i class="fas fa-coins"></i> ${(user.credits || 0).toLocaleString()} Credits
         </div>
       </div>
 

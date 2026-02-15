@@ -79,7 +79,7 @@ export const watchPage = (user: any, debateId: string) => `
         </style>
     </head>
     <body class="bg-black text-white overflow-x-hidden">
-        ${globalNav(user)}
+        \${globalNav(user)}
         
         <!-- Vote Modal -->
         <div id="voteModal" class="modal">
@@ -91,20 +91,16 @@ export const watchPage = (user: any, debateId: string) => `
                 
                 <div class="mb-8">
                     <h3 class="text-xl font-bold mb-4 text-cyan-300">ディベートテーマ</h3>
-                    <p class="text-2xl mb-6 text-center">AIは人類の仕事を奪うのか</p>
+                    <p id="modalTheme" class="text-2xl mb-6 text-center">読み込み中...</p>
                     
                     <div class="grid grid-cols-2 gap-6 mb-8">
                         <div class="border-2 border-green-500 rounded p-4 bg-green-500/10">
-                            <h4 class="font-bold text-green-400 mb-2">意見A</h4>
-                            <p class="text-sm text-gray-300">
-                                AIは人間の能力を拡張し、より創造的な仕事への移行を促進する。歴史的に技術革新は常に新しい職種を生み出してきた。
-                            </p>
+                            <h4 class="font-bold text-green-400 mb-2">意見A (Agree)</h4>
+                            <p id="modalOpinionA" class="text-sm text-gray-300">読み込み中...</p>
                         </div>
                         <div class="border-2 border-red-500 rounded p-4 bg-red-500/10">
-                            <h4 class="font-bold text-red-400 mb-2">意見B</h4>
-                            <p class="text-sm text-gray-300">
-                                AIによる雇用喪失は深刻な社会問題を引き起こす。自動化のスピードが速すぎて、労働者が適応する時間がない。
-                            </p>
+                            <h4 class="font-bold text-red-400 mb-2">意見B (Disagree)</h4>
+                            <p id="modalOpinionB" class="text-sm text-gray-300">読み込み中...</p>
                         </div>
                     </div>
                 </div>
@@ -139,7 +135,7 @@ export const watchPage = (user: any, debateId: string) => `
                 <div class="flex items-center space-x-4">
                     <div class="credit-display">
                         <i class="fas fa-coins text-yellow-400"></i>
-                        <span class="text-sm font-bold">${user.user_id === 'dev' ? '∞' : user.credits}</span>
+                        <span class="text-sm font-bold" id="navCredits">${user.credits}</span>
                     </div>
                     <div class="text-sm text-gray-400">@${user.user_id}</div>
                     <a href="/main" class="btn-secondary text-sm px-4 py-2">
@@ -158,8 +154,8 @@ export const watchPage = (user: any, debateId: string) => `
                 <div class="cyber-card mb-6">
                     <div class="flex justify-between items-start mb-4">
                         <div class="flex-1">
-                            <h1 class="text-3xl font-black cyber-text mb-2">
-                                AIは人類の仕事を奪うのか
+                            <h1 id="debateTitle" class="text-3xl font-black cyber-text mb-2">
+                                読み込み中...
                             </h1>
                             <div class="flex items-center space-x-4 text-sm text-gray-400">
                                 <span>
@@ -178,11 +174,11 @@ export const watchPage = (user: any, debateId: string) => `
                             </div>
                         </div>
                         <div class="inline-block px-4 py-1 bg-cyan-500/20 border border-cyan-500 rounded-full text-cyan-300 text-sm">
-                            <i class="fas fa-microchip mr-2"></i><span id="debateCategory">AI×雇用</span>
+                            <i class="fas fa-microchip mr-2"></i><span id="debateCategory">AI</span>
                         </div>
                     </div>
 
-                    <!-- AI Summary -->
+                    <!-- AI Summary (dynamic from DB) -->
                     <div class="grid grid-cols-2 gap-4 mb-4">
                         <div class="bg-green-500/10 border border-green-500 rounded p-3">
                             <div class="flex items-center mb-2">
@@ -190,13 +186,11 @@ export const watchPage = (user: any, debateId: string) => `
                                     <i class="fas fa-brain text-white"></i>
                                 </div>
                                 <div>
-                                    <p class="font-bold text-green-400">GPT-4o</p>
-                                    <p class="text-xs text-gray-400">意見A</p>
+                                    <p class="font-bold text-green-400">意見A (Agree)</p>
+                                    <p class="text-xs text-gray-400">AI Model</p>
                                 </div>
                             </div>
-                            <p class="text-sm text-gray-300">
-                                技術革新は常に新しい職種を生み出してきた。AIも人間の創造性を必要とする新たな仕事の機会を創出する。
-                            </p>
+                            <p id="summaryOpinionA" class="text-sm text-gray-300">読み込み中...</p>
                         </div>
                         <div class="bg-red-500/10 border border-red-500 rounded p-3">
                             <div class="flex items-center mb-2">
@@ -204,13 +198,11 @@ export const watchPage = (user: any, debateId: string) => `
                                     <i class="fas fa-lightbulb text-white"></i>
                                 </div>
                                 <div>
-                                    <p class="font-bold text-red-400">Claude-3.5</p>
-                                    <p class="text-xs text-gray-400">意見B</p>
+                                    <p class="font-bold text-red-400">意見B (Disagree)</p>
+                                    <p class="text-xs text-gray-400">AI Model</p>
                                 </div>
                             </div>
-                            <p class="text-sm text-gray-300">
-                                AIの進化スピードが速すぎて、労働者が適応する時間がない。短期的には大規模な失業が発生するリスクがある。
-                            </p>
+                            <p id="summaryOpinionB" class="text-sm text-gray-300">読み込み中...</p>
                         </div>
                     </div>
 
@@ -226,11 +218,11 @@ export const watchPage = (user: any, debateId: string) => `
                             </div>
                             <div>
                                 <span class="text-gray-400">AIモデル:</span>
-                                <span class="text-white font-bold ml-2">GPT-4o / Claude-3.5</span>
+                                <span class="text-white font-bold ml-2" id="debateModelInfo">gpt-4.1-nano</span>
                             </div>
                             <div>
                                 <span class="text-gray-400">最大文字数:</span>
-                                <span class="text-white font-bold ml-2" id="debateCharLimit">150文字</span>
+                                <span class="text-white font-bold ml-2" id="debateCharLimit">180文字</span>
                             </div>
                         </div>
                     </div>
@@ -248,10 +240,9 @@ export const watchPage = (user: any, debateId: string) => `
                             </h3>
                             
                             <div id="debateMessages" class="flex flex-col space-y-4" style="height: 600px; overflow-y: auto; scroll-behavior: smooth;">
-                                <!-- ディベート開始後にメッセージが動的に追加されます -->
                                 <div class="text-center text-gray-400 p-8">
                                     <i class="fas fa-info-circle text-4xl mb-4 text-cyan-400"></i>
-                                    <p class="text-lg">devユーザーでコメント欄に <span class="text-cyan-300 font-bold">!debate</span> と入力してディベートを開始</p>
+                                    <p class="text-lg">devユーザーでコメント欄に <span class="text-cyan-300 font-bold">!s</span> と入力してディベートを開始</p>
                                 </div>
                             </div>
                         </div>
@@ -286,9 +277,8 @@ export const watchPage = (user: any, debateId: string) => `
                                 </div>
                             </div>
 
-                            <!-- Comments List (固定高さ、新着が下) -->
+                            <!-- Comments List -->
                             <div id="commentsList" class="space-y-3" style="height: 500px; overflow-y: auto; scroll-behavior: smooth; display: flex; flex-direction: column;">
-                                <!-- コメントはここに動的に追加される -->
                             </div>
                         </div>
                     </div>
@@ -349,8 +339,8 @@ export const watchPage = (user: any, debateId: string) => `
                             </span>
                         </div>
                         <div class="relative h-10 bg-gray-900 rounded-full overflow-hidden border-2 border-cyan-500/50 shadow-lg">
-                            <div id="agreeBar" class="vote-bar absolute left-0 top-0 h-full bg-gradient-to-r from-green-600 via-green-500 to-emerald-400" style="width: 0%; transition: none;"></div>
-                            <div id="disagreeBar" class="vote-bar absolute right-0 top-0 h-full bg-gradient-to-l from-red-600 via-red-500 to-rose-400" style="width: 0%; transition: none;"></div>
+                            <div id="agreeBar" class="vote-bar absolute left-0 top-0 h-full bg-gradient-to-r from-green-600 via-green-500 to-emerald-400" style="width: 50%; transition: width 0.5s ease;"></div>
+                            <div id="disagreeBar" class="vote-bar absolute right-0 top-0 h-full bg-gradient-to-l from-red-600 via-red-500 to-rose-400" style="width: 50%; transition: width 0.5s ease;"></div>
                             <div class="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none"></div>
                         </div>
                     </div>
@@ -372,9 +362,6 @@ export const watchPage = (user: any, debateId: string) => `
              data-debate-id="${debateId}" 
              data-user-id="${user.user_id}" 
              data-user-credits="${user.credits}"
-             data-debate-theme="AIは人類の仕事を奪うのか"
-             data-opinion-a="AIは人間の能力を拡張し、より創造的な仕事への移行を促進する。歴史的に技術革新は常に新しい職種を生み出してきた。"
-             data-opinion-b="AIによる雇用喪失は深刻な社会問題を引き起こす。自動化のスピードが速すぎて、労働者が適応する時間がない。"
              style="display:none;"></div>
         
         <script src="/static/watch.js"></script>

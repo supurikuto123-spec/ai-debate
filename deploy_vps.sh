@@ -44,10 +44,13 @@ echo "  -> ビルド完了"
 # Step 5: D1マイグレーション
 echo ""
 echo "[5/6] D1マイグレーション適用中..."
-echo "  -> テーブル作成（CREATE TABLE IF NOT EXISTS）..."
-npx wrangler d1 execute ai-debate-db --file=./migrate_production.sql --remote
+
+echo "  -> [Step 5a] テーブル作成（CREATE TABLE IF NOT EXISTS）..."
+npx wrangler d1 execute ai-debate-db --remote --file=./migrate_production.sql
+echo "  -> テーブル作成完了"
+
 echo ""
-echo "  -> カラム追加（ALTER TABLE）... ※既存カラムのエラーは無視してOK"
+echo "  -> [Step 5b] カラム追加（ALTER TABLE）... ※既存カラムのエラーは無視してOK"
 # ALTER TABLEは1行ずつ実行（既にカラムがあるとエラーになるが問題なし）
 npx wrangler d1 execute ai-debate-db --remote --command="ALTER TABLE users ADD COLUMN avatar_url TEXT;" 2>/dev/null || echo "    (avatar_url: 既に存在 - スキップ)"
 npx wrangler d1 execute ai-debate-db --remote --command="ALTER TABLE users ADD COLUMN avatar_type TEXT DEFAULT 'bottts';" 2>/dev/null || echo "    (avatar_type: 既に存在 - スキップ)"
@@ -62,8 +65,14 @@ npx wrangler d1 execute ai-debate-db --remote --command="ALTER TABLE debates ADD
 npx wrangler d1 execute ai-debate-db --remote --command="ALTER TABLE debates ADD COLUMN winner TEXT;" 2>/dev/null || echo "    (winner: 既に存在 - スキップ)"
 npx wrangler d1 execute ai-debate-db --remote --command="ALTER TABLE debates ADD COLUMN judge_evaluations TEXT;" 2>/dev/null || echo "    (judge_evaluations: 既に存在 - スキップ)"
 npx wrangler d1 execute ai-debate-db --remote --command="ALTER TABLE debates ADD COLUMN status TEXT DEFAULT 'pending';" 2>/dev/null || echo "    (status: 既に存在 - スキップ)"
+
+echo ""
+echo "  -> [Step 5c] インデックス作成..."
 npx wrangler d1 execute ai-debate-db --remote --command="CREATE INDEX IF NOT EXISTS idx_theme_proposals_category ON theme_proposals(category);" 2>/dev/null || true
 npx wrangler d1 execute ai-debate-db --remote --command="CREATE INDEX IF NOT EXISTS idx_theme_proposals_proposed_by ON theme_proposals(proposed_by);" 2>/dev/null || true
+
+echo ""
+echo "  -> [Step 5d] デフォルトデータ設定..."
 npx wrangler d1 execute ai-debate-db --remote --command="UPDATE debates SET status = 'pending' WHERE status IS NULL;" 2>/dev/null || true
 npx wrangler d1 execute ai-debate-db --remote --command="UPDATE debates SET status = 'live' WHERE id = 'default';" 2>/dev/null || true
 echo "  -> マイグレーション完了"
@@ -83,5 +92,5 @@ fi
 echo ""
 echo "=========================================="
 echo "  デプロイ完了!"
-echo "  https://ai-debate.jp で確認してください"
+echo "  サイトで確認してください"
 echo "=========================================="

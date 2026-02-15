@@ -85,7 +85,7 @@ export const mainPage = (user: any, debates: any[] = []) => `
                             <div class="ai-card pro">
                                 <div class="ai-avatar"><i class="fas fa-brain"></i></div>
                                 <div class="ai-info">
-                                    <div class="ai-name">GPT-4o</div>
+                                    <div class="ai-name">AI Model</div>
                                     <div class="ai-model">意見A</div>
                                 </div>
                             </div>
@@ -93,7 +93,7 @@ export const mainPage = (user: any, debates: any[] = []) => `
                             <div class="ai-card con">
                                 <div class="ai-avatar"><i class="fas fa-lightbulb"></i></div>
                                 <div class="ai-info">
-                                    <div class="ai-name">Claude-3.5</div>
+                                    <div class="ai-name">AI Model</div>
                                     <div class="ai-model">意見B</div>
                                 </div>
                             </div>

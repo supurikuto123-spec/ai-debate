@@ -15,7 +15,7 @@ import { UserProfile } from './pages/user-profile'
 import { termsPage } from './pages/terms'
 import { privacyPage } from './pages/privacy'
 import { legalPage } from './pages/legal'
-import { contactPage } from './pages/contact'
+// contactPage removed - merged into tickets
 import { themeVotePage } from './pages/theme-vote'
 import { ticketsPage } from './pages/tickets'
 import { adminTicketsPage } from './pages/admin-tickets'
@@ -154,9 +154,9 @@ app.post('/api/register', async (c) => {
       return c.json({ error: 'このメールアドレスは既に登録されています' }, 400)
     }
     
-    // Create user (pre-registration gets 500 credits, normal gets 300)
+    // Create user (pre-registration gets 50000 credits)
     const userId = crypto.randomUUID()
-    const credits = 500 // Pre-registration bonus
+    const credits = 50000 // Pre-registration bonus
     
     await c.env.DB.prepare(`
       INSERT INTO users (id, user_id, username, email, google_id, credits, is_pre_registration, created_at, updated_at)
@@ -232,7 +232,7 @@ app.get('/main', async (c) => {
       'SELECT credits FROM users WHERE user_id = ?'
     ).bind(user.user_id).first()
     if (freshUser) {
-      user.credits = isDevUser ? 500000 : freshUser.credits
+      user.credits = freshUser.credits
     }
     
     if (!isDevUser) {
@@ -291,7 +291,7 @@ app.get('/main', async (c) => {
       // Second time onwards - free access, no charge
     }
     
-    // Dev user - display infinity symbol
+    // Dev user - display infinity symbol (visual only)
     if (isDevUser) {
       user.creditsDisplay = '∞'
     }
@@ -334,9 +334,7 @@ app.get('/watch/:debateId', async (c) => {
     'SELECT credits FROM users WHERE user_id = ?'
   ).bind(user.user_id).first()
   if (freshUser) {
-    user.credits = user.user_id === 'dev' ? 500000 : freshUser.credits
-  } else if (user.user_id === 'dev') {
-    user.credits = 500000
+    user.credits = freshUser.credits
   }
   
   return c.html(watchPage(user, debateId))
@@ -357,9 +355,7 @@ app.get('/watch', async (c) => {
     'SELECT credits FROM users WHERE user_id = ?'
   ).bind(user.user_id).first()
   if (freshUser) {
-    user.credits = user.user_id === 'dev' ? 500000 : freshUser.credits
-  } else if (user.user_id === 'dev') {
-    user.credits = 500000
+    user.credits = freshUser.credits
   }
   
   return c.html(watchPage(user, debateId))
@@ -380,21 +376,19 @@ app.get('/mypage', async (c) => {
     ).bind(user.user_id).first()
     
     if (!userData) {
-      // Create user if not exists
+      // Create user if not exists (with required columns)
+      const newId = crypto.randomUUID()
       await c.env.DB.prepare(`
-        INSERT INTO users (user_id, username, email, credits, created_at)
-        VALUES (?, ?, ?, 500, datetime('now'))
-      `).bind(user.user_id, user.username || user.user_id, user.email || '').run()
+        INSERT INTO users (id, user_id, username, email, google_id, credits, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, 50000, datetime('now'), datetime('now'))
+      `).bind(newId, user.user_id, user.username || user.user_id, user.email || '', user.google_id || 'local_' + user.user_id).run()
       
       userData = await c.env.DB.prepare(
         'SELECT * FROM users WHERE user_id = ?'
       ).bind(user.user_id).first()
     }
     
-    // Dev user gets infinite credits display
-    if (user.user_id === 'dev') {
-      userData.credits = 500000
-    }
+    // Dev user: credits from DB, display handled in template
     
     const enrichedUserData = {
       ...userData,
@@ -548,15 +542,9 @@ app.get('/legal', async (c) => {
   return c.html(legalPage(user))
 })
 
-// Contact Page
-app.get('/contact', async (c) => {
-  const userCookie = getCookie(c, 'user')
-  if (!userCookie) {
-    return c.redirect('/')
-  }
-  
-  const user = JSON.parse(userCookie)
-  return c.html(contactPage(user))
+// Contact Page - redirects to tickets (merged)
+app.get('/contact', (c) => {
+  return c.redirect('/tickets')
 })
 
 // Theme Vote Page
@@ -900,18 +888,16 @@ app.post('/api/archive/purchase', async (c) => {
       'SELECT credits FROM users WHERE user_id = ?'
     ).bind(user.user_id).first()
     
-    const currentCredits = user.user_id === 'dev' ? 500000 : (userData?.credits || 0)
+    const currentCredits = userData?.credits || 0
     
     if (currentCredits < 15) {
       return c.json({ success: false, error: 'クレジットが不足しています' })
     }
     
-    // Deduct credits (only for non-dev users)
-    if (user.user_id !== 'dev') {
-      await c.env.DB.prepare(
-        'UPDATE users SET credits = credits - 15 WHERE user_id = ?'
-      ).bind(user.user_id).run()
-    }
+    // Deduct credits
+    await c.env.DB.prepare(
+      'UPDATE users SET credits = credits - 15 WHERE user_id = ?'
+    ).bind(user.user_id).run()
     
     // Create session
     const sessionId = crypto.randomUUID()
@@ -1798,23 +1784,21 @@ app.post('/api/theme-votes/propose', async (c) => {
       return c.json({ success: false, error: 'Missing required fields' }, 400)
     }
     
-    // Insert theme proposal
+    // Insert theme proposal (status='active' so it appears in list)
     await c.env.DB.prepare(`
-      INSERT INTO theme_proposals (title, agree_opinion, disagree_opinion, category, proposed_by, created_at)
-      VALUES (?, ?, ?, ?, ?, datetime('now'))
+      INSERT INTO theme_proposals (title, agree_opinion, disagree_opinion, category, proposed_by, status, created_at)
+      VALUES (?, ?, ?, ?, ?, 'active', datetime('now'))
     `).bind(title, agree_opinion, disagree_opinion, category || 'other', user.user_id).run()
     
-    // Deduct credits (unless dev user)
-    if (user.user_id !== 'dev') {
-      await c.env.DB.prepare(`
-        UPDATE users SET credits = credits - 10 WHERE user_id = ?
-      `).bind(user.user_id).run()
-      
-      await c.env.DB.prepare(`
-        INSERT INTO credit_transactions (id, user_id, amount, type, reason, created_at)
-        VALUES (?, ?, ?, ?, ?, datetime('now'))
-      `).bind(crypto.randomUUID(), user.user_id, -10, 'spend', 'テーマ提案').run()
-    }
+    // Deduct credits
+    await c.env.DB.prepare(`
+      UPDATE users SET credits = credits - 10 WHERE user_id = ?
+    `).bind(user.user_id).run()
+    
+    await c.env.DB.prepare(`
+      INSERT INTO credit_transactions (id, user_id, amount, type, reason, created_at)
+      VALUES (?, ?, ?, ?, ?, datetime('now'))
+    `).bind(crypto.randomUUID(), user.user_id, -10, 'spend', 'テーマ提案').run()
     
     console.log('Theme proposal:', { user_id: user.user_id, title })
     
@@ -1836,8 +1820,9 @@ app.post('/api/theme-votes/:id/vote', async (c) => {
     const user = JSON.parse(userCookie)
     const themeId = c.req.param('id')
     
-    // Check if user has enough credits
-    if (user.user_id !== 'dev' && user.credits < 5) {
+    // Check credits from DB
+    const voteUserData = await c.env.DB.prepare('SELECT credits FROM users WHERE user_id = ?').bind(user.user_id).first()
+    if ((voteUserData?.credits || 0) < 5) {
       return c.json({ success: false, error: 'クレジットが不足しています' }, 400)
     }
     
@@ -1861,17 +1846,15 @@ app.post('/api/theme-votes/:id/vote', async (c) => {
       UPDATE theme_proposals SET vote_count = vote_count + 1 WHERE id = ?
     `).bind(themeId).run()
     
-    // Deduct credits (unless dev user)
-    if (user.user_id !== 'dev') {
-      await c.env.DB.prepare(`
-        UPDATE users SET credits = credits - 5 WHERE user_id = ?
-      `).bind(user.user_id).run()
-      
-      await c.env.DB.prepare(`
-        INSERT INTO credit_transactions (id, user_id, amount, type, reason, created_at)
-        VALUES (?, ?, ?, ?, ?, datetime('now'))
-      `).bind(crypto.randomUUID(), user.user_id, -5, 'spend', 'テーマ投票').run()
-    }
+    // Deduct credits
+    await c.env.DB.prepare(`
+      UPDATE users SET credits = credits - 5 WHERE user_id = ?
+    `).bind(user.user_id).run()
+    
+    await c.env.DB.prepare(`
+      INSERT INTO credit_transactions (id, user_id, amount, type, reason, created_at)
+      VALUES (?, ?, ?, ?, ?, datetime('now'))
+    `).bind(crypto.randomUUID(), user.user_id, -5, 'spend', 'テーマ投票').run()
     
     console.log('Theme vote:', { user_id: user.user_id, theme_id: themeId })
     
