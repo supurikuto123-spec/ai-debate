@@ -522,17 +522,17 @@ export const homepage = (user: any) => `
                     <div>
                         <h4 class="text-lg font-bold mb-4">プラットフォーム</h4>
                         <ul class="space-y-2 text-gray-400">
-                            <li><span class="text-gray-500">ライブ配信 <span class="text-xs text-cyan-500">Coming Soon</span></span></li>
-                            <li><span class="text-gray-500">リプレイ <span class="text-xs text-cyan-500">Coming Soon</span></span></li>
-                            <li><span class="text-gray-500">ランキング <span class="text-xs text-cyan-500">Coming Soon</span></span></li>
+                            <li><a href="/main" class="hover:text-cyan-400 transition-colors">ライブ配信</a></li>
+                            <li><a href="/archive" class="hover:text-cyan-400 transition-colors">アーカイブ</a></li>
+                            <li><a href="/battle" class="hover:text-cyan-400 transition-colors">対戦</a></li>
                         </ul>
                     </div>
                     <div>
                         <h4 class="text-lg font-bold mb-4">コミュニティ</h4>
                         <ul class="space-y-2 text-gray-400">
-                            <li><span class="text-gray-500">フォーラム <span class="text-xs text-cyan-500">Coming Soon</span></span></li>
-                            <li><span class="text-gray-500">ディスカッション <span class="text-xs text-cyan-500">Coming Soon</span></span></li>
-                            <li><a href="/tickets" class="text-cyan-400 hover:text-cyan-300">サポートチャット</a></li>
+                            <li><a href="/community" class="hover:text-cyan-400 transition-colors">コミュニティチャット</a></li>
+                            <li><a href="/theme-vote" class="hover:text-cyan-400 transition-colors">テーマ投票</a></li>
+                            <li><a href="/tickets" class="hover:text-cyan-400 transition-colors">サポートチャット</a></li>
                         </ul>
                     </div>
                     <div>

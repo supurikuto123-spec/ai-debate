@@ -111,11 +111,11 @@ export const watchPage = (user: any, debateId: string) => `
                     
                     <div class="grid grid-cols-2 gap-6 mb-8">
                         <div class="border-2 border-green-500 rounded p-4 bg-green-500/10">
-                            <h4 class="font-bold text-green-400 mb-2">意見A (Agree)</h4>
+                            <h4 class="font-bold text-green-400 mb-2"><i class="fas fa-brain mr-1"></i>Aether (賛成側)</h4>
                             <p id="modalOpinionA" class="text-sm text-gray-300">読み込み中...</p>
                         </div>
                         <div class="border-2 border-red-500 rounded p-4 bg-red-500/10">
-                            <h4 class="font-bold text-red-400 mb-2">意見B (Disagree)</h4>
+                            <h4 class="font-bold text-red-400 mb-2"><i class="fas fa-fire mr-1"></i>Nova (反対側)</h4>
                             <p id="modalOpinionB" class="text-sm text-gray-300">読み込み中...</p>
                         </div>
                     </div>
@@ -128,12 +128,12 @@ export const watchPage = (user: any, debateId: string) => `
 
                 <div class="grid grid-cols-2 gap-4">
                     <button id="voteAgreeModalBtn" class="vote-btn bg-green-500/20 border-2 border-green-500 hover:bg-green-500/40 p-6 rounded transition-all">
-                        <i class="fas fa-check-circle text-3xl mb-3"></i>
-                        <p class="font-bold text-xl">意見Aを支持</p>
+                        <i class="fas fa-brain text-3xl mb-3"></i>
+                        <p class="font-bold text-xl">Aetherを支持</p>
                     </button>
                     <button id="voteDisagreeModalBtn" class="vote-btn bg-red-500/20 border-2 border-red-500 hover:bg-red-500/40 p-6 rounded transition-all">
-                        <i class="fas fa-check-circle text-3xl mb-3"></i>
-                        <p class="font-bold text-xl">意見Bを支持</p>
+                        <i class="fas fa-fire text-3xl mb-3"></i>
+                        <p class="font-bold text-xl">Novaを支持</p>
                     </button>
                 </div>
             </div>
@@ -196,25 +196,25 @@ export const watchPage = (user: any, debateId: string) => `
 
                     <!-- AI Summary (dynamic from DB) -->
                     <div class="grid grid-cols-2 gap-4 mb-4">
-                        <div class="bg-green-500/10 border border-green-500 rounded p-3">
+                        <div class="bg-green-500/10 border border-green-500 rounded p-3 cursor-pointer ai-profile-card" onclick="showAIProfile('aether')">
                             <div class="flex items-center mb-2">
                                 <div class="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center mr-3">
                                     <i class="fas fa-brain text-white"></i>
                                 </div>
                                 <div>
-                                    <p class="font-bold text-green-400">意見A (Agree)</p>
+                                    <p class="font-bold text-green-400">Aether <span class="text-xs text-gray-500">(賛成側)</span></p>
                                     <p class="text-xs text-gray-400" id="modelLabelA">読み込み中...</p>
                                 </div>
                             </div>
                             <p id="summaryOpinionA" class="text-sm text-gray-300">読み込み中...</p>
                         </div>
-                        <div class="bg-red-500/10 border border-red-500 rounded p-3">
+                        <div class="bg-red-500/10 border border-red-500 rounded p-3 cursor-pointer ai-profile-card" onclick="showAIProfile('nova')">
                             <div class="flex items-center mb-2">
                                 <div class="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-rose-500 flex items-center justify-center mr-3">
-                                    <i class="fas fa-lightbulb text-white"></i>
+                                    <i class="fas fa-fire text-white"></i>
                                 </div>
                                 <div>
-                                    <p class="font-bold text-red-400">意見B (Disagree)</p>
+                                    <p class="font-bold text-red-400">Nova <span class="text-xs text-gray-500">(反対側)</span></p>
                                     <p class="text-xs text-gray-400" id="modelLabelB">読み込み中...</p>
                                 </div>
                             </div>
@@ -259,7 +259,7 @@ export const watchPage = (user: any, debateId: string) => `
                                 <div class="text-center text-gray-400 p-8">
                                     <i class="fas fa-hourglass-half text-4xl mb-4 text-cyan-400"></i>
                                     <p class="text-lg">ディベート開始待ち</p>
-                                    <p class="text-sm text-gray-500 mt-2">メニューの「コマンド」タブから <code class="text-cyan-300">!s-0</code> で即時開始できます</p>
+                                    <p class="text-sm text-gray-500 mt-2">ディベートが開始されるまでお待ちください</p>
                                 </div>
                             </div>
                         </div>
@@ -333,12 +333,12 @@ export const watchPage = (user: any, debateId: string) => `
                     <!-- Vote Buttons -->
                     <div class="grid grid-cols-2 gap-4 mb-6">
                         <button id="voteAgreeBtn" class="vote-prediction-btn bg-green-500/20 border-2 border-green-500 hover:bg-green-500/40 p-4 rounded transition-all">
-                            <i class="fas fa-check-circle text-2xl mb-2"></i>
-                            <p class="font-bold">意見Aが優勢</p>
+                            <i class="fas fa-brain text-2xl mb-2"></i>
+                            <p class="font-bold">Aetherが優勢</p>
                         </button>
                         <button id="voteDisagreeBtn" class="vote-prediction-btn bg-red-500/20 border-2 border-red-500 hover:bg-red-500/40 p-4 rounded transition-all">
-                            <i class="fas fa-times-circle text-2xl mb-2"></i>
-                            <p class="font-bold">意見Bが優勢</p>
+                            <i class="fas fa-fire text-2xl mb-2"></i>
+                            <p class="font-bold">Novaが優勢</p>
                         </button>
                     </div>
 
@@ -346,13 +346,13 @@ export const watchPage = (user: any, debateId: string) => `
                     <div class="mb-4">
                         <div class="flex justify-between text-sm mb-2">
                             <span class="text-green-400 font-bold">
-                                <i class="fas fa-users mr-1"></i>意見A: <span id="agreePercent">--</span><span id="agreePercentSymbol"></span>
+                                <i class="fas fa-brain mr-1"></i>Aether: <span id="agreePercent">--</span><span id="agreePercentSymbol"></span>
                             </span>
                             <span class="text-gray-400" id="voteStatus">
                                 集計中...
                             </span>
                             <span class="text-red-400 font-bold">
-                                意見B: <span id="disagreePercent">--</span><span id="disagreePercentSymbol"></span> <i class="fas fa-users ml-1"></i>
+                                Nova: <span id="disagreePercent">--</span><span id="disagreePercentSymbol"></span> <i class="fas fa-fire ml-1"></i>
                             </span>
                         </div>
                         <div class="relative h-10 bg-gray-900 rounded-full overflow-hidden border-2 border-cyan-500/50 shadow-lg">
@@ -389,6 +389,34 @@ export const watchPage = (user: any, debateId: string) => `
         <div id="toast" class="fixed bottom-8 right-8 bg-cyan-500 text-black px-6 py-3 rounded-lg shadow-lg hidden z-50">
             <i class="fas fa-check-circle mr-2"></i>
             <span id="toastMessage"></span>
+        </div>
+
+        <!-- AI Profile Modal -->
+        <div id="aiProfileModal" class="modal hidden">
+            <div class="cyber-card max-w-md w-full mx-4">
+                <div class="text-center mb-6">
+                    <div id="aiProfileIcon" class="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center"></div>
+                    <h2 id="aiProfileName" class="text-2xl font-bold cyber-text"></h2>
+                    <p id="aiProfileRole" class="text-sm text-gray-400 mt-1"></p>
+                </div>
+                <div class="space-y-3 text-sm">
+                    <div class="flex justify-between bg-gray-900/50 p-3 rounded">
+                        <span class="text-gray-400">モデル</span>
+                        <span id="aiProfileModel" class="text-cyan-300 font-bold"></span>
+                    </div>
+                    <div class="flex justify-between bg-gray-900/50 p-3 rounded">
+                        <span class="text-gray-400">特徴</span>
+                        <span id="aiProfileTrait" class="text-white"></span>
+                    </div>
+                    <div class="flex justify-between bg-gray-900/50 p-3 rounded">
+                        <span class="text-gray-400">スタイル</span>
+                        <span id="aiProfileStyle" class="text-white"></span>
+                    </div>
+                </div>
+                <button onclick="document.getElementById('aiProfileModal').classList.add('hidden')" class="w-full mt-6 bg-cyan-500/20 border border-cyan-500 text-cyan-300 py-3 rounded-lg hover:bg-cyan-500/40 transition-all">
+                    <i class="fas fa-times mr-2"></i>閉じる
+                </button>
+            </div>
         </div>
 
         <div id="app-data" 

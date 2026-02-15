@@ -385,7 +385,7 @@ app.get('/main', async (c) => {
     let debatesResult: any = { results: [] }
     try {
       debatesResult = await c.env.DB.prepare(`
-        SELECT id, topic, status, created_at, scheduled_at,
+        SELECT id, topic, status, created_at, scheduled_at, agree_position, disagree_position,
                (SELECT COUNT(*) FROM debate_votes WHERE debate_id = debates.id) as total_votes
         FROM debates 
         WHERE status IN ('live', 'upcoming')
@@ -567,10 +567,10 @@ app.get('/user/:user_id', async (c) => {
     const wins = debateStats?.wins || 0
     const win_rate = total > 0 ? Math.round((wins / total) * 100) : 0
     
-    // Get privacy settings
+    // Default: credits and posts are PRIVATE by default
     let privacySettings: any = {
       show_total_debates: true, show_wins: true, show_losses: true,
-      show_draws: true, show_win_rate: true, show_posts: true, show_credits: true
+      show_draws: true, show_win_rate: true, show_posts: false, show_credits: false
     }
     try {
       const privacyData = await c.env.KV.get(`privacy:${targetUserId}`)
@@ -1155,6 +1155,47 @@ app.get('/api/archive/purchased', async (c) => {
   }
 })
 
+// API: Auto-promote upcoming debates to live 3 minutes before scheduled time
+app.get('/api/debates/check-upcoming', async (c) => {
+  try {
+    // Find upcoming debates whose scheduled_at is within 3 minutes from now
+    const threeMinutesFromNow = new Date(Date.now() + 3 * 60 * 1000).toISOString()
+    const now = new Date().toISOString()
+    
+    const upcomingDebates = await c.env.DB.prepare(`
+      SELECT id, topic, scheduled_at FROM debates 
+      WHERE status = 'upcoming' AND scheduled_at IS NOT NULL AND scheduled_at <= ?
+    `).bind(threeMinutesFromNow).all()
+    
+    const promoted: string[] = []
+    
+    if (upcomingDebates.results) {
+      for (const debate of upcomingDebates.results) {
+        // Promote to live
+        try {
+          await c.env.DB.prepare(
+            "UPDATE debates SET status = 'live', started_at = datetime('now') WHERE id = ?"
+          ).bind(debate.id).run()
+          promoted.push(debate.id as string)
+        } catch (e) {
+          try {
+            await c.env.DB.prepare("ALTER TABLE debates ADD COLUMN started_at TEXT").run()
+            await c.env.DB.prepare(
+              "UPDATE debates SET status = 'live', started_at = datetime('now') WHERE id = ?"
+            ).bind(debate.id).run()
+            promoted.push(debate.id as string)
+          } catch (e2) { }
+        }
+      }
+    }
+    
+    return c.json({ success: true, promoted })
+  } catch (error) {
+    console.error('Check upcoming error:', error)
+    return c.json({ success: true, promoted: [] })
+  }
+})
+
 // API: Update debate status (for sync)
 app.post('/api/debate/:debateId/status', async (c) => {
   try {
@@ -1197,137 +1238,94 @@ app.post('/api/commands/execute', async (c) => {
     
     const cmd = command.trim()
     
-    // !dela - Delete current debate and start new with random theme
-    if (cmd === '!dela') {
-      // Delete existing debate data
-      if (debateId) {
-        try {
-          await c.env.DB.prepare('DELETE FROM debate_comments WHERE debate_id = ?').bind(debateId).run()
-          await c.env.DB.prepare('DELETE FROM debate_messages WHERE debate_id = ?').bind(debateId).run()
-        } catch (e) { }
-      }
-      
-      // Get a random adopted theme first, then fallback to any active theme
-      let randomTheme = null
-      try {
-        // First try adopted themes
-        randomTheme = await c.env.DB.prepare(`
-          SELECT title, agree_opinion, disagree_opinion, category 
-          FROM theme_proposals 
-          WHERE status = 'active' AND adopted = 1
-          ORDER BY RANDOM() 
-          LIMIT 1
-        `).first()
-      } catch (e) { }
-      
-      if (!randomTheme) {
-        try {
-          // Fallback to any active theme
-          randomTheme = await c.env.DB.prepare(`
-            SELECT title, agree_opinion, disagree_opinion, category 
-            FROM theme_proposals 
-            WHERE status = 'active'
-            ORDER BY RANDOM() 
-            LIMIT 1
-          `).first()
-        } catch (e) { }
-      }
-      
-      if (!randomTheme) {
-        // Fallback random themes
-        const defaultThemes = [
-          { title: 'AIは人間の仕事を奪うか？', agree_opinion: 'AIの進化により多くの職種が自動化される', disagree_opinion: '新しい職種が生まれ、人間の仕事は変わるが消えない' },
-          { title: 'リモートワークは生産性を上げるか？', agree_opinion: '通勤時間の削減と自由な環境が集中力を高める', disagree_opinion: '対面コミュニケーション不足がチームワークを損なう' },
-          { title: 'SNSは社会に良い影響を与えるか？', agree_opinion: '情報の民主化と社会運動の推進に貢献', disagree_opinion: 'フェイクニュースと精神的健康への悪影響が深刻' },
-          { title: '宇宙開発に巨額投資すべきか？', agree_opinion: '人類の生存と科学技術発展のため不可欠', disagree_opinion: '地球上の問題解決に資源を集中すべき' },
-          { title: '学校教育にAIを導入すべきか？', agree_opinion: '個別最適化された学習体験が可能になる', disagree_opinion: '人間教師による情操教育が失われる' },
-        ]
-        randomTheme = defaultThemes[Math.floor(Math.random() * defaultThemes.length)]
-      }
-      
-      // Create new debate in DB
-      const newDebateId = debateId || crypto.randomUUID()
-      try {
-        // Try to update existing debate with new theme
-        await c.env.DB.prepare(`
-          UPDATE debates SET topic = ?, agree_position = ?, disagree_position = ?, status = 'pending', created_at = datetime('now')
-          WHERE id = ?
-        `).bind(randomTheme.title, randomTheme.agree_opinion, randomTheme.disagree_opinion, newDebateId).run()
-      } catch (e) {
-        // If it doesn't exist, create new
-        try {
-          await c.env.DB.prepare(`
-            INSERT INTO debates (id, topic, agree_position, disagree_position, status, created_at)
-            VALUES (?, ?, ?, ?, 'pending', datetime('now'))
-          `).bind(newDebateId, randomTheme.title, randomTheme.agree_opinion, randomTheme.disagree_opinion).run()
-        } catch (e2) { }
-      }
-      
-      return c.json({ 
-        success: true, 
-        action: 'dela',
-        theme: {
-          title: randomTheme.title,
-          agree_opinion: randomTheme.agree_opinion,
-          disagree_opinion: randomTheme.disagree_opinion
-        }
-      })
-    }
-    
     // !s-x - Schedule debate (x minutes later, 0 = immediate then auto-archive)
     const scheduleMatch = cmd.match(/^!s-(\d+)$/)
     if (scheduleMatch) {
       const minutes = parseInt(scheduleMatch[1])
       
+      // Ensure a debate exists with a random theme
+      let targetDebateId = debateId
+      if (!targetDebateId || targetDebateId === 'default') {
+        targetDebateId = crypto.randomUUID()
+      }
+      
+      // Check if debate exists in DB, if not create with random theme
+      const existingDebate = await c.env.DB.prepare('SELECT id FROM debates WHERE id = ?').bind(targetDebateId).first()
+      if (!existingDebate) {
+        // Get random theme from adopted themes or defaults
+        let randomTheme: any = null
+        try {
+          randomTheme = await c.env.DB.prepare(`
+            SELECT title, agree_opinion, disagree_opinion FROM theme_proposals 
+            WHERE status = 'active' AND adopted = 1 ORDER BY RANDOM() LIMIT 1
+          `).first()
+        } catch (e) { }
+        if (!randomTheme) {
+          try {
+            randomTheme = await c.env.DB.prepare(`
+              SELECT title, agree_opinion, disagree_opinion FROM theme_proposals 
+              WHERE status = 'active' ORDER BY RANDOM() LIMIT 1
+            `).first()
+          } catch (e) { }
+        }
+        if (!randomTheme) {
+          const defaultThemes = [
+            { title: 'AIは人間の仕事を奪うか？', agree_opinion: 'AIの進化により多くの職種が自動化される', disagree_opinion: '新しい職種が生まれ、人間の仕事は変わるが消えない' },
+            { title: 'リモートワークは生産性を上げるか？', agree_opinion: '通勤時間の削減と自由な環境が集中力を高める', disagree_opinion: '対面コミュニケーション不足がチームワークを損なう' },
+            { title: 'SNSは社会に良い影響を与えるか？', agree_opinion: '情報の民主化と社会運動の推進に貢献', disagree_opinion: 'フェイクニュースと精神的健康への悪影響が深刻' },
+            { title: '宇宙開発に巨額投資すべきか？', agree_opinion: '人類の生存と科学技術発展のため不可欠', disagree_opinion: '地球上の問題解決に資源を集中すべき' },
+            { title: '学校教育にAIを導入すべきか？', agree_opinion: '個別最適化された学習体験が可能になる', disagree_opinion: '人間教師による情操教育が失われる' },
+          ]
+          randomTheme = defaultThemes[Math.floor(Math.random() * defaultThemes.length)]
+        }
+        try {
+          await c.env.DB.prepare(`
+            INSERT INTO debates (id, topic, agree_position, disagree_position, status, created_at)
+            VALUES (?, ?, ?, ?, 'pending', datetime('now'))
+          `).bind(targetDebateId, randomTheme.title, randomTheme.agree_opinion, randomTheme.disagree_opinion).run()
+        } catch (e2) { }
+      }
+      
       if (minutes === 0) {
         // Immediate start: set debate status to 'live' in DB
-        if (debateId) {
+        try {
+          await c.env.DB.prepare(
+            "UPDATE debates SET status = 'live', started_at = datetime('now') WHERE id = ?"
+          ).bind(targetDebateId).run()
+        } catch (e) {
           try {
+            await c.env.DB.prepare("ALTER TABLE debates ADD COLUMN started_at TEXT").run()
             await c.env.DB.prepare(
               "UPDATE debates SET status = 'live', started_at = datetime('now') WHERE id = ?"
-            ).bind(debateId).run()
-          } catch (e) {
-            // Try adding started_at column if not exists
-            try {
-              await c.env.DB.prepare("ALTER TABLE debates ADD COLUMN started_at TEXT").run()
-              await c.env.DB.prepare(
-                "UPDATE debates SET status = 'live', started_at = datetime('now') WHERE id = ?"
-              ).bind(debateId).run()
-            } catch (e2) {
-              // At minimum set status
-              try { await c.env.DB.prepare("UPDATE debates SET status = 'live' WHERE id = ?").bind(debateId).run() } catch {}
-            }
+            ).bind(targetDebateId).run()
+          } catch (e2) {
+            try { await c.env.DB.prepare("UPDATE debates SET status = 'live' WHERE id = ?").bind(targetDebateId).run() } catch {}
           }
         }
-        return c.json({ success: true, action: 'start_debate_archive', schedule_minutes: 0 })
+        return c.json({ success: true, action: 'start_debate_archive', schedule_minutes: 0, debateId: targetDebateId })
       }
       
       // Scheduled start: set debate status to 'upcoming' with scheduled time
-      if (debateId) {
+      try {
+        const scheduledAt = new Date(Date.now() + minutes * 60 * 1000).toISOString()
         try {
-          // Calculate scheduled start time
-          const scheduledAt = new Date(Date.now() + minutes * 60 * 1000).toISOString()
+          await c.env.DB.prepare(
+            "UPDATE debates SET status = 'upcoming', scheduled_at = ? WHERE id = ?"
+          ).bind(scheduledAt, targetDebateId).run()
+        } catch (e) {
           try {
+            await c.env.DB.prepare("ALTER TABLE debates ADD COLUMN scheduled_at TEXT").run()
             await c.env.DB.prepare(
               "UPDATE debates SET status = 'upcoming', scheduled_at = ? WHERE id = ?"
-            ).bind(scheduledAt, debateId).run()
-          } catch (e) {
-            // Try adding scheduled_at column if not exists
-            try {
-              await c.env.DB.prepare("ALTER TABLE debates ADD COLUMN scheduled_at TEXT").run()
-              await c.env.DB.prepare(
-                "UPDATE debates SET status = 'upcoming', scheduled_at = ? WHERE id = ?"
-              ).bind(scheduledAt, debateId).run()
-            } catch (e2) {
-              // At minimum set status
-              try { await c.env.DB.prepare("UPDATE debates SET status = 'upcoming' WHERE id = ?").bind(debateId).run() } catch {}
-            }
+            ).bind(scheduledAt, targetDebateId).run()
+          } catch (e2) {
+            try { await c.env.DB.prepare("UPDATE debates SET status = 'upcoming' WHERE id = ?").bind(targetDebateId).run() } catch {}
           }
-        } catch (e) {
-          console.error('Schedule debate DB error:', e)
         }
+      } catch (e) {
+        console.error('Schedule debate DB error:', e)
       }
-      return c.json({ success: true, action: 'schedule_debate', schedule_minutes: minutes })
+      return c.json({ success: true, action: 'schedule_debate', schedule_minutes: minutes, debateId: targetDebateId })
     }
     
     // !@xxx+coiny - Grant y coins to user xxx
@@ -1380,15 +1378,15 @@ app.get('/api/user/privacy', async (c) => {
       return c.json({ success: true, settings: JSON.parse(data) })
     }
     
-    // Default: all visible
+    // Default: credits and posts are PRIVATE
     const defaults = {
       show_total_debates: true,
       show_wins: true,
       show_losses: true,
       show_draws: true,
       show_win_rate: true,
-      show_posts: true,
-      show_credits: true
+      show_posts: false,
+      show_credits: false
     }
     return c.json({ success: true, settings: defaults })
   } catch (error) {

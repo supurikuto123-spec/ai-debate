@@ -192,32 +192,6 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
         
         <div id="cmd-result" style="margin-bottom:20px;padding:15px;background:#0a0a0a;border:1px solid #333;border-radius:8px;font-family:monospace;font-size:14px;color:#9ca3af;min-height:40px;display:none;">
         </div>
-        
-        <div style="border-top:1px solid #333;padding-top:20px;">
-          <h3 style="color:#9ca3af;font-size:14px;margin-bottom:15px;">利用可能なコマンド:</h3>
-          <div style="display:grid;gap:10px;">
-            <div style="padding:10px 14px;background:rgba(0,255,255,0.05);border:1px solid rgba(0,255,255,0.2);border-radius:8px;">
-              <code style="color:#22c55e;">!s-0</code>
-              <span style="color:#9ca3af;font-size:13px;margin-left:10px;">即時開始＋終了後自動アーカイブ</span>
-            </div>
-            <div style="padding:10px 14px;background:rgba(0,255,255,0.05);border:1px solid rgba(0,255,255,0.2);border-radius:8px;">
-              <code style="color:#22c55e;">!s-1</code>
-              <span style="color:#9ca3af;font-size:13px;margin-left:10px;">1分後にディベート開始予約</span>
-            </div>
-            <div style="padding:10px 14px;background:rgba(0,255,255,0.05);border:1px solid rgba(0,255,255,0.2);border-radius:8px;">
-              <code style="color:#22c55e;">!s-x</code>
-              <span style="color:#9ca3af;font-size:13px;margin-left:10px;">x分後に予約開始（x=数字）</span>
-            </div>
-            <div style="padding:10px 14px;background:rgba(0,255,255,0.05);border:1px solid rgba(0,255,255,0.2);border-radius:8px;">
-              <code style="color:#22c55e;">!@xxx+coiny</code>
-              <span style="color:#9ca3af;font-size:13px;margin-left:10px;">ユーザーxxxにyコイン付与</span>
-            </div>
-            <div style="padding:10px 14px;background:rgba(0,255,255,0.05);border:1px solid rgba(0,255,255,0.2);border-radius:8px;">
-              <code style="color:#22c55e;">!dela</code>
-              <span style="color:#9ca3af;font-size:13px;margin-left:10px;">現在のディベート削除 → ランダムテーマで新規</span>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
 

@@ -49,8 +49,8 @@ async function loadDebateTheme() {
         const data = await response.json();
         
         DEBATE_THEME = data.topic || data.title || 'テーマ未設定';
-        OPINION_A = data.agree_position || '意見A';
-        OPINION_B = data.disagree_position || '意見B';
+        OPINION_A = data.agree_position || '賛成意見';
+        OPINION_B = data.disagree_position || '反対意見';
         
         // Update all UI elements with real data
         const titleEl = document.getElementById('debateTitle');
@@ -151,7 +151,7 @@ async function changeVote(side) {
 
     updateVoteDisplay();
     highlightSelectedButton(side);
-    showToast(side === 'agree' ? '意見Aに変更しました！' : '意見Bに変更しました！');
+    showToast(side === 'agree' ? 'Aetherに変更しました！' : 'Novaに変更しました！');
 }
 window.changeVote = changeVote;
 
@@ -226,7 +226,7 @@ function updateJudgeDisplay() {
         if (!elem) return;
         
         if (judge.stance) {
-            const winner = judge.stance === 'agree' ? '意見A' : '意見B';
+            const winner = judge.stance === 'agree' ? 'Aether' : 'Nova';
             const color = judge.stance === 'agree' ? 'text-green-400' : 'text-red-400';
             const icon = judge.stance === 'agree' ? 'fa-check-circle' : 'fa-times-circle';
             elem.className = 'text-sm font-bold ' + color;
@@ -292,7 +292,7 @@ async function postComment() {
     const stanceClass = userVote === 'agree' ? 'comment-agree' : 'comment-disagree';
     const stanceColor = userVote === 'agree' ? 'green' : 'red';
     const stanceIcon = userVote === 'agree' ? 'thumbs-up' : 'thumbs-down';
-    const stanceText = userVote === 'agree' ? '意見A支持' : '意見B支持';
+    const stanceText = userVote === 'agree' ? 'Aether支持' : 'Nova支持';
     const avatarGradient = userVote === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500';
     const initial = currentUser.user_id.charAt(0).toUpperCase();
     
@@ -652,13 +652,13 @@ async function showFinalResults() {
     
     const agreePercent = Math.round((voteData.agree / voteData.total) * 100);
     const disagreePercent = 100 - agreePercent;
-    const winner = voteData.agree > voteData.disagree ? '意見A' : '意見B';
+    const winner = voteData.agree > voteData.disagree ? 'Aether' : 'Nova';
     const winnerColor = voteData.agree > voteData.disagree ? 'text-green-400' : 'text-red-400';
     
     let judgeHTML = '';
     ['judge1', 'judge2', 'judge3'].forEach((key, i) => {
         const stance = aiJudgeStances[key];
-        const judgeWinner = stance ? (stance === 'agree' ? '意見A支持' : '意見B支持') : '判定なし';
+        const judgeWinner = stance ? (stance === 'agree' ? 'Aether支持' : 'Nova支持') : '判定なし';
         const judgeColor = stance ? (stance === 'agree' ? 'text-green-400' : 'text-red-400') : 'text-gray-400';
         judgeHTML += '<div class="mb-2"><span class="text-cyan-400 font-bold">AI-Judge-' + (i+1) + ':</span> <span class="' + judgeColor + '">' + judgeWinner + '</span></div>';
     });
@@ -669,8 +669,8 @@ async function showFinalResults() {
         '<h2 class="text-4xl font-bold text-center mb-8"><i class="fas fa-trophy mr-3 text-yellow-400"></i>最終結果</h2>' +
         '<div class="text-center mb-8"><p class="text-2xl mb-4">勝者</p><p class="text-5xl font-bold ' + winnerColor + ' mb-4">' + winner + '</p></div>' +
         '<div class="grid grid-cols-2 gap-6 mb-8">' +
-            '<div class="text-center p-6 bg-green-500/20 rounded"><p class="text-xl mb-2">意見A (Agree)</p><p class="text-4xl font-bold text-green-400">' + agreePercent + '%</p><p class="text-sm text-gray-400 mt-2">' + voteData.agree + ' 票</p></div>' +
-            '<div class="text-center p-6 bg-red-500/20 rounded"><p class="text-xl mb-2">意見B (Disagree)</p><p class="text-4xl font-bold text-red-400">' + disagreePercent + '%</p><p class="text-sm text-gray-400 mt-2">' + voteData.disagree + ' 票</p></div>' +
+            '<div class="text-center p-6 bg-green-500/20 rounded"><p class="text-xl mb-2"><i class="fas fa-brain mr-1"></i>Aether (賛成)</p><p class="text-4xl font-bold text-green-400">' + agreePercent + '%</p><p class="text-sm text-gray-400 mt-2">' + voteData.agree + ' 票</p></div>' +
+            '<div class="text-center p-6 bg-red-500/20 rounded"><p class="text-xl mb-2"><i class="fas fa-fire mr-1"></i>Nova (反対)</p><p class="text-4xl font-bold text-red-400">' + disagreePercent + '%</p><p class="text-sm text-gray-400 mt-2">' + voteData.disagree + ' 票</p></div>' +
         '</div>' +
         '<div class="bg-gray-800 p-4 rounded mb-6"><h3 class="text-xl font-bold text-cyan-400 mb-4"><i class="fas fa-gavel mr-2"></i>AI審査員の評価</h3><div class="text-sm text-white">' + judgeHTML + '</div></div>' +
         '<div class="text-center grid grid-cols-2 gap-4">' +
@@ -687,7 +687,7 @@ async function showFinalResults() {
         await fetch('/api/debate/' + DEBATE_ID + '/status', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: 'completed', winner: winner === '意見A' ? 'agree' : 'disagree' })
+            body: JSON.stringify({ status: 'completed', winner: winner === 'Aether' ? 'agree' : 'disagree' })
         });
     } catch (e) { }
     
@@ -712,7 +712,7 @@ async function saveToArchive(winner, agreePercent, disagreePercent) {
                 disagree_position: OPINION_B,
                 agree_votes: voteData.agree,
                 disagree_votes: voteData.disagree,
-                winner: winner === '意見A' ? 'agree' : 'disagree',
+                winner: winner === 'Aether' ? 'agree' : 'disagree',
                 messages: JSON.stringify(conversationHistory)
             })
         });
@@ -783,7 +783,7 @@ function addDebateMessage(side, message, model) {
     const bubbleClass = side === 'agree' ? 'bubble-agree' : 'bubble-disagree';
     const iconClass = side === 'agree' ? 'fa-brain' : 'fa-lightbulb';
     const gradientClass = side === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500';
-    const opinionLabel = side === 'agree' ? '意見A' : '意見B';
+    const opinionLabel = side === 'agree' ? 'Aether' : 'Nova';
     const aiModel = model || 'AI';
     
     container.insertAdjacentHTML('beforeend', '<div class="bubble ' + bubbleClass + ' p-4 text-white shadow-lg" style="width: 100%;"><div class="flex items-center gap-3 mb-2"><div class="w-8 h-8 rounded-full bg-gradient-to-br ' + gradientClass + ' flex items-center justify-center flex-shrink-0"><i class="fas ' + iconClass + ' text-sm"></i></div><span class="font-bold text-sm flex-shrink-0">' + aiModel + '</span><span class="text-xs opacity-75 flex-shrink-0">' + opinionLabel + '</span></div><div class="text-sm leading-relaxed" style="word-wrap: break-word; white-space: pre-wrap;">' + message + '</div></div>');
@@ -795,7 +795,7 @@ async function addDebateMessageWithTyping(side, message, actualModel) {
         const bubbleClass = side === 'agree' ? 'bubble-agree' : 'bubble-disagree';
         const iconClass = side === 'agree' ? 'fa-brain' : 'fa-lightbulb';
         const gradientClass = side === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500';
-        const opinionLabel = side === 'agree' ? '意見A' : '意見B';
+        const opinionLabel = side === 'agree' ? 'Aether' : 'Nova';
         
         const bubbleDiv = document.createElement('div');
         bubbleDiv.className = 'bubble ' + bubbleClass + ' p-4 text-white shadow-lg';
@@ -879,7 +879,7 @@ async function loadCommentsFromD1() {
                 const stanceClass = c.vote === 'agree' ? 'comment-agree' : 'comment-disagree';
                 const stanceColor = c.vote === 'agree' ? 'green' : 'red';
                 const stanceIcon = c.vote === 'agree' ? 'thumbs-up' : 'thumbs-down';
-                const stanceText = c.vote === 'agree' ? '意見A支持' : '意見B支持';
+                const stanceText = c.vote === 'agree' ? 'Aether支持' : 'Nova支持';
                 const avatarGradient = c.vote === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500';
                 const initial = c.username.charAt(0).toUpperCase();
                 
@@ -912,6 +912,42 @@ async function syncCredits() {
         }
     } catch (e) { console.error('Credit sync error:', e); }
 }
+
+// ===== AI Profiles =====
+
+const AI_PROFILES = {
+    aether: {
+        name: 'Aether',
+        role: '賛成側 AI ディベーター',
+        icon: 'fas fa-brain',
+        gradient: 'from-green-500 to-emerald-500',
+        trait: '論理的・データ重視',
+        style: '構造的に根拠を積み上げる'
+    },
+    nova: {
+        name: 'Nova',
+        role: '反対側 AI ディベーター',
+        icon: 'fas fa-fire',
+        gradient: 'from-red-500 to-rose-500',
+        trait: '批判的・反証重視',
+        style: '矛盾を鋭く突く'
+    }
+};
+
+function showAIProfile(aiId) {
+    const profile = AI_PROFILES[aiId];
+    if (!profile) return;
+    const modal = document.getElementById('aiProfileModal');
+    document.getElementById('aiProfileIcon').className = 'w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center bg-gradient-to-br ' + profile.gradient;
+    document.getElementById('aiProfileIcon').innerHTML = '<i class="' + profile.icon + ' text-white text-3xl"></i>';
+    document.getElementById('aiProfileName').textContent = profile.name;
+    document.getElementById('aiProfileRole').textContent = profile.role;
+    document.getElementById('aiProfileModel').textContent = AI_MODEL_DISPLAY;
+    document.getElementById('aiProfileTrait').textContent = profile.trait;
+    document.getElementById('aiProfileStyle').textContent = profile.style;
+    modal.classList.remove('hidden');
+}
+window.showAIProfile = showAIProfile;
 
 // ===== Initialize =====
 

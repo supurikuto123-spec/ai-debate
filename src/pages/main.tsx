@@ -78,18 +78,18 @@ export const mainPage = (user: any, debates: any[] = []) => `
                         </div>
                         <div class="match-ais">
                             <div class="ai-card pro">
-                                <div class="ai-avatar"><i class="fas fa-brain"></i></div>
+                                <div class="ai-avatar" style="background: linear-gradient(135deg, #10b981, #059669); width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center;"><i class="fas fa-brain text-white"></i></div>
                                 <div class="ai-info">
-                                    <div class="ai-name">AI Model</div>
-                                    <div class="ai-model">意見A</div>
+                                    <div class="ai-name" style="font-weight:bold; color:#34d399; font-size:13px;">Aether</div>
+                                    <div class="ai-model" style="font-size:11px; color:#d1d5db; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${debate.agree_position || ''}">${debate.agree_position || '賛成意見'}</div>
                                 </div>
                             </div>
                             <div class="vs-divider">VS</div>
                             <div class="ai-card con">
-                                <div class="ai-avatar"><i class="fas fa-lightbulb"></i></div>
+                                <div class="ai-avatar" style="background: linear-gradient(135deg, #ef4444, #dc2626); width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center;"><i class="fas fa-fire text-white"></i></div>
                                 <div class="ai-info">
-                                    <div class="ai-name">AI Model</div>
-                                    <div class="ai-model">意見B</div>
+                                    <div class="ai-name" style="font-weight:bold; color:#f87171; font-size:13px;">Nova</div>
+                                    <div class="ai-model" style="font-size:11px; color:#d1d5db; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${debate.disagree_position || ''}">${debate.disagree_position || '反対意見'}</div>
                                 </div>
                             </div>
                         </div>
@@ -118,24 +118,6 @@ export const mainPage = (user: any, debates: any[] = []) => `
                 <div id="archive-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12" style="display:none;"></div>
             </div>
         </div>
-
-        <!-- Footer -->
-        <footer class="border-t border-cyan-500/20 py-8 bg-black/80">
-            <div class="container mx-auto px-4">
-                <div class="flex flex-wrap justify-center gap-4 md:gap-8 text-sm text-gray-400">
-                    <a href="/announcements" class="hover:text-cyan-400 transition-colors">お知らせ</a>
-                    <a href="/archive" class="hover:text-cyan-400 transition-colors">アーカイブ</a>
-                    <a href="/theme-vote" class="hover:text-cyan-400 transition-colors">テーマ投票</a>
-                    <a href="/community" class="hover:text-cyan-400 transition-colors">コミュニティ</a>
-                    <a href="/mypage" class="hover:text-cyan-400 transition-colors">マイページ</a>
-                    <a href="/terms" class="hover:text-cyan-400 transition-colors">利用規約</a>
-                    <a href="/privacy" class="hover:text-cyan-400 transition-colors">プライバシーポリシー</a>
-                    <a href="/legal" class="hover:text-cyan-400 transition-colors">特定商取引法</a>
-                    <a href="/tickets" class="hover:text-cyan-400 transition-colors">サポート</a>
-                </div>
-                <p class="text-center text-gray-600 text-xs mt-4">&copy; 2025 AI Debate Arena. All rights reserved.</p>
-            </div>
-        </footer>
 
         <div id="toast" class="toast">
             <i class="fas fa-info-circle mr-2"></i>
@@ -255,6 +237,21 @@ export const mainPage = (user: any, debates: any[] = []) => `
                 toast.classList.add('show');
                 setTimeout(() => { toast.classList.remove('show'); }, 3000);
             }
+
+            // Auto-promote upcoming debates to live 3 minutes before scheduled time
+            async function checkUpcomingDebates() {
+                try {
+                    const res = await fetch('/api/debates/check-upcoming');
+                    const data = await res.json();
+                    if (data.promoted && data.promoted.length > 0) {
+                        showToast('ディベートが開始間近です！');
+                        setTimeout(() => location.reload(), 2000);
+                    }
+                } catch(e) { }
+            }
+            // Check every 30 seconds
+            setInterval(checkUpcomingDebates, 30000);
+            checkUpcomingDebates();
         </script>
     ${i18nScript()}
 </body>
