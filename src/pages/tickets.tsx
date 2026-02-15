@@ -88,34 +88,32 @@ export const ticketsPage = (user: any) => `
                 border-radius: 16px 16px 16px 4px;
                 padding: 12px 16px;
             }
-            .msg-sender {
-                font-size: 12px;
-                font-weight: 700;
-                margin-bottom: 4px;
-            }
-            .msg-text {
-                font-size: 14px;
-                line-height: 1.6;
-                white-space: pre-wrap;
-                word-break: break-word;
-            }
-            .msg-time {
-                font-size: 11px;
-                color: #6b7280;
-                margin-top: 4px;
-                text-align: right;
-            }
+            .msg-sender { font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+            .msg-text { font-size: 14px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+            .msg-time { font-size: 11px; color: #6b7280; margin-top: 4px; text-align: right; }
             .status-dot {
-                width: 8px;
-                height: 8px;
-                border-radius: 50%;
-                display: inline-block;
-                margin-right: 6px;
+                width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px;
             }
             .status-dot.open { background: #22d3ee; }
-            .status-dot.in_progress { background: #fbbf24; }
+            .status-dot.in_progress { background: #a855f7; }
             .status-dot.resolved { background: #34d399; }
             .status-dot.closed { background: #9ca3af; }
+            .status-badge {
+                font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 700;
+            }
+            .status-badge.open { background: #22d3ee20; color: #22d3ee; }
+            .status-badge.in_progress { background: #a855f720; color: #a855f7; }
+            .status-badge.resolved { background: #34d39920; color: #34d399; }
+            .status-badge.closed { background: #9ca3af20; color: #9ca3af; }
+            .readonly-notice {
+                background: rgba(34, 197, 94, 0.1);
+                border: 1px solid rgba(34, 197, 94, 0.3);
+                border-radius: 8px;
+                padding: 12px 16px;
+                text-align: center;
+                color: #34d399;
+                font-size: 14px;
+            }
             
             @media (max-width: 768px) {
                 .chat-container { flex-direction: column; height: calc(100vh - 160px); }
@@ -160,6 +158,9 @@ export const ticketsPage = (user: any) => `
                                     <div id="chat-subject" class="font-bold text-lg"></div>
                                     <div id="chat-status" class="text-sm text-gray-400"></div>
                                 </div>
+                                <button id="resolve-btn" class="hidden bg-green-500 hover:bg-green-600 text-white text-sm px-4 py-2 rounded transition" onclick="resolveTicket()">
+                                    <i class="fas fa-check-circle mr-1"></i>解決済みにする
+                                </button>
                             </div>
                         </div>
                         <div id="chat-messages" class="chat-messages">
@@ -182,6 +183,9 @@ export const ticketsPage = (user: any) => `
                                     <i class="fas fa-paper-plane"></i>
                                 </button>
                             </div>
+                        </div>
+                        <div id="chat-readonly-notice" class="hidden readonly-notice m-4">
+                            <i class="fas fa-check-circle mr-2"></i>このチケットは解決済みです。新しい問題がある場合は新しいチケットを作成してください。
                         </div>
                     </div>
                 </div>
@@ -232,12 +236,35 @@ export const ticketsPage = (user: any) => `
                     if (data.success) {
                         ticketsData = data.tickets;
                         renderTicketList(data.tickets);
+                        
+                        // Check if user can create new tickets
+                        const hasUnresolved = data.tickets.some(t => t.status === 'open' || t.status === 'in_progress');
+                        const newBtn = document.getElementById('new-ticket-btn');
+                        if (hasUnresolved) {
+                            newBtn.disabled = true;
+                            newBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                            newBtn.title = '未解決のチケットがあるため新規作成できません';
+                        } else {
+                            newBtn.disabled = false;
+                            newBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                            newBtn.title = '';
+                        }
                     }
                 } catch (error) {
                     console.error('Load tickets error:', error);
                     document.getElementById('ticket-list').innerHTML = 
                         '<div class="text-center text-red-400 py-8 text-sm">読み込みエラー</div>';
                 }
+            }
+            
+            function getUserStatusLabel(status) {
+                // User-friendly status labels
+                return { 
+                    open: '送信済み', 
+                    in_progress: '返信あり', 
+                    resolved: '解決済み', 
+                    closed: '解決済み' 
+                }[status] || status;
             }
             
             function renderTicketList(tickets) {
@@ -254,17 +281,13 @@ export const ticketsPage = (user: any) => `
                         <div class="flex items-center gap-2 mb-1">
                             <span class="status-dot \${t.status}"></span>
                             <span class="text-sm font-bold truncate flex-1">\${t.subject}</span>
+                            <span class="status-badge \${t.status}">\${getUserStatusLabel(t.status)}</span>
                         </div>
                         <div class="flex justify-between text-xs text-gray-500">
-                            <span>\${getStatusLabel(t.status)}</span>
                             <span>\${formatDate(t.updated_at || t.created_at)}</span>
                         </div>
                     </div>
                 \`).join('');
-            }
-            
-            function getStatusLabel(status) {
-                return { open: '未対応', in_progress: '対応中', resolved: '解決済み', closed: 'クローズ' }[status] || status;
             }
             
             function formatDate(dateStr) {
@@ -282,24 +305,25 @@ export const ticketsPage = (user: any) => `
                 currentTicketId = ticketId;
                 
                 // Update sidebar highlight
-                document.querySelectorAll('.ticket-item').forEach((el, i) => {
-                    el.classList.toggle('active', ticketsData[i] && ticketsData[i].id === ticketId);
-                });
+                renderTicketList(ticketsData);
                 
                 const ticket = ticketsData.find(t => t.id === ticketId);
                 
-                // Show header and input
+                // Show header
                 document.getElementById('chat-header').classList.remove('hidden');
-                document.getElementById('chat-input-area').classList.remove('hidden');
                 document.getElementById('chat-subject').textContent = ticket ? ticket.subject : 'チケット';
                 
-                const statusLabel = ticket ? getStatusLabel(ticket.status) : '';
+                const statusLabel = ticket ? getUserStatusLabel(ticket.status) : '';
                 document.getElementById('chat-status').innerHTML = '<span class="status-dot ' + (ticket ? ticket.status : '') + '"></span>' + statusLabel;
                 
-                // Hide input if resolved/closed
-                if (ticket && (ticket.status === 'resolved' || ticket.status === 'closed')) {
-                    document.getElementById('chat-input-area').classList.add('hidden');
-                }
+                // Show/hide input and resolve button based on status
+                const isReadOnly = ticket && (ticket.status === 'resolved' || ticket.status === 'closed');
+                document.getElementById('chat-input-area').classList.toggle('hidden', isReadOnly);
+                document.getElementById('chat-readonly-notice').classList.toggle('hidden', !isReadOnly);
+                
+                // Show resolve button only for open/in_progress tickets
+                const resolveBtn = document.getElementById('resolve-btn');
+                resolveBtn.classList.toggle('hidden', isReadOnly);
                 
                 await loadMessages(ticketId);
                 
@@ -328,7 +352,7 @@ export const ticketsPage = (user: any) => `
                 container.innerHTML = messages.map(msg => {
                     const isStaff = msg.is_staff_reply;
                     const cls = isStaff ? 'msg-staff' : 'msg-user';
-                    const senderName = isStaff ? 'サポートスタッフ' : (msg.nickname || msg.user_id || 'あなた');
+                    const senderName = isStaff ? 'サポートスタッフ' : 'あなた';
                     const senderIcon = isStaff ? '<i class="fas fa-headset mr-1 text-purple-400"></i>' : '<i class="fas fa-user mr-1 text-cyan-400"></i>';
                     const time = new Date(msg.created_at).toLocaleString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
                     
@@ -377,8 +401,36 @@ export const ticketsPage = (user: any) => `
                 }
             }
             
+            async function resolveTicket() {
+                if (!currentTicketId) return;
+                if (!confirm('このチケットを解決済みにしますか？解決済みにすると返信できなくなります。')) return;
+                
+                try {
+                    const response = await fetch('/api/tickets/' + currentTicketId + '/resolve', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        alert('チケットを解決済みにしました');
+                        await loadTickets();
+                        openTicket(currentTicketId);
+                    } else {
+                        alert(data.error || 'エラーが発生しました');
+                    }
+                } catch (error) {
+                    console.error('Resolve error:', error);
+                }
+            }
+            
             // New ticket
             document.getElementById('new-ticket-btn').addEventListener('click', () => {
+                const btn = document.getElementById('new-ticket-btn');
+                if (btn.disabled) {
+                    alert('未解決のチケットがあるため、新しいチケットは作成できません。先に既存のチケットを解決してください。');
+                    return;
+                }
                 document.getElementById('new-ticket-modal').classList.remove('hidden');
             });
             

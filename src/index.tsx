@@ -154,9 +154,10 @@ app.post('/api/register', async (c) => {
       return c.json({ error: 'このメールアドレスは既に登録されています' }, 400)
     }
     
-    // Create user (pre-registration gets 50000 credits)
+    // Create user: 500 credits for normal users, special amount for dev
     const userId = crypto.randomUUID()
-    const credits = 50000 // Pre-registration bonus
+    const isDevUser = user_id === 'dev'
+    const credits = isDevUser ? 500000 : 500 // dev gets 500000, normal users get 500
     
     await c.env.DB.prepare(`
       INSERT INTO users (id, user_id, username, email, google_id, credits, is_pre_registration, created_at, updated_at)
@@ -378,10 +379,11 @@ app.get('/mypage', async (c) => {
     if (!userData) {
       // Create user if not exists (with required columns)
       const newId = crypto.randomUUID()
+      const defaultCredits = user.user_id === 'dev' ? 500000 : 500
       await c.env.DB.prepare(`
         INSERT INTO users (id, user_id, username, email, google_id, credits, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, 50000, datetime('now'), datetime('now'))
-      `).bind(newId, user.user_id, user.username || user.user_id, user.email || '', user.google_id || 'local_' + user.user_id).run()
+        VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+      `).bind(newId, user.user_id, user.username || user.user_id, user.email || '', user.google_id || 'local_' + user.user_id, defaultCredits).run()
       
       userData = await c.env.DB.prepare(
         'SELECT * FROM users WHERE user_id = ?'
@@ -896,6 +898,43 @@ app.get('/api/archive/detail/:id', async (c) => {
   }
 })
 
+// API: Check archive purchase status for user
+app.get('/api/archive/purchased', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    if (!userCookie) {
+      return c.json({ success: true, purchased_ids: [] })
+    }
+    
+    const user = JSON.parse(userCookie)
+    
+    // Dev user has access to all
+    if (user.user_id === 'dev') {
+      return c.json({ success: true, purchased_ids: ['all'] })
+    }
+    
+    const views = await c.env.DB.prepare(`
+      SELECT debate_id FROM archive_views WHERE user_id = ?
+    `).bind(user.user_id).all()
+    
+    const purchasedIds = (views.results || []).map((v: any) => v.debate_id)
+    
+    return c.json({ success: true, purchased_ids: purchasedIds })
+  } catch (error) {
+    console.error('Check purchased error:', error)
+    return c.json({ success: true, purchased_ids: [] })
+  }
+})
+
+// API: Get AI model info (for debate page display)
+app.get('/api/debate/model-info', async (c) => {
+  return c.json({ 
+    success: true, 
+    model: 'gpt-4.1-nano',
+    display_name: 'GPT-4.1 Nano'
+  })
+})
+
 // API: Purchase Archive Access
 app.post('/api/archive/purchase', async (c) => {
   try {
@@ -907,21 +946,41 @@ app.post('/api/archive/purchase', async (c) => {
     const user = JSON.parse(userCookie)
     const { debate_id } = await c.req.json()
     
-    // Check credits (dev user has 500000 credits)
-    const userData = await c.env.DB.prepare(
-      'SELECT credits FROM users WHERE user_id = ?'
-    ).bind(user.user_id).first()
+    // Dev user bypasses credit check
+    const isDevUser = user.user_id === 'dev'
     
-    const currentCredits = userData?.credits || 0
+    // Check if already purchased
+    const existingView = await c.env.DB.prepare(
+      'SELECT id FROM archive_views WHERE user_id = ? AND debate_id = ?'
+    ).bind(user.user_id, debate_id).first()
     
-    if (currentCredits < 15) {
-      return c.json({ success: false, error: 'クレジットが不足しています' })
+    if (existingView) {
+      // Already purchased - grant access without charging
+      return c.json({ success: true, session_id: crypto.randomUUID(), already_purchased: true })
     }
     
-    // Deduct credits
-    await c.env.DB.prepare(
-      'UPDATE users SET credits = credits - 15 WHERE user_id = ?'
-    ).bind(user.user_id).run()
+    if (!isDevUser) {
+      const userData = await c.env.DB.prepare(
+        'SELECT credits FROM users WHERE user_id = ?'
+      ).bind(user.user_id).first()
+      
+      const currentCredits = userData?.credits || 0
+      
+      if (currentCredits < 50) {
+        return c.json({ success: false, error: 'クレジットが不足しています（必要: 50クレジット）' })
+      }
+      
+      // Deduct 50 credits
+      await c.env.DB.prepare(
+        'UPDATE users SET credits = credits - 50 WHERE user_id = ?'
+      ).bind(user.user_id).run()
+      
+      // Record credit transaction
+      await c.env.DB.prepare(`
+        INSERT INTO credit_transactions (id, user_id, amount, type, reason, created_at)
+        VALUES (?, ?, ?, 'spend', 'archive_view', datetime('now'))
+      `).bind(crypto.randomUUID(), user.user_id, -50).run()
+    }
     
     // Create session
     const sessionId = crypto.randomUUID()
@@ -1933,14 +1992,7 @@ app.get('/api/admin/tickets', async (c) => {
              u.nickname, u.email
       FROM support_tickets t
       LEFT JOIN users u ON t.user_id = u.user_id
-      ORDER BY 
-        CASE 
-          WHEN t.status = 'open' THEN 1
-          WHEN t.status = 'in_progress' THEN 2
-          WHEN t.status = 'resolved' THEN 3
-          ELSE 4
-        END,
-        t.created_at DESC
+      ORDER BY t.created_at ASC
     `).all()
     
     return c.json({ success: true, tickets: tickets.results || [] })
@@ -2065,6 +2117,11 @@ app.post('/api/tickets/:id/reply', async (c) => {
       return c.json({ success: false, error: 'Permission denied' }, 403)
     }
     
+    // Prevent replies on resolved/closed tickets
+    if (ticket.status === 'resolved' || ticket.status === 'closed') {
+      return c.json({ success: false, error: 'このチケットは解決済みのため返信できません' }, 400)
+    }
+    
     const messageId = crypto.randomUUID()
     const isStaffReply = user.user_id === 'dev' ? 1 : 0
     
@@ -2081,12 +2138,60 @@ app.post('/api/tickets/:id/reply', async (c) => {
         SET updated_at = datetime('now'), status = 'in_progress'
         WHERE id = ?
       `).bind(ticketId).run()
+    } else {
+      // User replied - just update timestamp
+      await c.env.DB.prepare(`
+        UPDATE support_tickets SET updated_at = datetime('now') WHERE id = ?
+      `).bind(ticketId).run()
     }
     
     return c.json({ success: true })
   } catch (error) {
     console.error('Reply ticket error:', error)
     return c.json({ success: false, error: 'Failed to reply' }, 500)
+  }
+})
+
+// API: User resolves own ticket
+app.post('/api/tickets/:id/resolve', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    if (!userCookie) {
+      return c.json({ success: false, error: 'Not authenticated' }, 401)
+    }
+    
+    const user = JSON.parse(userCookie)
+    const ticketId = c.req.param('id')
+    
+    // Verify ticket ownership
+    const ticket = await c.env.DB.prepare(`
+      SELECT user_id, status FROM support_tickets WHERE id = ?
+    `).bind(ticketId).first()
+    
+    if (!ticket) {
+      return c.json({ success: false, error: 'Ticket not found' }, 404)
+    }
+    
+    if (ticket.user_id !== user.user_id) {
+      return c.json({ success: false, error: 'Permission denied' }, 403)
+    }
+    
+    if (ticket.status === 'resolved' || ticket.status === 'closed') {
+      return c.json({ success: false, error: 'このチケットは既に解決済みです' }, 400)
+    }
+    
+    await c.env.DB.prepare(`
+      UPDATE support_tickets 
+      SET status = 'resolved', 
+          updated_at = datetime('now'),
+          resolved_at = datetime('now')
+      WHERE id = ?
+    `).bind(ticketId).run()
+    
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('Resolve ticket error:', error)
+    return c.json({ success: false, error: 'Failed to resolve ticket' }, 500)
   }
 })
 

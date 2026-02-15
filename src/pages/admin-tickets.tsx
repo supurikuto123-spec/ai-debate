@@ -13,7 +13,7 @@ export const adminTicketsPage = (user: any) => `
         <style>
             .chat-container {
                 display: flex;
-                height: calc(100vh - 220px);
+                height: calc(100vh - 260px);
                 max-height: 750px;
                 border: 1px solid rgba(239, 68, 68, 0.3);
                 border-radius: 12px;
@@ -21,7 +21,7 @@ export const adminTicketsPage = (user: any) => `
                 background: rgba(0, 10, 20, 0.9);
             }
             .ticket-sidebar {
-                width: 360px;
+                width: 380px;
                 border-right: 1px solid rgba(239, 68, 68, 0.2);
                 display: flex;
                 flex-direction: column;
@@ -105,9 +105,53 @@ export const adminTicketsPage = (user: any) => `
             .status-badge.in_progress { background: #fbbf2420; color: #fbbf24; }
             .status-badge.resolved { background: #34d39920; color: #34d399; }
             .status-badge.closed { background: #9ca3af20; color: #9ca3af; }
+            .filter-tab {
+                padding: 8px 16px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 13px;
+                font-weight: 700;
+                transition: all 0.2s;
+                background: rgba(255,255,255,0.05);
+                border: 1px solid rgba(255,255,255,0.1);
+                color: #9ca3af;
+                white-space: nowrap;
+            }
+            .filter-tab:hover {
+                background: rgba(239, 68, 68, 0.1);
+                border-color: rgba(239, 68, 68, 0.3);
+            }
+            .filter-tab.active {
+                background: rgba(239, 68, 68, 0.2);
+                border-color: #ef4444;
+                color: #ef4444;
+            }
+            .filter-tab .count-badge {
+                display: inline-block;
+                min-width: 18px;
+                height: 18px;
+                line-height: 18px;
+                text-align: center;
+                border-radius: 9px;
+                font-size: 11px;
+                margin-left: 6px;
+                background: rgba(255,255,255,0.1);
+            }
+            .filter-tab.active .count-badge {
+                background: rgba(239, 68, 68, 0.4);
+            }
+            .readonly-notice {
+                background: rgba(239, 68, 68, 0.1);
+                border: 1px solid rgba(239, 68, 68, 0.3);
+                border-radius: 8px;
+                padding: 12px 16px;
+                text-align: center;
+                color: #f87171;
+                font-size: 14px;
+            }
             
             @media (max-width: 768px) {
-                .chat-container { flex-direction: column; height: calc(100vh - 200px); }
+                .chat-container { flex-direction: column; height: calc(100vh - 240px); }
                 .ticket-sidebar { width: 100%; max-height: 220px; border-right: none; border-bottom: 1px solid rgba(239, 68, 68, 0.2); }
             }
         </style>
@@ -120,31 +164,30 @@ export const adminTicketsPage = (user: any) => `
                 <i class="fas fa-tools mr-3 text-red-500"></i>チケット管理 (DEV)
             </h1>
             
-            <!-- Status Counts -->
-            <div class="grid grid-cols-4 gap-3 mb-6">
-                <div class="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-3 text-center">
-                    <div class="text-2xl font-bold text-cyan-400" id="count-open">0</div>
-                    <div class="text-xs text-gray-400">未対応</div>
-                </div>
-                <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-center">
-                    <div class="text-2xl font-bold text-yellow-400" id="count-in-progress">0</div>
-                    <div class="text-xs text-gray-400">対応中</div>
-                </div>
-                <div class="bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-center">
-                    <div class="text-2xl font-bold text-green-400" id="count-resolved">0</div>
-                    <div class="text-xs text-gray-400">解決済み</div>
-                </div>
-                <div class="bg-gray-500/10 border border-gray-500/30 rounded-lg p-3 text-center">
-                    <div class="text-2xl font-bold text-gray-400" id="count-closed">0</div>
-                    <div class="text-xs text-gray-400">クローズ</div>
-                </div>
+            <!-- Filter Tabs -->
+            <div class="flex flex-wrap gap-2 mb-6">
+                <button class="filter-tab active" data-filter="open" onclick="filterTickets('open')">
+                    <i class="fas fa-envelope mr-1"></i>未読<span class="count-badge" id="tab-count-open">0</span>
+                </button>
+                <button class="filter-tab" data-filter="in_progress" onclick="filterTickets('in_progress')">
+                    <i class="fas fa-spinner mr-1"></i>対応中<span class="count-badge" id="tab-count-in_progress">0</span>
+                </button>
+                <button class="filter-tab" data-filter="resolved" onclick="filterTickets('resolved')">
+                    <i class="fas fa-check-circle mr-1"></i>解決済み<span class="count-badge" id="tab-count-resolved">0</span>
+                </button>
+                <button class="filter-tab" data-filter="closed" onclick="filterTickets('closed')">
+                    <i class="fas fa-lock mr-1"></i>クローズ<span class="count-badge" id="tab-count-closed">0</span>
+                </button>
+                <button class="filter-tab" data-filter="all" onclick="filterTickets('all')">
+                    <i class="fas fa-list mr-1"></i>すべて<span class="count-badge" id="tab-count-all">0</span>
+                </button>
             </div>
             
             <div class="chat-container">
                 <!-- Sidebar -->
                 <div class="ticket-sidebar">
                     <div class="ticket-sidebar-header">
-                        <div class="text-sm font-bold text-red-400"><i class="fas fa-ticket-alt mr-1"></i> 全チケット</div>
+                        <div class="text-sm font-bold text-red-400"><i class="fas fa-ticket-alt mr-1"></i> チケットリスト</div>
                     </div>
                     <div id="ticket-list" class="ticket-list-container">
                         <div class="text-center text-gray-500 py-8 text-sm">
@@ -164,7 +207,7 @@ export const adminTicketsPage = (user: any) => `
                             </div>
                             <div class="flex items-center gap-3">
                                 <select id="status-select" class="bg-gray-900 border border-red-500/50 rounded px-3 py-1 text-sm">
-                                    <option value="open">未対応</option>
+                                    <option value="open">未読</option>
                                     <option value="in_progress">対応中</option>
                                     <option value="resolved">解決済み</option>
                                     <option value="closed">クローズ</option>
@@ -196,6 +239,9 @@ export const adminTicketsPage = (user: any) => `
                             </button>
                         </div>
                     </div>
+                    <div id="chat-readonly-notice" class="hidden readonly-notice m-4">
+                        <i class="fas fa-lock mr-2"></i>このチケットは解決済みのため、返信できません。
+                    </div>
                 </div>
             </div>
         </div>
@@ -203,6 +249,8 @@ export const adminTicketsPage = (user: any) => `
         <script>
             let currentTicketId = null;
             let allTickets = [];
+            let filteredTickets = [];
+            let currentFilter = 'open';
             let messageRefreshInterval = null;
             
             async function loadTickets() {
@@ -212,28 +260,51 @@ export const adminTicketsPage = (user: any) => `
                     
                     if (data.success) {
                         allTickets = data.tickets;
-                        renderTicketList(allTickets);
-                        updateCounts(allTickets);
+                        updateFilterCounts();
+                        filterTickets(currentFilter);
                     }
                 } catch (error) {
                     console.error('Load tickets error:', error);
                 }
             }
             
-            function updateCounts(tickets) {
-                const counts = { open: 0, in_progress: 0, resolved: 0, closed: 0 };
-                tickets.forEach(t => { if (counts[t.status] !== undefined) counts[t.status]++; });
-                document.getElementById('count-open').textContent = counts.open;
-                document.getElementById('count-in-progress').textContent = counts.in_progress;
-                document.getElementById('count-resolved').textContent = counts.resolved;
-                document.getElementById('count-closed').textContent = counts.closed;
+            function updateFilterCounts() {
+                const counts = { open: 0, in_progress: 0, resolved: 0, closed: 0, all: allTickets.length };
+                allTickets.forEach(t => { if (counts[t.status] !== undefined) counts[t.status]++; });
+                
+                document.getElementById('tab-count-open').textContent = counts.open;
+                document.getElementById('tab-count-in_progress').textContent = counts.in_progress;
+                document.getElementById('tab-count-resolved').textContent = counts.resolved;
+                document.getElementById('tab-count-closed').textContent = counts.closed;
+                document.getElementById('tab-count-all').textContent = counts.all;
+            }
+            
+            function filterTickets(filter) {
+                currentFilter = filter;
+                
+                // Update tab active state
+                document.querySelectorAll('.filter-tab').forEach(tab => {
+                    tab.classList.toggle('active', tab.dataset.filter === filter);
+                });
+                
+                // Filter and sort: oldest first (ascending by created_at)
+                if (filter === 'all') {
+                    filteredTickets = [...allTickets];
+                } else {
+                    filteredTickets = allTickets.filter(t => t.status === filter);
+                }
+                
+                // Sort: oldest at top, newest at bottom
+                filteredTickets.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+                
+                renderTicketList(filteredTickets);
             }
             
             function renderTicketList(tickets) {
                 const container = document.getElementById('ticket-list');
                 
                 if (tickets.length === 0) {
-                    container.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm"><i class="fas fa-inbox text-2xl mb-2"></i><div>チケットなし</div></div>';
+                    container.innerHTML = '<div class="text-center text-gray-500 py-8 text-sm"><i class="fas fa-inbox text-2xl mb-2"></i><div>該当するチケットなし</div></div>';
                     return;
                 }
                 
@@ -247,14 +318,14 @@ export const adminTicketsPage = (user: any) => `
                         </div>
                         <div class="flex justify-between text-xs text-gray-500">
                             <span><i class="fas fa-user mr-1"></i>\${t.nickname || t.user_id}</span>
-                            <span>\${formatDate(t.updated_at || t.created_at)}</span>
+                            <span>\${formatDate(t.created_at)}</span>
                         </div>
                     </div>
                 \`).join('');
             }
             
             function getStatusLabel(status) {
-                return { open: '未対応', in_progress: '対応中', resolved: '解決済み', closed: 'クローズ' }[status] || status;
+                return { open: '未読', in_progress: '対応中', resolved: '解決済み', closed: 'クローズ' }[status] || status;
             }
             
             function formatDate(dateStr) {
@@ -273,11 +344,10 @@ export const adminTicketsPage = (user: any) => `
                 const ticket = allTickets.find(t => t.id === ticketId);
                 
                 // Re-render sidebar to show active state
-                renderTicketList(allTickets);
+                renderTicketList(filteredTickets);
                 
-                // Show header and input
+                // Show header
                 document.getElementById('chat-header').classList.remove('hidden');
-                document.getElementById('chat-input-area').classList.remove('hidden');
                 document.getElementById('chat-subject').textContent = ticket ? ticket.subject : 'チケット';
                 document.getElementById('chat-user-info').innerHTML = ticket 
                     ? '<i class="fas fa-user mr-1"></i>' + (ticket.nickname || ticket.user_id) + ' ・ <i class="fas fa-envelope mr-1"></i>' + (ticket.email || 'N/A')
@@ -286,6 +356,11 @@ export const adminTicketsPage = (user: any) => `
                 if (ticket) {
                     document.getElementById('status-select').value = ticket.status;
                 }
+                
+                // Show/hide input based on resolved/closed status
+                const isReadOnly = ticket && (ticket.status === 'resolved' || ticket.status === 'closed');
+                document.getElementById('chat-input-area').classList.toggle('hidden', isReadOnly);
+                document.getElementById('chat-readonly-notice').classList.toggle('hidden', !isReadOnly);
                 
                 await loadMessages(ticketId);
                 
@@ -352,7 +427,7 @@ export const adminTicketsPage = (user: any) => `
                     const data = await response.json();
                     if (data.success) {
                         await loadMessages(currentTicketId);
-                        loadTickets(); // Refresh sidebar
+                        loadTickets();
                     } else {
                         alert(data.error || 'エラーが発生しました');
                     }
@@ -375,7 +450,9 @@ export const adminTicketsPage = (user: any) => `
                     const data = await response.json();
                     if (data.success) {
                         alert('ステータスを更新しました');
-                        loadTickets();
+                        await loadTickets();
+                        // Refresh current ticket view
+                        openTicket(currentTicketId);
                     }
                 } catch (error) {
                     console.error('Update status error:', error);

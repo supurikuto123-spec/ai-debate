@@ -25,6 +25,16 @@ export const archivePage = (userData: any) => `<!DOCTYPE html>
             border-right: 4px solid #ef4444;
             border-radius: 8px;
         }
+        .btn-purchased {
+            background: rgba(34, 197, 94, 0.2);
+            border: 2px solid #22c55e;
+            color: #22c55e;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-purchased:hover {
+            background: rgba(34, 197, 94, 0.3);
+        }
     </style>
 </head>
 <body class="bg-black text-white">
@@ -39,7 +49,7 @@ export const archivePage = (userData: any) => `<!DOCTYPE html>
                 <p class="text-cyan-300">過去のディベートを視聴</p>
                 <div class="mt-3 inline-block px-4 py-2 bg-cyan-500/20 border-2 border-cyan-500 rounded-lg">
                     <i class="fas fa-coins text-yellow-400 mr-2"></i>
-                    <span class="text-yellow-300 font-bold">視聴料: 15クレジット</span>
+                    <span class="text-yellow-300 font-bold">視聴料: 50クレジット</span>
                 </div>
             </div>
             <div class="flex justify-center gap-4 mb-8">
@@ -87,8 +97,29 @@ export const archivePage = (userData: any) => `<!DOCTYPE html>
     </div>
     <script>
         const currentUser = { user_id: '${userData.user_id}', credits: ${userData.credits} };
+        let purchasedDebateIds = [];
+        
+        async function loadPurchasedStatus() {
+            try {
+                const response = await fetch('/api/archive/purchased');
+                const data = await response.json();
+                if (data.success) {
+                    purchasedDebateIds = data.purchased_ids || [];
+                }
+            } catch (error) {
+                console.error('Load purchased status error:', error);
+            }
+        }
+        
+        function isPurchased(debateId) {
+            if (currentUser.user_id === 'dev') return true;
+            if (purchasedDebateIds.includes('all')) return true;
+            return purchasedDebateIds.includes(debateId) || purchasedDebateIds.includes(String(debateId));
+        }
         
         async function loadDebates() {
+            await loadPurchasedStatus();
+            
             try {
                 const response = await fetch('/api/archive/debates');
                 const data = await response.json();
@@ -99,7 +130,14 @@ export const archivePage = (userData: any) => `<!DOCTYPE html>
                     return;
                 }
                 
-                grid.innerHTML = data.debates.map(debate => \`
+                grid.innerHTML = data.debates.map(debate => {
+                    const purchased = isPurchased(debate.debate_id);
+                    const btnClass = purchased ? 'btn-purchased' : 'btn-watch';
+                    const btnText = purchased 
+                        ? '<i class="fas fa-check-circle mr-2"></i>購入済み - 視聴する' 
+                        : '<i class="fas fa-play-circle mr-2"></i>視聴する（50クレジット）';
+                    
+                    return \`
                     <div class="match-card" data-status="\${debate.status}">
                         <div class="match-header mb-4">
                             <div class="flex justify-between items-center mb-2">
@@ -128,11 +166,12 @@ export const archivePage = (userData: any) => `<!DOCTYPE html>
                             <span><i class="fas fa-thumbs-down text-red-400 mr-1"></i>\${debate.disagree_votes || 0}票</span>
                         </div>
 
-                        <button onclick="purchaseDebate(\${debate.id}, '\${debate.debate_id}')" class="btn-watch w-full">
-                            <i class="fas fa-play-circle mr-2"></i>視聴する（15クレジット）
+                        <button onclick="purchaseDebate(\${debate.id}, '\${debate.debate_id}')" class="\${btnClass} w-full py-3 px-4 rounded-lg font-bold text-sm transition-all">
+                            \${btnText}
                         </button>
                     </div>
-                \`).join('');
+                \`;
+                }).join('');
             } catch (error) {
                 console.error('Load debates error:', error);
                 document.getElementById('archive-grid').innerHTML = '<div class="text-center text-red-400 py-12 col-span-full">読み込みに失敗しました</div>';
@@ -140,13 +179,14 @@ export const archivePage = (userData: any) => `<!DOCTYPE html>
         }
         
         async function purchaseDebate(id, debateId) {
-            if (currentUser.credits < 15 && currentUser.user_id !== 'dev') {
-                alert('クレジットが不足しています');
-                return;
-            }
+            const alreadyPurchased = isPurchased(debateId);
             
-            if (currentUser.user_id !== 'dev') {
-                if (!confirm('15クレジットを消費してこのディベートを視聴しますか？')) {
+            if (!alreadyPurchased && currentUser.user_id !== 'dev') {
+                if (currentUser.credits < 50) {
+                    alert('クレジットが不足しています（必要: 50クレジット）');
+                    return;
+                }
+                if (!confirm('50クレジットを消費してこのディベートを視聴しますか？')) {
                     return;
                 }
             }
@@ -160,7 +200,13 @@ export const archivePage = (userData: any) => `<!DOCTYPE html>
                 
                 const result = await response.json();
                 if (result.success || currentUser.user_id === 'dev') {
-                    // Load and display the archived debate inline
+                    if (!result.already_purchased && currentUser.user_id !== 'dev') {
+                        currentUser.credits -= 50;
+                    }
+                    // Add to purchased list
+                    if (!purchasedDebateIds.includes(debateId)) {
+                        purchasedDebateIds.push(debateId);
+                    }
                     loadArchivedDebate(id);
                 } else {
                     alert(result.error || '購入に失敗しました');
@@ -173,18 +219,6 @@ export const archivePage = (userData: any) => `<!DOCTYPE html>
         
         async function loadArchivedDebate(archiveId) {
             try {
-                const response = await fetch('/api/archive/debates');
-                const data = await response.json();
-                
-                if (!data.success) return;
-                
-                const debate = data.debates.find(d => d.id === archiveId);
-                if (!debate) {
-                    alert('アーカイブが見つかりません');
-                    return;
-                }
-                
-                // Fetch full debate data with messages
                 const detailResponse = await fetch('/api/archive/detail/' + archiveId);
                 const detailData = await detailResponse.json();
                 
@@ -251,6 +285,8 @@ export const archivePage = (userData: any) => `<!DOCTYPE html>
             document.getElementById('archive-viewer').classList.add('hidden');
             document.getElementById('archive-grid').classList.remove('hidden');
             document.querySelector('.flex.justify-center.gap-4.mb-8').classList.remove('hidden');
+            // Reload to update button states
+            loadDebates();
         }
         
         // Filter tabs

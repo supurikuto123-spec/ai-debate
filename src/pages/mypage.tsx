@@ -145,8 +145,8 @@ export const myPage = (userData: any) => {
                         </div>
                         <div class="text-2xl font-bold text-cyan-400">@${userData.user_id}</div>
                         <div class="text-lg text-gray-300 mt-2">${userData.nickname || 'No Nickname'}</div>
-                        <div class="mt-3 text-yellow-400 font-bold text-xl">
-                            <i class="fas fa-coins mr-2"></i>${userData.user_id === 'dev' ? '∞' : (userData.credits || 0).toLocaleString()} Credits
+                        <div class="mt-3 text-yellow-400 font-bold text-xl" id="credits-display">
+                            <i class="fas fa-coins mr-2"></i><span id="credits-value">${userData.user_id === 'dev' ? '∞' : (userData.credits || 0).toLocaleString()}</span> Credits
                         </div>
                     </div>
 
@@ -416,6 +416,22 @@ export const myPage = (userData: any) => {
 
             // Initialize avatar grid
             renderAvatarGrid(currentAvatarStyle);
+            
+            // Fetch fresh credits from DB
+            (async function() {
+                try {
+                    const response = await fetch('/api/user');
+                    if (response.ok) {
+                        const userData = await response.json();
+                        const creditsEl = document.getElementById('credits-value');
+                        if (creditsEl && userData.credits !== undefined) {
+                            creditsEl.textContent = userData.user_id === 'dev' ? '∞' : Number(userData.credits).toLocaleString();
+                        }
+                    }
+                } catch (e) {
+                    console.error('Failed to sync credits:', e);
+                }
+            })();
         </script>
     </body>
     </html>

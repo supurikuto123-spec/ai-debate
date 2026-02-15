@@ -187,7 +187,7 @@ export const watchPage = (user: any, debateId: string) => `
                                 </div>
                                 <div>
                                     <p class="font-bold text-green-400">意見A (Agree)</p>
-                                    <p class="text-xs text-gray-400">AI Model</p>
+                                    <p class="text-xs text-gray-400" id="modelLabelA">読み込み中...</p>
                                 </div>
                             </div>
                             <p id="summaryOpinionA" class="text-sm text-gray-300">読み込み中...</p>
@@ -199,7 +199,7 @@ export const watchPage = (user: any, debateId: string) => `
                                 </div>
                                 <div>
                                     <p class="font-bold text-red-400">意見B (Disagree)</p>
-                                    <p class="text-xs text-gray-400">AI Model</p>
+                                    <p class="text-xs text-gray-400" id="modelLabelB">読み込み中...</p>
                                 </div>
                             </div>
                             <p id="summaryOpinionB" class="text-sm text-gray-300">読み込み中...</p>
@@ -263,7 +263,7 @@ export const watchPage = (user: any, debateId: string) => `
                             <div class="mb-4">
                                 <textarea 
                                     id="commentInput" 
-                                    placeholder="コメントを入力... (@でユーザー名をメンション可能)" 
+                                    placeholder="コメントを入力..." 
                                     class="w-full bg-gray-900 border-2 border-cyan-500 rounded p-3 text-white resize-none focus:outline-none focus:border-cyan-300"
                                     rows="4"
                                 ></textarea>

@@ -38,6 +38,9 @@ let conversationHistory = [];
 let lastMessageCount = 0;
 let lastCommentCount = 0;
 
+// Current AI model name (fetched from API)
+let AI_MODEL_DISPLAY = 'gpt-4.1-nano';
+
 // ===== Load debate theme from DB =====
 async function loadDebateTheme() {
     try {
@@ -70,6 +73,27 @@ async function loadDebateTheme() {
         
     } catch (error) {
         console.error('Failed to load debate theme:', error);
+    }
+}
+
+// ===== Load AI Model Info =====
+async function loadModelInfo() {
+    try {
+        const response = await fetch('/api/debate/model-info');
+        if (!response.ok) return;
+        const data = await response.json();
+        if (data.success) {
+            AI_MODEL_DISPLAY = data.display_name || data.model || 'gpt-4.1-nano';
+            // Update model labels in the UI
+            const modelLabelA = document.getElementById('modelLabelA');
+            const modelLabelB = document.getElementById('modelLabelB');
+            const modelInfo = document.getElementById('debateModelInfo');
+            if (modelLabelA) modelLabelA.textContent = AI_MODEL_DISPLAY;
+            if (modelLabelB) modelLabelB.textContent = AI_MODEL_DISPLAY;
+            if (modelInfo) modelInfo.textContent = AI_MODEL_DISPLAY;
+        }
+    } catch (error) {
+        console.error('Failed to load model info:', error);
     }
 }
 
@@ -885,8 +909,8 @@ async function syncCredits() {
 // ===== Initialize =====
 
 window.addEventListener('DOMContentLoaded', async () => {
-    // Load debate theme from DB first
-    await loadDebateTheme();
+    // Load debate theme and model info from DB first
+    await Promise.all([loadDebateTheme(), loadModelInfo()]);
     
     document.getElementById('debateTimeLimit').textContent = MAX_DEBATE_TIME + '秒';
     document.getElementById('debateCharLimit').textContent = MAX_CHARS + '文字';
