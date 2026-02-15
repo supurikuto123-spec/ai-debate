@@ -84,7 +84,6 @@ async function loadModelInfo() {
         const data = await response.json();
         if (data.success) {
             AI_MODEL_DISPLAY = data.display_name || data.model || 'gpt-4.1-nano';
-            // Update model labels in the UI
             const modelLabelA = document.getElementById('modelLabelA');
             const modelLabelB = document.getElementById('modelLabelB');
             const modelInfo = document.getElementById('debateModelInfo');
@@ -180,7 +179,6 @@ function updateVoteDisplay() {
         document.getElementById('agreeBar').style.width = '50%';
         document.getElementById('disagreeBar').style.width = '50%';
         
-        // AI judges also hidden in fog mode
         ['judge1-eval', 'judge2-eval', 'judge3-eval'].forEach(id => {
             const elem = document.getElementById(id);
             if (elem) {
@@ -260,7 +258,6 @@ function revealFogMode() {
     agreeBar.style.transition = 'width 0.5s ease';
     disagreeBar.style.transition = 'width 0.5s ease';
     
-    // Disable vote change buttons after confirmation
     document.getElementById('voteAgreeBtn').disabled = true;
     document.getElementById('voteDisagreeBtn').disabled = true;
     document.getElementById('voteAgreeBtn').style.opacity = '0.5';
@@ -279,61 +276,11 @@ async function postComment() {
     if (!text) { showToast('コメントを入力してください'); return; }
     if (!hasVoted) { showToast('投票してからコメントしてください'); return; }
 
-    // Dev commands
-    if (currentUser.user_id === 'dev') {
-        if (text === '!s') {
-            input.value = '';
-            showToast('ディベートを開始します...');
-            startDebate();
-            return;
-        }
-        if (text === '!sa') {
-            input.value = '';
-            showToast('ディベートを開始します（アーカイブ保存有効）...');
-            window.archiveOnComplete = true;
-            startDebate();
-            return;
-        }
-        if (text === '!dela') {
-            input.value = '';
-            document.getElementById('commentsList').innerHTML = '';
-            document.getElementById('debateMessages').innerHTML = '<div class="text-center text-gray-400 p-8"><i class="fas fa-info-circle text-4xl mb-4 text-cyan-400"></i><p class="text-lg">devユーザーでコメント欄に <span class="text-cyan-300 font-bold">!s</span> と入力してディベートを開始</p></div>';
-            conversationHistory = [];
-            debateActive = false;
-            lastCommentCount = 0;
-            lastMessageCount = 0;
-            document.getElementById('commentCount').textContent = '0';
-            await fetch('/api/comments/' + DEBATE_ID, { method: 'DELETE' });
-            await fetch('/api/debate/' + DEBATE_ID + '/messages', { method: 'DELETE' });
-            showToast('コメントとディベート履歴を削除しました');
-            return;
-        }
-        if (text === '!stop') {
-            input.value = '';
-            if (debateActive) {
-                debateActive = false;
-                if (debateTimer) clearTimeout(debateTimer);
-                conversationHistory = [];
-                const ci = document.getElementById('commentInput');
-                if (ci) { ci.disabled = false; ci.placeholder = 'コメントを入力...'; }
-                const cb = document.getElementById('postCommentBtn');
-                if (cb) { cb.disabled = false; cb.style.opacity = '1'; }
-                showToast('ディベートを停止しました');
-            } else {
-                showToast('ディベートは実行されていません');
-            }
-            return;
-        }
-        if (text === '!deld') {
-            input.value = '';
-            document.getElementById('debateMessages').innerHTML = '<div class="text-center text-gray-400 p-8"><i class="fas fa-info-circle text-4xl mb-4 text-cyan-400"></i><p class="text-lg">devユーザーでコメント欄に <span class="text-cyan-300 font-bold">!s</span> と入力してディベートを開始</p></div>';
-            conversationHistory = [];
-            debateActive = false;
-            fetch('/api/debate/' + DEBATE_ID + '/messages', { method: 'DELETE' })
-                .then(() => showToast('ディベート履歴を削除しました'))
-                .catch(err => showToast('削除エラー: ' + err.message));
-            return;
-        }
+    // Commands are NOT allowed inside debate comments anymore
+    // Commands must be used from the Commands tab only
+    if (text.startsWith('!')) {
+        showToast('コマンドはメニューの「コマンド」タブから使用してください');
+        return;
     }
 
     if (text.length > 500) { showToast('コメントは500文字以内で入力してください'); return; }
@@ -350,7 +297,7 @@ async function postComment() {
     const initial = currentUser.user_id.charAt(0).toUpperCase();
     
     commentDiv.className = 'comment-item ' + stanceClass + ' bg-gray-900/50 p-3 rounded border border-cyan-500/30';
-    commentDiv.innerHTML = '<div class="flex items-center mb-2"><div class="w-8 h-8 rounded-full bg-gradient-to-br ' + avatarGradient + ' flex items-center justify-center text-xs font-bold mr-2">' + initial + '</div><div class="flex-1"><p class="text-sm font-bold">@' + currentUser.user_id + '</p><p class="text-xs text-' + stanceColor + '-400"><i class="fas fa-' + stanceIcon + ' mr-1"></i>' + stanceText + '</p></div></div><p class="text-sm text-gray-200">' + text + '</p>';
+    commentDiv.innerHTML = '<div class="flex items-center mb-2"><div class="w-8 h-8 rounded-full bg-gradient-to-br ' + avatarGradient + ' flex items-center justify-center text-xs font-bold mr-2">' + initial + '</div><div class="flex-1"><a href="/user/' + currentUser.user_id + '" class="text-sm font-bold hover:text-cyan-400 transition-colors">@' + currentUser.user_id + '</a><p class="text-xs text-' + stanceColor + '-400"><i class="fas fa-' + stanceIcon + ' mr-1"></i>' + stanceText + '</p></div></div><p class="text-sm text-gray-200">' + escapeHtml(text) + '</p>';
 
     commentsList.appendChild(commentDiv);
     if (wasAtBottom) requestAnimationFrame(() => { commentsList.scrollTop = commentsList.scrollHeight; });
@@ -362,6 +309,12 @@ async function postComment() {
     showToast('コメントを投稿しました！');
 }
 window.postComment = postComment;
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 
 async function saveCommentToD1(content) {
     try {
@@ -397,7 +350,6 @@ async function getAIEvaluations(message, side) {
             displayAIEvaluation(evaluation, side);
         }
         
-        // Run judge evaluations after 3 turns
         const currentTurn = conversationHistory.length;
         if (currentTurn >= 3) {
             await performAIJudging();
@@ -448,7 +400,6 @@ async function getAIEvaluation(message, side) {
     }
 }
 
-// AI Judging: determine stance only (no vote manipulation)
 async function performAIJudging() {
     try {
         const fullDebate = conversationHistory.map(msg => {
@@ -532,6 +483,37 @@ function displayAIEvaluation(evaluation, side) {
 async function startDebate() {
     if (debateActive) { showToast('ディベートは既に実行中です'); return; }
     
+    // Make globally accessible for command panel
+    window.debateActive = true;
+    
+    // Synchronization: Check if debate already has messages in DB
+    // If yes, join existing debate instead of creating new one
+    try {
+        const existingMsgs = await fetch('/api/debate/' + DEBATE_ID + '/messages');
+        const existingData = await existingMsgs.json();
+        if (existingData.messages && existingData.messages.length > 0) {
+            // Debate already running - sync with existing
+            showToast('既存のディベートに同期します...');
+            lastMessageCount = 0;
+            await loadDebateMessagesFromD1();
+            debateActive = true;
+            debateStartTime = Date.now() - (existingData.messages.length * 5000);
+            conversationHistory = existingData.messages.map(m => ({
+                role: m.side === 'agree' ? 'assistant' : 'user',
+                content: m.content,
+                side: m.side
+            }));
+            updateDebateTimer();
+            // Continue generating from where it left off
+            const lastSide = existingData.messages[existingData.messages.length - 1].side;
+            const nextSide = lastSide === 'agree' ? 'disagree' : 'agree';
+            setTimeout(() => generateAIResponse(nextSide), 3000);
+            return;
+        }
+    } catch (e) {
+        console.log('No existing debate found, starting fresh');
+    }
+    
     debateActive = true;
     debateStartTime = Date.now();
     conversationHistory = [];
@@ -545,9 +527,19 @@ async function startDebate() {
     
     document.getElementById('debateMessages').innerHTML = '<div class="text-center text-cyan-300 p-4"><i class="fas fa-spinner fa-spin mr-2"></i>ディベート開始...</div>';
     
+    // Mark debate as active in DB
+    try {
+        await fetch('/api/debate/' + DEBATE_ID + '/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'active' })
+        });
+    } catch (e) { }
+    
     updateDebateTimer();
     await generateAIResponse('agree');
 }
+window.startDebate = startDebate;
 
 function updateDebateTimer() {
     if (!debateActive) return;
@@ -555,7 +547,6 @@ function updateDebateTimer() {
     const elapsed = Math.floor((Date.now() - debateStartTime) / 1000);
     const remaining = MAX_DEBATE_TIME - elapsed;
     
-    // Fog mode at remaining 10%
     if (remaining <= MAX_DEBATE_TIME * 0.1 && !fogMode && !finalVotingMode) {
         fogMode = true;
         showToast('ゲージ非公開化！投票を確定して結果を見よう！');
@@ -639,7 +630,7 @@ function startFinalVotingPeriod() {
     }, 1000);
 }
 
-// ===== Final Results (with AI judge results) =====
+// ===== Final Results =====
 
 async function showFinalResults() {
     const commentInput = document.getElementById('commentInput');
@@ -647,7 +638,6 @@ async function showFinalResults() {
     const commentBtn = document.getElementById('postCommentBtn');
     if (commentBtn) { commentBtn.disabled = true; commentBtn.style.opacity = '0.5'; }
     
-    // Ensure fog is lifted
     fogMode = false;
     document.getElementById('agreeBar').style.filter = 'none';
     document.getElementById('disagreeBar').style.filter = 'none';
@@ -655,7 +645,6 @@ async function showFinalResults() {
     document.getElementById('disagreeBar').style.background = '';
     updateVoteDisplay();
     
-    // Run final AI judgment if not already done
     if (!aiJudgeStances.judge1 && conversationHistory.length >= 2) {
         showToast('AIによる最終評価を実施中...');
         await performAIJudging();
@@ -666,7 +655,6 @@ async function showFinalResults() {
     const winner = voteData.agree > voteData.disagree ? '意見A' : '意見B';
     const winnerColor = voteData.agree > voteData.disagree ? 'text-green-400' : 'text-red-400';
     
-    // Build AI judge results HTML
     let judgeHTML = '';
     ['judge1', 'judge2', 'judge3'].forEach((key, i) => {
         const stance = aiJudgeStances[key];
@@ -693,6 +681,15 @@ async function showFinalResults() {
         '</div>';
     
     document.body.appendChild(resultModal);
+    
+    // Mark debate as completed in DB
+    try {
+        await fetch('/api/debate/' + DEBATE_ID + '/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'completed', winner: winner === '意見A' ? 'agree' : 'disagree' })
+        });
+    } catch (e) { }
     
     // Archive if !sa was used
     if (window.archiveOnComplete) {
@@ -855,6 +852,15 @@ async function loadDebateMessagesFromD1() {
                 addDebateMessage(msg.side, msg.content, msg.model);
             }
             lastMessageCount = data.messages.length;
+            
+            // If messages exist but debate not active locally, sync conversationHistory
+            if (data.messages.length > 0 && conversationHistory.length === 0) {
+                conversationHistory = data.messages.map(m => ({
+                    role: m.side === 'agree' ? 'assistant' : 'user',
+                    content: m.content,
+                    side: m.side
+                }));
+            }
         }
     } catch (error) { console.error('Failed to load debate messages:', error); }
 }
@@ -879,7 +885,7 @@ async function loadCommentsFromD1() {
                 
                 const div = document.createElement('div');
                 div.className = 'comment-item ' + stanceClass + ' bg-gray-900/50 p-3 rounded border border-cyan-500/30';
-                div.innerHTML = '<div class="flex items-center mb-2"><div class="w-8 h-8 rounded-full bg-gradient-to-br ' + avatarGradient + ' flex items-center justify-center text-xs font-bold mr-2">' + initial + '</div><div class="flex-1"><p class="text-sm font-bold">@' + c.username + '</p><p class="text-xs text-' + stanceColor + '-400"><i class="fas fa-' + stanceIcon + ' mr-1"></i>' + stanceText + '</p></div></div><p class="text-sm text-gray-200">' + c.content + '</p>';
+                div.innerHTML = '<div class="flex items-center mb-2"><div class="w-8 h-8 rounded-full bg-gradient-to-br ' + avatarGradient + ' flex items-center justify-center text-xs font-bold mr-2">' + initial + '</div><div class="flex-1"><a href="/user/' + c.username + '" class="text-sm font-bold hover:text-cyan-400 transition-colors">@' + c.username + '</a><p class="text-xs text-' + stanceColor + '-400"><i class="fas fa-' + stanceIcon + ' mr-1"></i>' + stanceText + '</p></div></div><p class="text-sm text-gray-200">' + c.content + '</p>';
                 commentsList.appendChild(div);
             }
             
@@ -910,7 +916,6 @@ async function syncCredits() {
 // ===== Initialize =====
 
 window.addEventListener('DOMContentLoaded', async () => {
-    // Load debate theme and model info from DB first
     await Promise.all([loadDebateTheme(), loadModelInfo()]);
     
     document.getElementById('debateTimeLimit').textContent = MAX_DEBATE_TIME + '秒';

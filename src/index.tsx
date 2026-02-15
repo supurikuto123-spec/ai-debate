@@ -545,6 +545,16 @@ app.get('/user/:user_id', async (c) => {
     const wins = debateStats?.wins || 0
     const win_rate = total > 0 ? Math.round((wins / total) * 100) : 0
     
+    // Get privacy settings
+    let privacySettings: any = {
+      show_total_debates: true, show_wins: true, show_losses: true,
+      show_draws: true, show_win_rate: true, show_posts: true, show_credits: true
+    }
+    try {
+      const privacyData = await c.env.KV.get(`privacy:${targetUserId}`)
+      if (privacyData) privacySettings = JSON.parse(privacyData)
+    } catch (e) { }
+    
     const stats = {
       total_debates: debateStats?.total_debates || 0,
       wins: wins,
@@ -554,7 +564,7 @@ app.get('/user/:user_id', async (c) => {
       total_posts: postCount?.total || 0
     }
     
-    return c.html(<UserProfile profileUser={profileUser as any} currentUser={currentUser as any} stats={stats} />)
+    return c.html(<UserProfile profileUser={profileUser as any} currentUser={currentUser as any} stats={stats} privacy={privacySettings as any} />)
   } catch (error) {
     console.error('Error loading user profile:', error)
     return c.text('Error loading profile', 500)
@@ -938,6 +948,13 @@ app.post('/api/announcements/:id/poll-vote', async (c) => {
     const announcementId = c.req.param('id')
     const { option_index } = await c.req.json()
     
+    // Prevent rapid repeat voting - check KV for cooldown
+    const pollVoteKey = `poll_vote:${announcementId}:${user.user_id}`
+    const existingVote = await c.env.KV.get(pollVoteKey)
+    if (existingVote) {
+      return c.json({ success: false, error: 'このアンケートには既に投票済みです' }, 400)
+    }
+    
     // Get current poll data
     const ann = await c.env.DB.prepare(
       'SELECT poll_data FROM announcements WHERE id = ?'
@@ -960,7 +977,10 @@ app.post('/api/announcements/:id/poll-vote', async (c) => {
       'UPDATE announcements SET poll_data = ? WHERE id = ?'
     ).bind(JSON.stringify(poll), announcementId).run()
     
-    return c.json({ success: true })
+    // Record vote in KV to prevent duplicates (no expiration = permanent)
+    await c.env.KV.put(pollVoteKey, String(option_index))
+    
+    return c.json({ success: true, voted_index: option_index })
   } catch (error) {
     console.error('Poll vote error:', error)
     return c.json({ success: false, error: 'Failed to vote' }, 500)
@@ -1110,6 +1130,229 @@ app.get('/api/archive/purchased', async (c) => {
   } catch (error) {
     console.error('Check purchased error:', error)
     return c.json({ success: true, purchased_ids: [] })
+  }
+})
+
+// API: Update debate status (for sync)
+app.post('/api/debate/:debateId/status', async (c) => {
+  try {
+    const debateId = c.req.param('debateId')
+    const { status, winner } = await c.req.json()
+    
+    try {
+      await c.env.DB.prepare(
+        'UPDATE debates SET status = ?, winner = ? WHERE id = ?'
+      ).bind(status, winner || null, debateId).run()
+    } catch (e) {
+      // winner column might not exist
+      try {
+        await c.env.DB.prepare(
+          'UPDATE debates SET status = ? WHERE id = ?'
+        ).bind(status, debateId).run()
+      } catch (e2) { }
+    }
+    
+    return c.json({ success: true })
+  } catch (error) {
+    return c.json({ success: true }) // non-critical
+  }
+})
+
+// API: Execute command (from Commands tab)
+app.post('/api/commands/execute', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    if (!userCookie) {
+      return c.json({ success: false, error: 'Not authenticated' }, 401)
+    }
+    
+    const user = JSON.parse(userCookie)
+    const { command, debateId } = await c.req.json()
+    
+    if (!command) {
+      return c.json({ success: false, error: 'コマンドが空です' }, 400)
+    }
+    
+    const cmd = command.trim()
+    
+    // !s - Start debate
+    if (cmd === '!s') {
+      return c.json({ success: true, action: 'start_debate' })
+    }
+    
+    // !sa - Start debate with archive
+    if (cmd === '!sa') {
+      return c.json({ success: true, action: 'start_debate_archive' })
+    }
+    
+    // !dela - Delete current debate and start new with random theme
+    if (cmd === '!dela') {
+      // Delete existing debate data
+      if (debateId) {
+        try {
+          await c.env.DB.prepare('DELETE FROM debate_comments WHERE debate_id = ?').bind(debateId).run()
+          await c.env.DB.prepare('DELETE FROM debate_messages WHERE debate_id = ?').bind(debateId).run()
+        } catch (e) { }
+      }
+      
+      // Get a random adopted theme, or any theme with votes
+      let randomTheme = null
+      try {
+        randomTheme = await c.env.DB.prepare(`
+          SELECT title, agree_opinion, disagree_opinion, category 
+          FROM theme_proposals 
+          WHERE status = 'active'
+          ORDER BY RANDOM() 
+          LIMIT 1
+        `).first()
+      } catch (e) { }
+      
+      if (!randomTheme) {
+        // Fallback random themes
+        const defaultThemes = [
+          { title: 'AIは人間の仕事を奪うか？', agree_opinion: 'AIの進化により多くの職種が自動化される', disagree_opinion: '新しい職種が生まれ、人間の仕事は変わるが消えない' },
+          { title: 'リモートワークは生産性を上げるか？', agree_opinion: '通勤時間の削減と自由な環境が集中力を高める', disagree_opinion: '対面コミュニケーション不足がチームワークを損なう' },
+          { title: 'SNSは社会に良い影響を与えるか？', agree_opinion: '情報の民主化と社会運動の推進に貢献', disagree_opinion: 'フェイクニュースと精神的健康への悪影響が深刻' },
+          { title: '宇宙開発に巨額投資すべきか？', agree_opinion: '人類の生存と科学技術発展のため不可欠', disagree_opinion: '地球上の問題解決に資源を集中すべき' },
+          { title: '学校教育にAIを導入すべきか？', agree_opinion: '個別最適化された学習体験が可能になる', disagree_opinion: '人間教師による情操教育が失われる' },
+        ]
+        randomTheme = defaultThemes[Math.floor(Math.random() * defaultThemes.length)]
+      }
+      
+      // Create new debate in DB
+      const newDebateId = debateId || crypto.randomUUID()
+      try {
+        // Try to update existing debate with new theme
+        await c.env.DB.prepare(`
+          UPDATE debates SET topic = ?, agree_position = ?, disagree_position = ?, status = 'pending', created_at = datetime('now')
+          WHERE id = ?
+        `).bind(randomTheme.title, randomTheme.agree_opinion, randomTheme.disagree_opinion, newDebateId).run()
+      } catch (e) {
+        // If it doesn't exist, create new
+        try {
+          await c.env.DB.prepare(`
+            INSERT INTO debates (id, topic, agree_position, disagree_position, status, created_at)
+            VALUES (?, ?, ?, ?, 'pending', datetime('now'))
+          `).bind(newDebateId, randomTheme.title, randomTheme.agree_opinion, randomTheme.disagree_opinion).run()
+        } catch (e2) { }
+      }
+      
+      return c.json({ 
+        success: true, 
+        action: 'dela',
+        theme: {
+          title: randomTheme.title,
+          agree_opinion: randomTheme.agree_opinion,
+          disagree_opinion: randomTheme.disagree_opinion
+        }
+      })
+    }
+    
+    // !stop - Stop debate
+    if (cmd === '!stop') {
+      return c.json({ success: true, action: 'stop_debate' })
+    }
+    
+    // !deld - Delete debate messages only
+    if (cmd === '!deld') {
+      if (debateId) {
+        try {
+          await c.env.DB.prepare('DELETE FROM debate_messages WHERE debate_id = ?').bind(debateId).run()
+        } catch (e) { }
+      }
+      return c.json({ success: true, action: 'delete_debate_messages' })
+    }
+    
+    // !s-x - Schedule debate (x minutes later, 0 = immediate then auto-archive)
+    const scheduleMatch = cmd.match(/^!s-(\d+)$/)
+    if (scheduleMatch) {
+      const minutes = parseInt(scheduleMatch[1])
+      if (minutes === 0) {
+        // Immediate start + auto archive
+        return c.json({ success: true, action: 'start_debate_archive', schedule_minutes: 0 })
+      }
+      return c.json({ success: true, action: 'schedule_debate', schedule_minutes: minutes })
+    }
+    
+    // !@xxx+coiny - Grant y coins to user xxx
+    const coinMatch = cmd.match(/^!@(\w+)\+coin(\d+)$/)
+    if (coinMatch) {
+      const targetUserId = coinMatch[1]
+      const coinAmount = parseInt(coinMatch[2])
+      
+      if (coinAmount <= 0 || coinAmount > 100000) {
+        return c.json({ success: false, error: '付与額は1〜100000の範囲で指定してください' }, 400)
+      }
+      
+      // Check target user exists
+      const targetUser = await c.env.DB.prepare('SELECT user_id, credits FROM users WHERE user_id = ?').bind(targetUserId).first()
+      if (!targetUser) {
+        return c.json({ success: false, error: `ユーザー @${targetUserId} が見つかりません` }, 404)
+      }
+      
+      // Grant credits
+      await c.env.DB.prepare('UPDATE users SET credits = credits + ? WHERE user_id = ?').bind(coinAmount, targetUserId).run()
+      
+      // Record transaction
+      await c.env.DB.prepare(`
+        INSERT INTO credit_transactions (id, user_id, amount, type, reason, created_at)
+        VALUES (?, ?, ?, 'earn', ?, datetime('now'))
+      `).bind(crypto.randomUUID(), targetUserId, coinAmount, `${user.user_id}からの付与`).run()
+      
+      return c.json({ success: true, action: 'grant_coins', target: targetUserId, amount: coinAmount })
+    }
+    
+    return c.json({ success: false, error: '不明なコマンドです: ' + cmd }, 400)
+  } catch (error) {
+    console.error('Command execution error:', error)
+    return c.json({ success: false, error: 'コマンド実行エラー' }, 500)
+  }
+})
+
+// API: Get/Update user privacy settings
+app.get('/api/user/privacy', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    if (!userCookie) return c.json({ success: false, error: 'Not authenticated' }, 401)
+    const user = JSON.parse(userCookie)
+    
+    // Try to get privacy settings from KV
+    const key = `privacy:${user.user_id}`
+    const data = await c.env.KV.get(key)
+    
+    if (data) {
+      return c.json({ success: true, settings: JSON.parse(data) })
+    }
+    
+    // Default: all visible
+    const defaults = {
+      show_total_debates: true,
+      show_wins: true,
+      show_losses: true,
+      show_draws: true,
+      show_win_rate: true,
+      show_posts: true,
+      show_credits: true
+    }
+    return c.json({ success: true, settings: defaults })
+  } catch (error) {
+    return c.json({ success: true, settings: {} })
+  }
+})
+
+app.post('/api/user/privacy', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    if (!userCookie) return c.json({ success: false, error: 'Not authenticated' }, 401)
+    const user = JSON.parse(userCookie)
+    
+    const settings = await c.req.json()
+    const key = `privacy:${user.user_id}`
+    await c.env.KV.put(key, JSON.stringify(settings))
+    
+    return c.json({ success: true })
+  } catch (error) {
+    return c.json({ success: false, error: 'Failed to save settings' }, 500)
   }
 })
 
@@ -2032,7 +2275,12 @@ app.get('/api/theme-votes', async (c) => {
     if (sort === 'votes') {
       query += ' ORDER BY tp.vote_count DESC, tp.created_at DESC'
     } else if (sort === 'adopted') {
-      query += ' ORDER BY tp.adopted DESC, tp.vote_count DESC'
+      // Show ONLY adopted themes when "adopted" tab is selected
+      if (hasAdoptedColumn) {
+        query += ' AND tp.adopted = 1 ORDER BY tp.vote_count DESC'
+      } else {
+        query += ' ORDER BY tp.vote_count DESC'
+      }
     } else {
       query += ' ORDER BY tp.created_at DESC'
     }

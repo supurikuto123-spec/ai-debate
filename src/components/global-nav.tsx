@@ -28,9 +28,10 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
       .nav-avatar { width: 100px; height: 100px; border-radius: 50%; border: 3px solid #00ffff; margin: 0 auto 15px; display: block; box-shadow: 0 0 20px rgba(0,255,255,0.5); object-fit: cover; }
       .nav-avatar-wrap { position: relative; width: 110px; margin: 0 auto 15px; }
       .nav-avatar-wrap.dev-frame { }
-      .nav-avatar-wrap.dev-frame .nav-avatar { border: 4px solid transparent; background-image: linear-gradient(#000, #000), linear-gradient(135deg, #ffd700, #ff00ff, #00ffff, #ffd700); background-origin: border-box; background-clip: padding-box, border-box; box-shadow: 0 0 25px rgba(255,215,0,0.6), 0 0 50px rgba(255,0,255,0.3); animation: devGlow 3s ease-in-out infinite; margin: 0 auto; }
-      .dev-badge { position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #ffd700, #ff8c00); color: #000; font-size: 10px; font-weight: 900; padding: 2px 10px; border-radius: 10px; white-space: nowrap; box-shadow: 0 0 15px rgba(255,215,0,0.7); letter-spacing: 1px; z-index: 1; }
-      @keyframes devGlow { 0%, 100% { box-shadow: 0 0 25px rgba(255,215,0,0.6), 0 0 50px rgba(255,0,255,0.3); } 50% { box-shadow: 0 0 40px rgba(255,215,0,0.9), 0 0 80px rgba(0,255,255,0.5); } }
+      .nav-avatar-wrap.dev-frame .nav-avatar { border: 4px solid transparent; background-image: linear-gradient(#000, #000), conic-gradient(from 0deg, #ffd700, #ff00ff, #00ffff, #22c55e, #ffd700); background-origin: border-box; background-clip: padding-box, border-box; box-shadow: 0 0 30px rgba(255,215,0,0.5), 0 0 60px rgba(0,255,255,0.2), inset 0 0 20px rgba(255,0,255,0.1); animation: devGlow 4s linear infinite; margin: 0 auto; }
+      .dev-badge { position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #ffd700 0%, #ff8c00 50%, #ffd700 100%); background-size: 200% 100%; animation: badgeShimmer 3s ease infinite; color: #000; font-size: 10px; font-weight: 900; padding: 3px 12px; border-radius: 12px; white-space: nowrap; box-shadow: 0 0 15px rgba(255,215,0,0.7), 0 2px 8px rgba(0,0,0,0.5); letter-spacing: 1.5px; z-index: 1; border: 1px solid rgba(255,255,255,0.3); }
+      @keyframes devGlow { 0%, 100% { box-shadow: 0 0 30px rgba(255,215,0,0.5), 0 0 60px rgba(0,255,255,0.2); filter: drop-shadow(0 0 8px rgba(255,215,0,0.4)); } 25% { box-shadow: 0 0 35px rgba(255,0,255,0.5), 0 0 70px rgba(255,215,0,0.3); filter: drop-shadow(0 0 10px rgba(255,0,255,0.4)); } 50% { box-shadow: 0 0 40px rgba(0,255,255,0.6), 0 0 80px rgba(255,0,255,0.3); filter: drop-shadow(0 0 12px rgba(0,255,255,0.5)); } 75% { box-shadow: 0 0 35px rgba(34,197,94,0.5), 0 0 70px rgba(0,255,255,0.3); filter: drop-shadow(0 0 10px rgba(34,197,94,0.4)); } }
+      @keyframes badgeShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
       .nav-username { font-family: 'Orbitron', sans-serif; font-size: 1.2rem; font-weight: 700; text-align: center; color: #00ffff; margin-bottom: 10px; text-shadow: 0 0 10px rgba(0,255,255,0.5); }
       .nav-credits { text-align: center; font-size: 1.1rem; color: #ffff00; font-weight: 700; text-shadow: 0 0 10px rgba(255,255,0,0.5); }
       .nav-links { padding: 20px 0; }
@@ -89,6 +90,9 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
         </a>
         <a href="/mypage" class="nav-link">
           <i class="fas fa-user"></i><span>マイページ</span>
+        </a>
+        <a href="#" class="nav-link" onclick="event.preventDefault();openCommandPanel();">
+          <i class="fas fa-terminal" style="color: #22c55e;"></i><span style="color: #22c55e;">コマンド</span>
         </a>
         ${isDevUser ? `
         <a href="/admin/tickets" class="nav-link" style="border-top: 1px solid rgba(255,0,128,0.3);">
@@ -163,6 +167,179 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
         const navCredits = document.getElementById('navCredits');
         if (navCredits) navCredits.textContent = Number(newCredits).toLocaleString();
       };
+    </script>
+
+    <!-- Command Panel -->
+    <div id="cmd-panel" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.95);z-index:10001;backdrop-filter:blur(10px);">
+      <div style="max-width:600px;margin:80px auto;padding:30px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <h2 style="font-size:24px;font-weight:bold;color:#00ffff;">
+            <i class="fas fa-terminal" style="margin-right:10px;"></i>コマンド
+          </h2>
+          <button onclick="closeCmdPanel()" style="background:none;border:none;color:#ff0080;font-size:24px;cursor:pointer;">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <div style="margin-bottom:20px;">
+          <input id="cmd-input" type="text" placeholder="コマンドを入力... (例: !sa, !dela, !s-1)"
+            style="width:100%;padding:14px 18px;background:#111;border:2px solid #00ffff;border-radius:10px;color:#fff;font-size:16px;font-family:monospace;outline:none;"
+            onkeydown="if(event.key==='Enter')executeCmd()">
+          <button onclick="executeCmd()" style="width:100%;margin-top:10px;padding:12px;background:linear-gradient(135deg,rgba(0,255,255,0.3),rgba(255,0,255,0.3));border:2px solid #00ffff;border-radius:10px;color:#00ffff;font-weight:bold;font-size:16px;cursor:pointer;">
+            <i class="fas fa-play" style="margin-right:8px;"></i>実行
+          </button>
+        </div>
+        
+        <div id="cmd-result" style="margin-bottom:20px;padding:15px;background:#0a0a0a;border:1px solid #333;border-radius:8px;font-family:monospace;font-size:14px;color:#9ca3af;min-height:40px;display:none;">
+        </div>
+        
+        <div style="border-top:1px solid #333;padding-top:20px;">
+          <h3 style="color:#9ca3af;font-size:14px;margin-bottom:15px;">利用可能なコマンド:</h3>
+          <div style="display:grid;gap:10px;">
+            <div style="padding:10px 14px;background:rgba(0,255,255,0.05);border:1px solid rgba(0,255,255,0.2);border-radius:8px;">
+              <code style="color:#22c55e;">!sa</code>
+              <span style="color:#9ca3af;font-size:13px;margin-left:10px;">ディベート開始（アーカイブ保存付き）</span>
+            </div>
+            <div style="padding:10px 14px;background:rgba(0,255,255,0.05);border:1px solid rgba(0,255,255,0.2);border-radius:8px;">
+              <code style="color:#22c55e;">!s</code>
+              <span style="color:#9ca3af;font-size:13px;margin-left:10px;">ディベート開始</span>
+            </div>
+            <div style="padding:10px 14px;background:rgba(0,255,255,0.05);border:1px solid rgba(0,255,255,0.2);border-radius:8px;">
+              <code style="color:#22c55e;">!dela</code>
+              <span style="color:#9ca3af;font-size:13px;margin-left:10px;">現在のディベート削除 → ランダムテーマで新規開始</span>
+            </div>
+            <div style="padding:10px 14px;background:rgba(0,255,255,0.05);border:1px solid rgba(0,255,255,0.2);border-radius:8px;">
+              <code style="color:#22c55e;">!s-1</code>
+              <span style="color:#9ca3af;font-size:13px;margin-left:10px;">1分後にディベート予約</span>
+            </div>
+            <div style="padding:10px 14px;background:rgba(0,255,255,0.05);border:1px solid rgba(0,255,255,0.2);border-radius:8px;">
+              <code style="color:#22c55e;">!s-x</code>
+              <span style="color:#9ca3af;font-size:13px;margin-left:10px;">x分後に予約（0=即時開始+自動アーカイブ）</span>
+            </div>
+            <div style="padding:10px 14px;background:rgba(0,255,255,0.05);border:1px solid rgba(0,255,255,0.2);border-radius:8px;">
+              <code style="color:#22c55e;">!@xxx+coiny</code>
+              <span style="color:#9ca3af;font-size:13px;margin-left:10px;">ユーザーxxxにyコイン付与</span>
+            </div>
+            <div style="padding:10px 14px;background:rgba(0,255,255,0.05);border:1px solid rgba(0,255,255,0.2);border-radius:8px;">
+              <code style="color:#22c55e;">!stop</code>
+              <span style="color:#9ca3af;font-size:13px;margin-left:10px;">ディベート停止</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function openCommandPanel() {
+        // Close nav menu first
+        document.getElementById('nav-toggle').classList.remove('active');
+        document.getElementById('nav-menu').classList.remove('active');
+        document.getElementById('nav-overlay').classList.remove('active');
+        
+        document.getElementById('cmd-panel').style.display = 'block';
+        document.getElementById('cmd-input').focus();
+      }
+      window.openCommandPanel = openCommandPanel;
+      
+      function closeCmdPanel() {
+        document.getElementById('cmd-panel').style.display = 'none';
+        document.getElementById('cmd-result').style.display = 'none';
+      }
+      window.closeCmdPanel = closeCmdPanel;
+      
+      async function executeCmd() {
+        const input = document.getElementById('cmd-input');
+        const cmd = input.value.trim();
+        if (!cmd) return;
+        
+        const resultEl = document.getElementById('cmd-result');
+        resultEl.style.display = 'block';
+        resultEl.style.color = '#9ca3af';
+        resultEl.textContent = '実行中...';
+        
+        // Get current debateId from page if available
+        const appDataEl = document.getElementById('app-data');
+        const debateId = appDataEl ? appDataEl.dataset.debateId : null;
+        
+        try {
+          const response = await fetch('/api/commands/execute', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ command: cmd, debateId: debateId })
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            resultEl.style.color = '#22c55e';
+            
+            switch(data.action) {
+              case 'start_debate':
+                resultEl.textContent = '✅ ディベートを開始します...';
+                if (typeof window.startDebate === 'function') { closeCmdPanel(); window.startDebate(); }
+                else { resultEl.textContent = '⚠️ 観戦ページ(/watch)でのみ使用可能です'; resultEl.style.color = '#f59e0b'; }
+                break;
+              case 'start_debate_archive':
+                resultEl.textContent = '✅ ディベートを開始します（アーカイブ保存有効）...';
+                window.archiveOnComplete = true;
+                if (data.schedule_minutes === 0) {
+                  if (typeof window.startDebate === 'function') { closeCmdPanel(); window.startDebate(); }
+                  else { resultEl.textContent = '⚠️ 観戦ページ(/watch)でのみ使用可能です'; resultEl.style.color = '#f59e0b'; }
+                } else if (typeof window.startDebate === 'function') { closeCmdPanel(); window.startDebate(); }
+                else { resultEl.textContent = '⚠️ 観戦ページ(/watch)でのみ使用可能です'; resultEl.style.color = '#f59e0b'; }
+                break;
+              case 'schedule_debate':
+                resultEl.textContent = '✅ ' + data.schedule_minutes + '分後にディベートを予約しました。';
+                if (typeof window.startDebate === 'function') {
+                  const mins = data.schedule_minutes;
+                  resultEl.textContent += ' カウントダウン開始...';
+                  let remaining = mins * 60;
+                  const timer = setInterval(() => {
+                    remaining--;
+                    if (remaining <= 0) {
+                      clearInterval(timer);
+                      resultEl.textContent = '🚀 予約時間です！ディベートを開始します...';
+                      window.archiveOnComplete = true;
+                      closeCmdPanel();
+                      window.startDebate();
+                    } else {
+                      const m = Math.floor(remaining / 60);
+                      const s = remaining % 60;
+                      resultEl.textContent = '⏳ ディベート開始まで: ' + m + ':' + String(s).padStart(2,'0');
+                    }
+                  }, 1000);
+                }
+                break;
+              case 'dela':
+                resultEl.innerHTML = '✅ ディベート削除完了！新テーマ: <strong style="color:#00ffff;">' + (data.theme ? data.theme.title : '不明') + '</strong>';
+                // Reload page to load new theme
+                setTimeout(() => { location.reload(); }, 1500);
+                break;
+              case 'stop_debate':
+                resultEl.textContent = '✅ ディベートを停止しました';
+                if (typeof window.debateActive !== 'undefined') { window.debateActive = false; }
+                break;
+              case 'delete_debate_messages':
+                resultEl.textContent = '✅ ディベート履歴を削除しました';
+                break;
+              case 'grant_coins':
+                resultEl.textContent = '✅ @' + data.target + ' に ' + data.amount + ' コインを付与しました！';
+                break;
+              default:
+                resultEl.textContent = '✅ コマンド実行完了: ' + data.action;
+            }
+          } else {
+            resultEl.style.color = '#ef4444';
+            resultEl.textContent = '❌ ' + (data.error || 'コマンド実行失敗');
+          }
+        } catch (error) {
+          resultEl.style.color = '#ef4444';
+          resultEl.textContent = '❌ エラー: ' + error.message;
+        }
+        
+        input.value = '';
+      }
+      window.executeCmd = executeCmd;
     </script>
   `;
 };
