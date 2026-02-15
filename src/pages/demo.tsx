@@ -74,7 +74,7 @@ export const demoPage = (user: any) => `
 
                 <p class="text-lg mb-8 text-gray-300 max-w-2xl mx-auto">
                     <strong class="text-cyan-400">${user.username}</strong> さん（@${user.user_id}）<br>
-                    特別ボーナスとして <strong class="text-yellow-400">+${(user.credits || 0).toLocaleString()}クレジット</strong> を付与しました
+                    特別ボーナスとして <strong class="text-yellow-400">+${(user.initial_credits || 500).toLocaleString()}クレジット</strong> を付与しました
                 </p>
 
                 <!-- Stats Cards -->
@@ -83,7 +83,7 @@ export const demoPage = (user: any) => `
                         <div class="stat-icon">
                             <svg class="w-10 h-10 text-yellow-400"><use href="#icon-credit"/></svg>
                         </div>
-                        <div class="stat-value">+${(user.credits || 0).toLocaleString()}</div>
+                        <div class="stat-value">+${(user.initial_credits || 500).toLocaleString()}</div>
                         <div class="stat-label">付与クレジット</div>
                         <div class="stat-badge bonus">事前登録特典</div>
                     </div>
@@ -165,8 +165,8 @@ export const demoPage = (user: any) => `
                                 <div class="meter-segment">R</div>
                             </div>
                             <p class="text-sm text-gray-400 mt-4">
-                                リリース日が確定次第、メールでお知らせします<br>
-                                <span class="text-cyan-400">${user.email}</span>
+                                リリース日が確定次第、お知らせします<br>
+                                <a href="/tickets" class="text-cyan-400 hover:text-cyan-300">サポートチャットでお問い合わせ</a>
                             </p>
                         </div>
                     </div>
@@ -179,12 +179,12 @@ export const demoPage = (user: any) => `
                         <div class="info-item">
                             <div class="info-icon">
                                 <svg class="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
                                 </svg>
                             </div>
                             <div>
-                                <h4 class="font-bold">メール通知</h4>
-                                <p class="text-sm text-gray-400">重要なアップデートをメールでお知らせ</p>
+                                <h4 class="font-bold">サポートチャット</h4>
+                                <p class="text-sm text-gray-400">お問い合わせはチャットで対応します</p>
                             </div>
                         </div>
                         <div class="info-item">

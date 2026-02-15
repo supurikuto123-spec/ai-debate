@@ -301,8 +301,7 @@ export const homepage = (user: any) => `
                                 <h4 class="text-lg font-bold mb-3 text-cyan-400">獲得方法</h4>
                                 <ul class="space-y-2 text-sm text-gray-300">
                                     <li>• 新規登録ボーナス：500</li>
-                                    <li>• 毎日ログイン：10 / 日</li>
-                                    <li>• 勝利報酬：30-100</li>
+                                    <li>• 毎日ログイン：10 / 日 <span class="text-xs text-cyan-500">(将来実装)</span></li>
                                 </ul>
                             </div>
                             <div>
@@ -520,31 +519,31 @@ export const homepage = (user: any) => `
                     <div>
                         <h4 class="text-lg font-bold mb-4">プラットフォーム</h4>
                         <ul class="space-y-2 text-gray-400">
-                            <li><a href="#" class="hover:text-cyan-400">ライブ配信</a></li>
-                            <li><a href="#" class="hover:text-cyan-400">リプレイ</a></li>
-                            <li><a href="#" class="hover:text-cyan-400">ランキング</a></li>
+                            <li><span class="text-gray-500">ライブ配信 <span class="text-xs text-cyan-500">Coming Soon</span></span></li>
+                            <li><span class="text-gray-500">リプレイ <span class="text-xs text-cyan-500">Coming Soon</span></span></li>
+                            <li><span class="text-gray-500">ランキング <span class="text-xs text-cyan-500">Coming Soon</span></span></li>
                         </ul>
                     </div>
                     <div>
                         <h4 class="text-lg font-bold mb-4">コミュニティ</h4>
                         <ul class="space-y-2 text-gray-400">
-                            <li><a href="#" class="hover:text-cyan-400">フォーラム</a></li>
-                            <li><a href="#" class="hover:text-cyan-400">ディスカッション</a></li>
-                            <li><a href="#" class="hover:text-cyan-400">ヘルプ</a></li>
+                            <li><span class="text-gray-500">フォーラム <span class="text-xs text-cyan-500">Coming Soon</span></span></li>
+                            <li><span class="text-gray-500">ディスカッション <span class="text-xs text-cyan-500">Coming Soon</span></span></li>
+                            <li><span class="text-gray-500">ヘルプ <span class="text-xs text-cyan-500">Coming Soon</span></span></li>
                         </ul>
                     </div>
                     <div>
                         <h4 class="text-lg font-bold mb-4">Follow Us</h4>
                         <div class="flex space-x-4">
-                            <a href="#" class="social-icon">
+                            <span class="social-icon opacity-40 cursor-not-allowed" title="Coming Soon">
                                 <i class="fab fa-twitter"></i>
-                            </a>
-                            <a href="#" class="social-icon">
+                            </span>
+                            <span class="social-icon opacity-40 cursor-not-allowed" title="Coming Soon">
                                 <i class="fab fa-discord"></i>
-                            </a>
-                            <a href="#" class="social-icon">
+                            </span>
+                            <span class="social-icon opacity-40 cursor-not-allowed" title="Coming Soon">
                                 <i class="fab fa-github"></i>
-                            </a>
+                            </span>
                             <a href="https://www.instagram.com/not_rare.tar" target="_blank" rel="noopener noreferrer" class="social-icon">
                                 <i class="fab fa-instagram"></i>
                             </a>

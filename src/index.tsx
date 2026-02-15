@@ -211,7 +211,8 @@ app.get('/demo', async (c) => {
   `).bind(userInfo?.created_at).first()
   
   user.registration_number = countResult?.count || 1
-  user.initial_credits = userInfo?.credits || 500
+  // Show the original registration bonus, not current balance
+  user.initial_credits = user.user_id === 'dev' ? 50000 : 500
   
   return c.html(demoPage(user))
 })
