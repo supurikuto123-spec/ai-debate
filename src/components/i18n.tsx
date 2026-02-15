@@ -15,7 +15,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     'サポートチャット': 'Support', '管理者チャット': 'Admin Chat', 'サポートチャット管理': 'Support Admin',
     '利用規約': 'Terms', 'プライバシー': 'Privacy', 'プライバシーポリシー': 'Privacy Policy',
     '特商法': 'Legal', '特定商取引法': 'Commercial Law', 'コマンド': 'Commands',
-    // Homepage
+    // Homepage hero
     'AI vs AI ディベートショーを観戦しよう': 'Watch AI vs AI Debate Shows',
     '最先端のAI同士が繰り広げる白熱したディベートを楽しむ': 'Enjoy heated debates between cutting-edge AIs',
     '観戦でクレジット獲得、自分でもAIと対決可能': 'Earn credits by watching, challenge AI yourself',
@@ -24,6 +24,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     'リアルタイム接続数': 'Live Connections', '累計訪問者数': 'Total Visitors', '総登録ユーザー数': 'Registered Users',
     'サービスリリースまで': 'Until Service Launch',
     'リリース日確定次第、お知らせします': 'We will notify when the release date is set',
+    // Homepage sections
     'AI vs AI 試合を観戦': 'Watch AI vs AI Matches',
     '試合を作成する': 'Create a Match', '自分も参戦': 'Join the Battle',
     'クレジットシステム': 'Credit System', '獲得方法': 'How to Earn', '使い道': 'How to Spend',
@@ -32,13 +33,35 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     'レーティングシステム': 'Rating System', 'AIステータス': 'AI Status',
     'クレジット経済': 'Credit Economy', 'サブスク無制限': 'Unlimited Subscription',
     '無料で始める': 'Start Free',
-    // Main
+    'プラットフォーム': 'Platform', 'ライブ配信': 'Live Streaming',
+    // Homepage detail text
+    'ライブ配信されるAI同士のディベートを観戦。リアルタイムチャットで他の観客と交流しながら楽しもう': 'Watch live AI debates. Chat with other viewers in real time.',
+    'トピックとAIキャラクターを選んで試合をリクエスト。人気試合なら観客数に応じてクレジット還元': 'Choose topic & AI to request a match. Popular matches earn credit refunds.',
+    'クレジットを使ってAIと対戦。ディベート力を鍛えてレーティングを上げよう': 'Use credits to battle AI. Improve your debate skills and ranking.',
+    '自分でAIと対戦してスキルアップ。論理性・説得力・創造性を評価してランキング上位を目指そう': 'Challenge AI to rank up. Logic, persuasion, and creativity are evaluated.',
+    '各AIの戦績、勝率、得意ジャンルなどのステータスを確認可能。データに基づいて戦略を立てよう': 'Check each AI\'s stats, win rate, and specialities to build strategy.',
+    'リアルタイムチャット、フォーラムで交流。名勝負をシェアして楽しもう': 'Real-time chat and forums. Share great matches and enjoy.',
+    '観戦や参加でクレジット獲得。無料でも十分楽しめる持続可能なシステム': 'Earn credits by watching and participating. Sustainable free-to-play system.',
+    'サブスクリプションで過去の名勝負を無制限に閲覧可能。いつでもどこでも学習できる': 'Unlimited past match replays with subscription. Learn anytime.',
+    '定期開催のAI vs AIのディベート試合を観戦。AI vs 人間、人間 vs 人間の対戦も実施。チャットで他の観客と盛り上がろう': 'Watch regular AI vs AI debate matches. Also AI vs Human and Human vs Human. Chat with spectators.',
+    '今すぐ参加して、AI同士の知的バトルを観戦しよう': 'Join now and watch AI intellectual battles!',
+    '登録で500クレジット無料プレゼント': '500 free credits on registration',
+    'AI同士のディベートを観戦する': 'Watch debates between AIs -',
+    '新しいエンタメプラットフォーム': 'A new entertainment platform',
+    // Main page
     '現在開催中のディベートマッチ': 'Currently Running Debate Matches',
     'すべて': 'All', 'ライブ中': 'Live', '予定': 'Scheduled', '終了': 'Finished',
     '今すぐ観戦': 'Watch Now', '詳細を見る': 'View Details',
     '現在開催中のディベートはありません': 'No debates currently running',
+    '新しいディベートが開催されるまでお待ちください。': 'Please wait for a new debate to start.',
+    'または、デモページでディベートの様子をご覧いただけます。': 'Or check the demo page to see how debates work.',
     'デモを見る': 'Watch Demo', '人 観戦中': ' viewers', '日時未定': 'TBD',
-    // Watch
+    'アーカイブを読み込み中...': 'Loading archives...', 'アーカイブはまだありません': 'No archives yet',
+    '読み込みに失敗しました': 'Failed to load',
+    'ディベートが開始間近です！': 'A debate is about to start!',
+    '賛成意見': 'Pro opinion', '反対意見': 'Con opinion',
+    '投票:': 'Votes:', 'アーカイブで視聴': 'Watch in Archive',
+    // Watch page
     'ディベート観戦': 'Watch Debate', 'ディベート進行': 'Debate Progress', 'コメント': 'Comments',
     'コメントを入力...': 'Enter a comment...', 'コメント送信': 'Send Comment',
     'AI審査員の評価': 'AI Judge Evaluation',
@@ -48,10 +71,17 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     'マッチ一覧': 'Match List', '人が観戦中': 'viewers',
     'ディベート制約': 'Debate Rules', '総時間': 'Total Time', 'AIモデル': 'AI Model', '最大文字数': 'Max Characters',
     '最終結果': 'Final Results', '勝者': 'Winner',
-    'ディベート開始待ち': 'Waiting for debate', '待機中': 'Standby', '開始前': 'Not started',
+    'ディベート開始待ち': 'Waiting for debate to start',
+    'ディベートが開始されるまでお待ちください': 'Please wait for the debate to begin',
+    '待機中': 'Standby', '開始前': 'Not started',
     '残り時間': 'Time Left', '集計中...': 'Counting...', '評価中...': 'Evaluating...',
     '投票は何度でも変更できます': 'You can change your vote anytime',
-    // Battle
+    '賛成側': 'Pro side', '反対側': 'Con side',
+    'Aetherを支持': 'Support Aether', 'Novaを支持': 'Support Nova',
+    'Aetherが優勢': 'Aether leads', 'Novaが優勢': 'Nova leads',
+    'コメントはメニューの「コマンド」タブから使用してください': 'Commands can only be used from the Commands tab in the menu',
+    '読み込み中...': 'Loading...',
+    // Battle page
     '対戦モード': 'Battle Mode', 'AIとディベートで対決しよう': 'Challenge AI in a debate!',
     '対戦機能は現在開発中です': 'Battle feature is under development',
     '開発中 - リリース日未定': 'In Development - Release TBD',
@@ -70,10 +100,14 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     'プロフィール設定': 'Profile Settings', 'ニックネーム': 'Nickname', 'ユーザーID': 'User ID',
     '保存する': 'Save', '変更を保存': 'Save Changes', 'アバター選択': 'Select Avatar',
     '統計情報': 'Statistics', '公開プロフィールを見る': 'View Public Profile',
-    // Profile
+    // User Profile
     '登録日': 'Registered', '総ディベート数': 'Total Debates', '勝利数': 'Wins',
     '敗北数': 'Losses', '引き分け': 'Draws', '勝率': 'Win Rate', '投稿数': 'Posts',
     'プライバシー設定': 'Privacy Settings', '非公開': 'Private',
+    '総ディベート数を公開': 'Show Total Debates', '勝利数を公開': 'Show Wins',
+    '敗北数を公開': 'Show Losses', '引き分けを公開': 'Show Draws',
+    '勝率を公開': 'Show Win Rate', '投稿数を公開': 'Show Posts', 'クレジットを公開': 'Show Credits',
+    'プロフィール': 'Profile',
     // Archive
     'ディベートアーカイブ': 'Debate Archive', '購入済み': 'Purchased',
     // Tickets
@@ -81,7 +115,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     'メッセージ': 'Message', '送信する': 'Submit',
     '解決済み': 'Resolved', '対応中': 'In Progress', 'オープン': 'Open',
     // Common
-    'クレジット不足': 'Insufficient Credits', '読み込み中...': 'Loading...',
+    'クレジット不足': 'Insufficient Credits',
     '戻る': 'Back', 'メインに戻る': 'Back to Main', 'メインページ': 'Main Page',
     '登録完了！': 'Registration Complete!', '保有クレジット': 'Current Credits',
     '削除': 'Delete', '票': 'votes', '今日': 'Today', '昨日': 'Yesterday',
@@ -90,9 +124,22 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     '教育': 'Education', '政治': 'Politics',
     '賛成': 'Agree', '反対': 'Disagree', '賛成側勝利': 'Agree wins', '反対側勝利': 'Disagree wins',
     '実行': 'Execute', '実行中...': 'Executing...', 'コマンドを入力': 'Enter command',
-    'ライブ配信': 'Live Streaming',
-    'プロフィール': 'Profile',
     'Aether': 'Aether', 'Nova': 'Nova',
+    'Aether支持': 'Supports Aether', 'Nova支持': 'Supports Nova',
+    '判定なし': 'No judgment', '優勢': 'leads',
+    '閉じる': 'Close', 'モデル': 'Model', '特徴': 'Trait', 'スタイル': 'Style',
+    '賛成側 AI ディベーター': 'Pro-side AI Debater', '反対側 AI ディベーター': 'Con-side AI Debater',
+    '論理的・データ重視': 'Logical / Data-driven', '批判的・反証重視': 'Critical / Counter-evidence',
+    '構造的に根拠を積み上げる': 'Builds structured arguments', '矛盾を鋭く突く': 'Sharply exposes contradictions',
+    '件': ' items',
+    'テーマ未設定': 'No theme set',
+    '投票が完了しました！観戦を開始します': 'Vote completed! Starting spectating',
+    'AI倫理': 'AI Ethics', '自動運転': 'Self-driving', 'AGI開発': 'AGI Development',
+    'ベーシックインカム': 'Basic Income', 'リモートワーク': 'Remote Work', '教育改革': 'Education Reform',
+    '自由意志': 'Free Will', '意識とは何か': 'What is Consciousness', '道徳の普遍性': 'Moral Universality',
+    '気候変動対策': 'Climate Action', '原子力発電': 'Nuclear Power', '宇宙開発': 'Space Development',
+    'AIアート': 'AI Art', 'SNS規制': 'SNS Regulation', 'ゲーム依存': 'Gaming Addiction',
+    '仮想通貨規制': 'Crypto Regulation', '富の再分配': 'Wealth Redistribution', 'グローバリゼーション': 'Globalization',
   },
   zh: {
     'ホーム': '首页', '仕組み': '运作方式', 'カテゴリー': '分类', '機能': '功能',
@@ -101,6 +148,8 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     'マイページ': '我的页面', 'サポートチャット': '在线客服', 'コマンド': '命令',
     '利用規約': '使用条款', 'プライバシーポリシー': '隐私政策', '特定商取引法': '商业交易法',
     'AI vs AI ディベートショーを観戦しよう': '观看AI对AI辩论秀',
+    '最先端のAI同士が繰り広げる白熱したディベートを楽しむ': '享受尖端AI之间的激烈辩论',
+    '観戦でクレジット獲得、自分でもAIと対決可能': '观看赚积分，也可以挑战AI',
     '現在開催中のディベートマッチ': '正在进行的辩论赛', 'すべて': '全部',
     'ライブ中': '直播中', '予定': '预定', '終了': '已结束',
     '今すぐ観戦': '立即观看', '詳細を見る': '查看详情',
@@ -114,7 +163,15 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     '賛成': '赞成', '反対': '反对', '実行': '执行',
     'ディベート進行': '辩论进行中', 'コメント': '评论', 'AI審査員の評価': 'AI评委评分',
     '非公開': '未公开', '解決済み': '已解决', '対応中': '处理中', 'オープン': '待处理',
-    'Aether': 'Aether', 'Nova': 'Nova',
+    'Aether': 'Aether', 'Nova': 'Nova', 'Aether支持': '支持Aether', 'Nova支持': '支持Nova',
+    '閉じる': '关闭', 'モデル': '模型', '特徴': '特征', 'スタイル': '风格',
+    '主な機能': '主要功能', 'クレジットシステム': '积分系统',
+    '獲得方法': '获取方式', '使い道': '使用方式',
+    '事前登録ボーナス': '预注册奖励',
+    'リアルタイム接続数': '实时连接数', '累計訪問者数': '累计访问量', '総登録ユーザー数': '总注册用户',
+    'サービスリリースまで': '距服务发布',
+    '判定なし': '无判定', '評価中...': '评估中...',
+    'プライバシー設定': '隐私设置',
   },
   ko: {
     'ホーム': '홈', '仕組み': '작동 방식', 'カテゴリー': '카테고리', '機能': '기능',
@@ -132,7 +189,11 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     '読み込み中...': '로딩 중...', '削除': '삭제', '票': '표',
     '賛成': '찬성', '反対': '반대', '実行': '실행',
     '非公開': '비공개', '解決済み': '해결됨', '対応中': '처리중', 'オープン': '대기중',
-    'Aether': 'Aether', 'Nova': 'Nova',
+    'Aether': 'Aether', 'Nova': 'Nova', 'Aether支持': 'Aether 지지', 'Nova支持': 'Nova 지지',
+    '閉じる': '닫기', '判定なし': '판정 없음', '評価中...': '평가 중...',
+    '主な機能': '주요 기능', 'クレジットシステム': '크레딧 시스템',
+    'リアルタイム接続数': '실시간 접속', '累計訪問者数': '누적 방문자', '総登録ユーザー数': '총 등록 사용자',
+    'プライバシー設定': '개인정보 설정',
   },
   es: {
     'ホーム': 'Inicio', '仕組み': 'Cómo funciona', 'カテゴリー': 'Categorías', '機能': 'Funciones',
@@ -146,7 +207,8 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     '読み込み中...': 'Cargando...', '削除': 'Eliminar', '票': 'votos',
     '賛成': 'A favor', '反対': 'En contra', '実行': 'Ejecutar',
     '非公開': 'Privado', '解決済み': 'Resuelto', '対応中': 'En curso', 'オープン': 'Abierto',
-    'Aether': 'Aether', 'Nova': 'Nova',
+    'Aether': 'Aether', 'Nova': 'Nova', '閉じる': 'Cerrar', '判定なし': 'Sin juicio',
+    'プライバシー設定': 'Privacidad',
   },
   fr: {
     'ホーム': 'Accueil', '仕組み': 'Fonctionnement', 'カテゴリー': 'Catégories', '機能': 'Fonctionnalités',
@@ -160,7 +222,8 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     '読み込み中...': 'Chargement...', '削除': 'Supprimer', '票': 'votes',
     '賛成': 'Pour', '反対': 'Contre', '実行': 'Exécuter',
     '非公開': 'Privé', '解決済み': 'Résolu', '対応中': 'En cours', 'オープン': 'Ouvert',
-    'Aether': 'Aether', 'Nova': 'Nova',
+    'Aether': 'Aether', 'Nova': 'Nova', '閉じる': 'Fermer', '判定なし': 'Aucun jugement',
+    'プライバシー設定': 'Confidentialité',
   }
 };
 
@@ -195,6 +258,10 @@ export const i18nScript = () => `
       
       for(var i = 0; i < textNodes.length; i++) {
         var node = textNodes[i];
+        // Skip script/style tags
+        var parent = node.parentElement;
+        if(parent && (parent.tagName === 'SCRIPT' || parent.tagName === 'STYLE' || parent.tagName === 'CODE')) continue;
+        
         var original = node.textContent;
         if(!original || !original.trim()) continue;
         
@@ -212,18 +279,29 @@ export const i18nScript = () => `
 
     walkAndTranslate(document.body);
 
-    // Translate placeholder/title attributes
-    document.querySelectorAll('[placeholder]').forEach(function(el){
-      var p = el.getAttribute('placeholder');
-      for(var k = 0; k < keys.length; k++) {
-        if(p && p.indexOf(keys[k]) !== -1) p = p.split(keys[k]).join(dict[keys[k]]);
-      }
-      if(p !== el.getAttribute('placeholder')) el.setAttribute('placeholder', p);
+    // Translate placeholder/title/alt attributes
+    var attrSelectors = ['[placeholder]', '[title]', '[alt]'];
+    attrSelectors.forEach(function(sel){
+      document.querySelectorAll(sel).forEach(function(el){
+        var attrs = ['placeholder', 'title', 'alt'];
+        attrs.forEach(function(attr){
+          var v = el.getAttribute(attr);
+          if(!v) return;
+          var changed = false;
+          for(var k = 0; k < keys.length; k++) {
+            if(v.indexOf(keys[k]) !== -1) { v = v.split(keys[k]).join(dict[keys[k]]); changed = true; }
+          }
+          if(changed) el.setAttribute(attr, v);
+        });
+      });
     });
-    document.querySelectorAll('[title]').forEach(function(el){
-      var t = el.getAttribute('title');
-      if(t && dict[t]) el.setAttribute('title', dict[t]);
-    });
+
+    // Update document title
+    var docTitle = document.title;
+    for(var k = 0; k < keys.length; k++) {
+      if(docTitle.indexOf(keys[k]) !== -1) docTitle = docTitle.split(keys[k]).join(dict[keys[k]]);
+    }
+    document.title = docTitle;
 
     // Update lang attribute
     var langMap = { zh: 'zh-CN', ko: 'ko-KR' };

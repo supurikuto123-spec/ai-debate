@@ -781,7 +781,7 @@ async function generateAIResponse(side) {
 function addDebateMessage(side, message, model) {
     const container = document.getElementById('debateMessages');
     const bubbleClass = side === 'agree' ? 'bubble-agree' : 'bubble-disagree';
-    const iconClass = side === 'agree' ? 'fa-brain' : 'fa-lightbulb';
+    const iconClass = side === 'agree' ? 'fa-brain' : 'fa-fire';
     const gradientClass = side === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500';
     const opinionLabel = side === 'agree' ? 'Aether' : 'Nova';
     const aiModel = model || 'AI';
@@ -793,7 +793,7 @@ async function addDebateMessageWithTyping(side, message, actualModel) {
     return new Promise((resolve) => {
         const container = document.getElementById('debateMessages');
         const bubbleClass = side === 'agree' ? 'bubble-agree' : 'bubble-disagree';
-        const iconClass = side === 'agree' ? 'fa-brain' : 'fa-lightbulb';
+        const iconClass = side === 'agree' ? 'fa-brain' : 'fa-fire';
         const gradientClass = side === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500';
         const opinionLabel = side === 'agree' ? 'Aether' : 'Nova';
         

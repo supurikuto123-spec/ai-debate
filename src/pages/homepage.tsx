@@ -560,6 +560,7 @@ export const homepage = (user: any) => `
         </footer>
 
         <script src="/static/app.js"></script>
+    ${i18nScript()}
     </body>
     </html>
 `

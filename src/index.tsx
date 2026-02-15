@@ -1221,7 +1221,7 @@ app.post('/api/debate/:debateId/status', async (c) => {
   }
 })
 
-// API: Execute command (from Commands tab)
+// API: Execute command (ONLY from Commands panel in nav menu)
 app.post('/api/commands/execute', async (c) => {
   try {
     const userCookie = getCookie(c, 'user')
@@ -1230,7 +1230,12 @@ app.post('/api/commands/execute', async (c) => {
     }
     
     const user = JSON.parse(userCookie)
-    const { command, debateId } = await c.req.json()
+    const { command, debateId, source } = await c.req.json()
+    
+    // SECURITY: Commands can ONLY be executed from the command panel
+    if (source !== 'cmd-panel') {
+      return c.json({ success: false, error: 'コマンドはメニューの「コマンド」パネルからのみ実行できます' }, 403)
+    }
     
     if (!command) {
       return c.json({ success: false, error: 'コマンドが空です' }, 400)
@@ -1356,7 +1361,7 @@ app.post('/api/commands/execute', async (c) => {
       return c.json({ success: true, action: 'grant_coins', target: targetUserId, amount: coinAmount })
     }
     
-    return c.json({ success: false, error: '不明なコマンドです: ' + cmd }, 400)
+    // All unrecognized commands are errors - only !s-x and !@xxx+coiny are allowed\n    return c.json({ success: false, error: 'エラー: 不明なコマンド「' + cmd + '」。使用可能: !s-数字（開始予約）, !@ユーザー+coin数字（コイン付与）' }, 400)
   } catch (error) {
     console.error('Command execution error:', error)
     return c.json({ success: false, error: 'コマンド実行エラー' }, 500)
@@ -1416,6 +1421,37 @@ app.get('/api/debate/model-info', async (c) => {
     success: true, 
     model: 'gpt-4.1-nano',
     display_name: 'GPT-4.1 Nano'
+  })
+})
+
+// API: Get AI profiles (viewable by all users)
+app.get('/api/ai-profiles', async (c) => {
+  return c.json({
+    success: true,
+    profiles: {
+      aether: {
+        name: 'Aether',
+        role: '賛成側 AI ディベーター',
+        icon: 'fas fa-brain',
+        color: '#34d399',
+        gradient: 'from-green-500 to-emerald-500',
+        model: 'gpt-4.1-nano',
+        trait: '論理的・データ重視',
+        style: '構造的に根拠を積み上げる',
+        description: '客観的データと論理的推論を重視し、体系的に議論を構築するAI。根拠の明確さと一貫性が特徴。'
+      },
+      nova: {
+        name: 'Nova',
+        role: '反対側 AI ディベーター',
+        icon: 'fas fa-fire',
+        color: '#f87171',
+        gradient: 'from-red-500 to-rose-500',
+        model: 'gpt-4.1-nano',
+        trait: '批判的・反証重視',
+        style: '矛盾を鋭く突く',
+        description: '相手の論点の弱点を鋭く指摘し、反証を提示するAI。批判的思考と反論力が特徴。'
+      }
+    }
   })
 })
 

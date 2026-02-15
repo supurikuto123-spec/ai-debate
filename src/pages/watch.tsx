@@ -369,21 +369,7 @@ export const watchPage = (user: any, debateId: string) => `
             </div>
         </div>
 
-        <!-- Footer -->
-        <footer class="border-t border-cyan-500/20 mt-12 py-8 bg-black/80">
-            <div class="container mx-auto px-4">
-                <div class="flex flex-wrap justify-center gap-4 md:gap-8 text-sm text-gray-400">
-                    <a href="/main" class="hover:text-cyan-400 transition-colors">メインページ</a>
-                    <a href="/archive" class="hover:text-cyan-400 transition-colors">アーカイブ</a>
-                    <a href="/community" class="hover:text-cyan-400 transition-colors">コミュニティ</a>
-                    <a href="/terms" class="hover:text-cyan-400 transition-colors">利用規約</a>
-                    <a href="/privacy" class="hover:text-cyan-400 transition-colors">プライバシーポリシー</a>
-                    <a href="/legal" class="hover:text-cyan-400 transition-colors">特定商取引法</a>
-                    <a href="/tickets" class="hover:text-cyan-400 transition-colors">サポート</a>
-                </div>
-                <p class="text-center text-gray-600 text-xs mt-4">&copy; 2025 AI Debate Arena. All rights reserved.</p>
-            </div>
-        </footer>
+
 
         <!-- Toast Notification -->
         <div id="toast" class="fixed bottom-8 right-8 bg-cyan-500 text-black px-6 py-3 rounded-lg shadow-lg hidden z-50">

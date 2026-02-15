@@ -185,6 +185,7 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
           <input id="cmd-input" type="text" placeholder="コマンドを入力... (例: !s-0, !s-5, !@user+coin100)"
             style="width:100%;padding:14px 18px;background:#111;border:2px solid #00ffff;border-radius:10px;color:#fff;font-size:16px;font-family:monospace;outline:none;"
             onkeydown="if(event.key==='Enter')executeCmd()">
+          <p style="margin-top:8px;font-size:12px;color:#6b7280;"><i class="fas fa-info-circle" style="margin-right:4px;"></i>使用可能: <code style="color:#22c55e;">!s-数字</code>（開始予約）, <code style="color:#22c55e;">!@ユーザー+coin数字</code>（コイン付与）</p>
           <button onclick="executeCmd()" style="width:100%;margin-top:10px;padding:12px;background:linear-gradient(135deg,rgba(0,255,255,0.3),rgba(255,0,255,0.3));border:2px solid #00ffff;border-radius:10px;color:#00ffff;font-weight:bold;font-size:16px;cursor:pointer;">
             <i class="fas fa-play" style="margin-right:8px;"></i>実行
           </button>
@@ -231,7 +232,7 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
           const response = await fetch('/api/commands/execute', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ command: cmd, debateId: debateId })
+            body: JSON.stringify({ command: cmd, debateId: debateId, source: 'cmd-panel' })
           });
           
           const data = await response.json();
@@ -291,10 +292,7 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
                   resultEl.innerHTML = '✅ ' + data.schedule_minutes + '分後に予約済み。<br><a href="/main" style="color:#00ffff;text-decoration:underline;">メインページ</a>の「予定」タブに表示されます。<br>開始時刻に<a href="/watch?id=' + (debateId || 'default') + '" style="color:#00ffff;text-decoration:underline;">観戦ページ</a>を開いてください。';
                 }
                 break;
-              case 'dela':
-                resultEl.innerHTML = '✅ ディベート削除完了！新テーマ: <strong style="color:#00ffff;">' + (data.theme ? data.theme.title : '不明') + '</strong>';
-                setTimeout(() => { location.reload(); }, 1500);
-                break;
+
               case 'grant_coins':
                 resultEl.textContent = '✅ @' + data.target + ' に ' + data.amount + ' コインを付与しました！';
                 break;
