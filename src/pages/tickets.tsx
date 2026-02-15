@@ -1,4 +1,5 @@
 import { globalNav } from '../components/global-nav';
+import { i18nScript } from '../components/i18n';
 
 export const ticketsPage = (user: any) => `
     <!DOCTYPE html>
@@ -471,6 +472,7 @@ export const ticketsPage = (user: any) => `
             
             loadTickets();
         </script>
-    </body>
+    ${i18nScript()}
+</body>
     </html>
 `

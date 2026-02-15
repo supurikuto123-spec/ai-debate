@@ -26,6 +26,11 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
       #nav-menu.active { right: 0; }
       .nav-profile { padding: 40px 30px 30px; border-bottom: 2px solid rgba(0,255,255,0.3); background: linear-gradient(135deg, rgba(0,255,255,0.1), rgba(255,0,255,0.1)); }
       .nav-avatar { width: 100px; height: 100px; border-radius: 50%; border: 3px solid #00ffff; margin: 0 auto 15px; display: block; box-shadow: 0 0 20px rgba(0,255,255,0.5); object-fit: cover; }
+      .nav-avatar-wrap { position: relative; width: 110px; margin: 0 auto 15px; }
+      .nav-avatar-wrap.dev-frame { }
+      .nav-avatar-wrap.dev-frame .nav-avatar { border: 4px solid transparent; background-image: linear-gradient(#000, #000), linear-gradient(135deg, #ffd700, #ff00ff, #00ffff, #ffd700); background-origin: border-box; background-clip: padding-box, border-box; box-shadow: 0 0 25px rgba(255,215,0,0.6), 0 0 50px rgba(255,0,255,0.3); animation: devGlow 3s ease-in-out infinite; margin: 0 auto; }
+      .dev-badge { position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #ffd700, #ff8c00); color: #000; font-size: 10px; font-weight: 900; padding: 2px 10px; border-radius: 10px; white-space: nowrap; box-shadow: 0 0 15px rgba(255,215,0,0.7); letter-spacing: 1px; z-index: 1; }
+      @keyframes devGlow { 0%, 100% { box-shadow: 0 0 25px rgba(255,215,0,0.6), 0 0 50px rgba(255,0,255,0.3); } 50% { box-shadow: 0 0 40px rgba(255,215,0,0.9), 0 0 80px rgba(0,255,255,0.5); } }
       .nav-username { font-family: 'Orbitron', sans-serif; font-size: 1.2rem; font-weight: 700; text-align: center; color: #00ffff; margin-bottom: 10px; text-shadow: 0 0 10px rgba(0,255,255,0.5); }
       .nav-credits { text-align: center; font-size: 1.1rem; color: #ffff00; font-weight: 700; text-shadow: 0 0 10px rgba(255,255,0,0.5); }
       .nav-links { padding: 20px 0; }
@@ -53,7 +58,10 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
 
     <nav id="nav-menu">
       <div class="nav-profile">
-        <img src="${avatarUrl}" alt="Avatar" class="nav-avatar">
+        <div class="nav-avatar-wrap ${isDevUser ? 'dev-frame' : ''}">
+          <img src="${avatarUrl}" alt="Avatar" class="nav-avatar">
+          ${isDevUser ? '<div class="dev-badge"><i class="fas fa-crown" style="margin-right:3px;"></i>DEV</div>' : ''}
+        </div>
         <div class="nav-username">@${user.user_id}</div>
         <div class="nav-credits" id="nav-credits-display">
           <i class="fas fa-coins"></i> <span id="nav-credits-value">${(user.credits || 0).toLocaleString()}</span> Credits

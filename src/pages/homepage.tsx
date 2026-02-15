@@ -1,3 +1,5 @@
+import { i18nScript } from '../components/i18n';
+
 export const homepage = (user: any) => `
     <!DOCTYPE html>
     <html lang="ja">

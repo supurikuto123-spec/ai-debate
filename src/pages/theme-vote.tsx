@@ -1,4 +1,5 @@
 import { globalNav } from '../components/global-nav';
+import { i18nScript } from '../components/i18n';
 
 export const themeVotePage = (user: any) => `
 <!DOCTYPE html>
@@ -260,6 +261,14 @@ export const themeVotePage = (user: any) => `
             font-size: 12px;
             color: #a78bfa;
         }
+        .voted-btn {
+            background: rgba(239, 68, 68, 0.2) !important;
+            border-color: rgba(239, 68, 68, 0.5) !important;
+            color: #f87171 !important;
+        }
+        .voted-btn:hover {
+            background: rgba(239, 68, 68, 0.3) !important;
+        }
     </style>
 
     <script>
@@ -348,11 +357,10 @@ export const themeVotePage = (user: any) => `
                         <div class="flex items-center gap-2">
                             <button 
                                 onclick="voteTheme('\${theme.id}', \${theme.has_voted})" 
-                                class="btn-primary flex-1 \${theme.has_voted ? 'opacity-50' : ''}"
-                                \${theme.has_voted ? 'disabled' : ''}
+                                class="btn-primary flex-1 \${theme.has_voted ? 'voted-btn' : ''}"
                             >
-                                <i class="fas fa-\${theme.has_voted ? 'check' : 'thumbs-up'} mr-2"></i>
-                                \${theme.has_voted ? '投票済み' : 'このテーマに投票（無料）'}
+                                <i class="fas fa-\${theme.has_voted ? 'times' : 'thumbs-up'} mr-2"></i>
+                                \${theme.has_voted ? '投票を取り消す' : 'このテーマに投票（無料）'}
                             </button>
                             \${isDev ? \`
                                 <button 
@@ -412,9 +420,8 @@ export const themeVotePage = (user: any) => `
             }
         });
 
-        // Vote for theme (free)
+        // Vote for theme (free) - toggle
         async function voteTheme(themeId, hasVoted) {
-            if (hasVoted) return;
 
             try {
                 const response = await fetch(\`/api/theme-votes/\${themeId}/vote\`, {
@@ -499,6 +506,7 @@ export const themeVotePage = (user: any) => `
         // Initial load
         loadThemes();
     </script>
+${i18nScript()}
 </body>
 </html>
 `;

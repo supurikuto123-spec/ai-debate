@@ -1,3 +1,5 @@
+import { i18nScript } from '../components/i18n'
+
 export const demoPage = (user: any) => `
     <!DOCTYPE html>
     <html lang="ja">
@@ -11,6 +13,7 @@ export const demoPage = (user: any) => `
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
         <link href="/static/styles.css" rel="stylesheet">
+        ${i18nScript()}
     </head>
     <body class="bg-black text-white overflow-x-hidden">
         <!-- Navigation -->
@@ -79,6 +82,15 @@ export const demoPage = (user: any) => `
 
                 <!-- Stats Cards -->
                 <div class="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-12">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <div class="text-4xl">💰</div>
+                        </div>
+                        <div class="stat-value">${(user.credits || 0).toLocaleString()}</div>
+                        <div class="stat-label">保有クレジット</div>
+                        <div class="stat-badge">現在の残高</div>
+                    </div>
+
                     <div class="stat-card">
                         <div class="stat-icon">
                             <svg class="w-10 h-10 text-yellow-400"><use href="#icon-credit"/></svg>
@@ -212,8 +224,8 @@ export const demoPage = (user: any) => `
                     </div>
 
                     <div class="flex flex-col md:flex-row gap-4 justify-center">
-                        <a href="/" class="btn-glow text-xl px-12 py-4">
-                            ホームに戻る
+                        <a href="/main" class="btn-glow text-xl px-12 py-4">
+                            メインに戻る
                         </a>
                         <a href="/logout" class="btn-outline text-xl px-12 py-4">
                             ログアウト

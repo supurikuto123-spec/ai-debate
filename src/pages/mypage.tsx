@@ -1,4 +1,5 @@
 import { globalNav } from '../components/global-nav';
+import { i18nScript } from '../components/i18n';
 
 export const myPage = (userData: any) => {
   const avatarType = userData.avatar_type || 'bottts';
@@ -434,7 +435,8 @@ export const myPage = (userData: any) => {
                 }
             })();
         </script>
-    </body>
+    ${i18nScript()}
+</body>
     </html>
 `;
 }

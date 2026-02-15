@@ -1,4 +1,5 @@
 import { globalNav } from '../components/global-nav';
+import { i18nScript } from '../components/i18n';
 
 export const mainPage = (user: any, debates: any[] = []) => `
     <!DOCTYPE html>
@@ -241,6 +242,7 @@ export const mainPage = (user: any, debates: any[] = []) => `
                 setTimeout(() => { toast.classList.remove('show'); }, 3000);
             }
         </script>
-    </body>
+    ${i18nScript()}
+</body>
     </html>
 `

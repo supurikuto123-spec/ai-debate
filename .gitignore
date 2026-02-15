@@ -29,3 +29,4 @@ logs/
 *.bak
 *.tar.gz
 *.zip
+public/static/patch.txt

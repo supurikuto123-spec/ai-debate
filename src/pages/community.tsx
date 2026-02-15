@@ -1,4 +1,5 @@
 import { globalNav } from '../components/global-nav';
+import { i18nScript } from '../components/i18n';
 
 export const communityPage = (userData: any) => `<!DOCTYPE html>
 <html lang="ja">
@@ -337,9 +338,9 @@ export const communityPage = (userData: any) => `<!DOCTYPE html>
                         <div class="message-card">
                             <div class="message-header">
                                 <div class="user-info" onclick="viewProfile('\${post.user_id}')">
-                                    <img src="\${getAvatarUrl(post)}" alt="\${post.user_id}" class="user-avatar" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=\${post.user_id}'" />
+                                    <img src="\${getAvatarUrl(post)}" alt="\${post.user_id}" class="user-avatar" style="\${post.user_id === 'dev' ? 'border:2px solid #ffd700;box-shadow:0 0 12px rgba(255,215,0,0.6);' : ''}" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=\${post.user_id}'" />
                                     <div>
-                                        <div class="user-name">@\${post.user_id}</div>
+                                        <div class="user-name">@\${post.user_id}\${post.user_id === 'dev' ? ' <span style="background:linear-gradient(135deg,#ffd700,#ff8c00);color:#000;font-size:10px;padding:1px 6px;border-radius:8px;font-weight:900;margin-left:4px;"><i class="fas fa-crown" style="margin-right:2px;font-size:8px;"></i>DEV</span>' : ''}</div>
                                         <div class="message-time">\${new Date(post.created_at + (post.created_at.includes && !post.created_at.includes('Z') && !post.created_at.includes('+') ? 'Z' : '')).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
                                     </div>
                                 </div>
@@ -472,5 +473,6 @@ export const communityPage = (userData: any) => `<!DOCTYPE html>
             loadStats();
         }, 30000);
     </script>
+${i18nScript()}
 </body>
 </html>`

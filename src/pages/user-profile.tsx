@@ -1,4 +1,5 @@
 import type { FC } from 'hono/jsx'
+import { i18nScript } from '../components/i18n'
 
 interface UserProfileProps {
   profileUser: {
@@ -319,6 +320,7 @@ export const UserProfile: FC<UserProfileProps> = ({ profileUser, currentUser, st
                 </div>
             </div>
         </div>
+        <div dangerouslySetInnerHTML={{ __html: i18nScript() }} />
     </body>
     </html>
   )

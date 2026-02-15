@@ -1,4 +1,5 @@
 import { globalNav } from '../components/global-nav';
+import { i18nScript } from '../components/i18n';
 
 export const termsPage = (user: any) => `
 <!DOCTYPE html>
@@ -231,6 +232,7 @@ export const termsPage = (user: any) => `
             </div>
         </div>
     </div>
+${i18nScript()}
 </body>
 </html>
 `;

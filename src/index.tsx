@@ -49,9 +49,12 @@ app.get('/favicon.ico', (c) => {
 app.get('/robots.txt', serveStatic({ path: './public/robots.txt' }))
 
 // SEO: Serve sitemap.xml dynamically (overrides static file)
-app.get('/sitemap.xml', (c) => {
+// This URL can be submitted directly to Google Search Console
+app.get('/sitemap.xml', async (c) => {
   const baseUrl = 'https://ai-debate.jp'
   const today = new Date().toISOString().split('T')[0]
+  
+  // Static pages
   const pages = [
     { loc: '/', changefreq: 'daily', priority: '1.0' },
     { loc: '/theme-vote', changefreq: 'daily', priority: '0.8' },
@@ -63,6 +66,21 @@ app.get('/sitemap.xml', (c) => {
     { loc: '/privacy', changefreq: 'monthly', priority: '0.3' },
     { loc: '/legal', changefreq: 'monthly', priority: '0.3' },
   ]
+  
+  // Dynamic: user profile pages
+  try {
+    const users = await c.env.DB.prepare(
+      'SELECT user_id FROM users ORDER BY created_at DESC LIMIT 100'
+    ).all()
+    if (users.results) {
+      for (const u of users.results) {
+        pages.push({ loc: `/user/${u.user_id}`, changefreq: 'weekly', priority: '0.4' })
+      }
+    }
+  } catch (e) {
+    // Ignore errors
+  }
+  
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${pages.map(p => `  <url>
@@ -73,7 +91,10 @@ ${pages.map(p => `  <url>
   </url>`).join('\n')}
 </urlset>`
   return new Response(xml, {
-    headers: { 'Content-Type': 'application/xml; charset=utf-8' }
+    headers: { 
+      'Content-Type': 'application/xml; charset=utf-8',
+      'Cache-Control': 'public, max-age=3600'
+    }
   })
 })
 
@@ -811,10 +832,15 @@ app.get('/api/announcements', async (c) => {
       }
     }
     
-    // Get announcements with reaction counts
+    // Get announcements with reaction counts (safely handle optional columns)
+    let selectExtra = ''
+    try { await c.env.DB.prepare("SELECT image_url FROM announcements LIMIT 0").all(); selectExtra += ', a.image_url' } catch {}
+    try { await c.env.DB.prepare("SELECT poll_data FROM announcements LIMIT 0").all(); selectExtra += ', a.poll_data' } catch {}
+    
     const announcements = await c.env.DB.prepare(`
       SELECT 
-        a.*,
+        a.id, a.content, a.type, a.created_at
+        ${selectExtra},
         (SELECT COUNT(*) FROM announcement_reactions WHERE announcement_id = a.id) as reaction_count,
         (SELECT COUNT(*) FROM announcement_reactions WHERE announcement_id = a.id AND user_id = ?) as user_has_reacted
       FROM announcements a
@@ -844,16 +870,25 @@ app.post('/api/announcements/post', async (c) => {
       return c.json({ success: false, error: 'Permission denied' }, 403)
     }
     
-    const { content, type } = await c.req.json()
+    const { content, type, image_url, poll } = await c.req.json()
     
     if (!content) {
       return c.json({ success: false, error: 'Content required' })
     }
     
-    // Use NULL for id to let autoincrement work
+    // Ensure image_url and poll_data columns exist
+    try { await c.env.DB.prepare("SELECT image_url FROM announcements LIMIT 0").all() } catch {
+      try { await c.env.DB.prepare("ALTER TABLE announcements ADD COLUMN image_url TEXT").run() } catch {}
+    }
+    try { await c.env.DB.prepare("SELECT poll_data FROM announcements LIMIT 0").all() } catch {
+      try { await c.env.DB.prepare("ALTER TABLE announcements ADD COLUMN poll_data TEXT").run() } catch {}
+    }
+    
+    const pollData = poll ? JSON.stringify({ ...poll, votes: new Array(poll.options.length).fill(0) }) : null
+    
     await c.env.DB.prepare(
-      'INSERT INTO announcements (content, type, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)'
-    ).bind(content, type || 'announcement').run()
+      'INSERT INTO announcements (content, type, image_url, poll_data, created_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)'
+    ).bind(content, type || 'announcement', image_url || null, pollData).run()
     
     return c.json({ success: true })
   } catch (error) {
@@ -888,6 +923,47 @@ app.delete('/api/announcements/:id', async (c) => {
   } catch (error) {
     console.error('Delete announcement error:', error)
     return c.json({ success: false, error: 'Failed to delete announcement' }, 500)
+  }
+})
+
+// API: Vote on announcement poll
+app.post('/api/announcements/:id/poll-vote', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    if (!userCookie) {
+      return c.json({ success: false, error: 'Not authenticated' }, 401)
+    }
+    
+    const user = JSON.parse(userCookie)
+    const announcementId = c.req.param('id')
+    const { option_index } = await c.req.json()
+    
+    // Get current poll data
+    const ann = await c.env.DB.prepare(
+      'SELECT poll_data FROM announcements WHERE id = ?'
+    ).bind(announcementId).first()
+    
+    if (!ann || !ann.poll_data) {
+      return c.json({ success: false, error: 'アンケートが見つかりません' }, 404)
+    }
+    
+    const poll = JSON.parse(ann.poll_data as string)
+    if (option_index < 0 || option_index >= poll.options.length) {
+      return c.json({ success: false, error: '無効な選択肢です' }, 400)
+    }
+    
+    // Increment vote count
+    if (!poll.votes) poll.votes = new Array(poll.options.length).fill(0)
+    poll.votes[option_index] = (poll.votes[option_index] || 0) + 1
+    
+    await c.env.DB.prepare(
+      'UPDATE announcements SET poll_data = ? WHERE id = ?'
+    ).bind(JSON.stringify(poll), announcementId).run()
+    
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('Poll vote error:', error)
+    return c.json({ success: false, error: 'Failed to vote' }, 500)
   }
 })
 
@@ -927,10 +1003,11 @@ app.post('/api/announcements/:id/reaction', async (c) => {
   }
 })
 
-// API: Get Archive Debates
+// API: Get Archive Debates (from archived_debates + completed debates)
 app.get('/api/archive/debates', async (c) => {
   try {
-    const debates = await c.env.DB.prepare(`
+    // Get from archived_debates table
+    const archived = await c.env.DB.prepare(`
       SELECT 
         id,
         debate_id,
@@ -952,7 +1029,36 @@ app.get('/api/archive/debates', async (c) => {
       LIMIT 50
     `).all()
     
-    return c.json({ success: true, debates: debates.results || [] })
+    // Also get completed debates from main debates table that aren't archived yet
+    let completedDebates: any[] = []
+    try {
+      const completed = await c.env.DB.prepare(`
+        SELECT 
+          d.id,
+          d.id as debate_id,
+          d.topic as theme,
+          d.agree_position as opinion_a,
+          d.disagree_position as opinion_b,
+          COALESCE((SELECT COUNT(*) FROM debate_votes WHERE debate_id = d.id AND vote = 'agree'), 0) as agree_votes,
+          COALESCE((SELECT COUNT(*) FROM debate_votes WHERE debate_id = d.id AND vote = 'disagree'), 0) as disagree_votes,
+          d.winner,
+          'completed' as status,
+          (SELECT COUNT(*) FROM debate_messages WHERE debate_id = d.id) as message_count,
+          d.created_at
+        FROM debates d
+        WHERE d.status = 'completed'
+        AND d.id NOT IN (SELECT debate_id FROM archived_debates WHERE debate_id IS NOT NULL)
+        ORDER BY d.created_at DESC
+        LIMIT 50
+      `).all()
+      completedDebates = completed.results || []
+    } catch (e) {
+      // debates table may not have status/winner columns - ignore
+      console.log('Note: Could not fetch completed debates from debates table')
+    }
+    
+    const allDebates = [...(archived.results || []), ...completedDebates]
+    return c.json({ success: true, debates: allDebates })
   } catch (error) {
     console.error('Get archive debates error:', error)
     return c.json({ success: false, error: 'Failed to load debates' }, 500)
@@ -2001,7 +2107,7 @@ app.post('/api/theme-votes/propose', async (c) => {
   }
 })
 
-// API: Vote for theme
+// API: Vote for theme (toggle - vote or unvote)
 app.post('/api/theme-votes/:id/vote', async (c) => {
   try {
     const userCookie = getCookie(c, 'user')
@@ -2020,7 +2126,20 @@ app.post('/api/theme-votes/:id/vote', async (c) => {
     `).bind(themeId, user.user_id).first()
     
     if (existingVote) {
-      return c.json({ success: false, error: 'すでに投票済みです' }, 400)
+      // Already voted - REMOVE vote (toggle off)
+      await c.env.DB.prepare(`
+        DELETE FROM theme_votes WHERE theme_id = ? AND user_id = ?
+      `).bind(themeId, user.user_id).run()
+      
+      // Decrement vote count
+      await c.env.DB.prepare(`
+        UPDATE theme_proposals SET vote_count = MAX(vote_count - 1, 0) WHERE id = ?
+      `).bind(themeId).run()
+      
+      console.log('Theme unvote (free):', { user_id: user.user_id, theme_id: themeId })
+      
+      const updatedVoteUser = await c.env.DB.prepare('SELECT credits FROM users WHERE user_id = ?').bind(user.user_id).first()
+      return c.json({ success: true, action: 'unvoted', new_credits: updatedVoteUser?.credits })
     }
     
     // Insert vote
@@ -2040,7 +2159,7 @@ app.post('/api/theme-votes/:id/vote', async (c) => {
     // Return current credits (unchanged)
     const updatedVoteUser = await c.env.DB.prepare('SELECT credits FROM users WHERE user_id = ?').bind(user.user_id).first()
     
-    return c.json({ success: true, new_credits: updatedVoteUser?.credits })
+    return c.json({ success: true, action: 'voted', new_credits: updatedVoteUser?.credits })
   } catch (error) {
     console.error('Vote theme error:', error)
     return c.json({ success: false, error: 'Failed to vote' }, 500)

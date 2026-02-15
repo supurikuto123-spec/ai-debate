@@ -1,4 +1,5 @@
 import { globalNav } from '../components/global-nav';
+import { i18nScript } from '../components/i18n';
 
 export const archivePage = (userData: any) => `<!DOCTYPE html>
 <html lang="ja">
@@ -141,7 +142,6 @@ export const archivePage = (userData: any) => `<!DOCTYPE html>
                     <div class="match-card" data-status="\${debate.status}">
                         <div class="match-header mb-4">
                             <div class="flex justify-between items-center mb-2">
-                                <span class="badge-new">完了</span>
                                 <span class="text-xs text-gray-400">
                                     <i class="fas fa-comments mr-1"></i>\${debate.message_count || 0}件
                                 </span>
@@ -310,5 +310,6 @@ export const archivePage = (userData: any) => `<!DOCTYPE html>
         
         loadDebates();
     </script>
+${i18nScript()}
 </body>
 </html>`

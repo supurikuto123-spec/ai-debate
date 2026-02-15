@@ -1,4 +1,5 @@
 import { globalNav } from '../components/global-nav';
+import { i18nScript } from '../components/i18n';
 
 export const legalPage = (user: any) => `
 <!DOCTYPE html>
@@ -155,6 +156,7 @@ export const legalPage = (user: any) => `
             </div>
         </div>
     </div>
+${i18nScript()}
 </body>
 </html>
 `;
