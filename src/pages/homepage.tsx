@@ -55,12 +55,7 @@ export const homepage = (user: any) => `
             "クレジット獲得システム",
             "リアルタイムチャット",
             "多様なトピック"
-          ],
-          "aggregateRating": {
-            "@type": "AggregateRating",
-            "ratingValue": "4.8",
-            "ratingCount": "127"
-          }
+          ]
         }
         </script>
         
@@ -162,9 +157,9 @@ export const homepage = (user: any) => `
                 </p>
                 ${!user ? `
                 <div class="mb-8 p-4 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-2 border-yellow-500 rounded-lg max-w-md mx-auto">
-                    <p class="text-yellow-300 font-bold mb-2">事前登録限定ボーナス</p>
+                    <p class="text-yellow-300 font-bold mb-2">事前登録ボーナス</p>
                     <p class="text-sm text-gray-300">
-                        通常300クレジット → <span class="text-yellow-400 font-bold text-xl">500クレジット</span>
+                        今なら <span class="text-yellow-400 font-bold text-xl">500クレジット</span> 無料プレゼント
                     </p>
                 </div>
                 ` : ''}
@@ -176,9 +171,6 @@ export const homepage = (user: any) => `
                     ` : `
                         <a href="/auth/google" class="btn-glow text-xl px-12 py-4">
                             <span class="mr-3">▶</span>事前登録して始める
-                        </a>
-                        <a href="/demo" class="btn-outline text-xl px-12 py-4">
-                            <span class="mr-3">▶</span>デモを見る
                         </a>
                     `}
                 </div>
@@ -295,7 +287,7 @@ export const homepage = (user: any) => `
                         </p>
                         <div class="credit-badge cost">
                             <svg class="w-4 h-4"><use href="#icon-credit"/></svg>
-                            <span>20-50 クレジット</span>
+                            <span>50-80 クレジット</span>
                         </div>
                     </div>
                 </div>
@@ -316,11 +308,11 @@ export const homepage = (user: any) => `
                             <div>
                                 <h4 class="text-lg font-bold mb-3 text-pink-400">使い道</h4>
                                 <ul class="space-y-2 text-sm text-gray-300">
-                                    <li>• AI vs AI 試合作成：50-200</li>
-                                    <li>• User vs AI 対戦：20-50</li>
-                                    <li>• AI性格カスタマイズ：30</li>
-                                    <li>• プロフィール装飾：20-100</li>
-                                    <li>• トピック作成：30</li>
+                                    <li>• AI対戦（かんたん/ふつう）：50</li>
+                                    <li>• AI対戦（むずかしい）：80</li>
+                                    <li>• アーカイブ視聴：50</li>
+                                    <li>• テーマ提案：10</li>
+                                    <li>• テーマ投票：5</li>
                                 </ul>
                             </div>
                         </div>

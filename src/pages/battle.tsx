@@ -32,10 +32,21 @@ export const battlePage = (user: any) => `
         .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
         @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-8px)} }
         @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+        .dice-btn { background: linear-gradient(135deg, rgba(255,165,0,0.3), rgba(255,0,100,0.3)); border: 2px solid #ffa500; border-radius: 12px; padding: 12px 24px; color: #ffa500; font-weight: 700; cursor: pointer; transition: all 0.3s; }
+        .dice-btn:hover { background: linear-gradient(135deg, rgba(255,165,0,0.5), rgba(255,0,100,0.5)); box-shadow: 0 0 20px rgba(255,165,0,0.4); transform: translateY(-2px); }
+        .dice-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .dice-rolling { animation: diceRoll 0.5s ease-in-out; }
+        @keyframes diceRoll { 0%{transform:rotate(0deg)} 25%{transform:rotate(90deg)} 50%{transform:rotate(180deg)} 75%{transform:rotate(270deg)} 100%{transform:rotate(360deg)} }
+        .theme-chip { display: inline-block; background: rgba(0,255,255,0.1); border: 1px solid rgba(0,255,255,0.4); border-radius: 8px; padding: 8px 14px; margin: 4px; cursor: pointer; transition: all 0.2s; font-size: 13px; }
+        .theme-chip:hover { background: rgba(0,255,255,0.25); border-color: #00ffff; }
+        .theme-chip.selected { background: rgba(0,255,255,0.3); border-color: #00ffff; box-shadow: 0 0 10px rgba(0,255,255,0.3); color: #00ffff; font-weight: 700; }
+        .credit-cost-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 14px; }
+        .cost-normal { background: rgba(0,255,255,0.15); border: 1px solid rgba(0,255,255,0.4); color: #00ffff; }
+        .cost-hard { background: rgba(255,0,100,0.15); border: 1px solid rgba(255,0,100,0.4); color: #ff0064; }
     </style>
 </head>
 <body class="bg-black text-white">
-    \${globalNav(user)}
+    ${globalNav(user)}
     
     <div class="min-h-screen pt-24 pb-12">
         <div class="cyber-grid"></div>
@@ -68,29 +79,51 @@ export const battlePage = (user: any) => `
                             <i class="fas fa-cog mr-2"></i>AI対戦設定
                         </h2>
                         
-                        <!-- Topic Input -->
+                        <!-- Theme Selection from Voted Themes -->
                         <div class="mb-6">
-                            <label class="block text-cyan-300 font-bold mb-2">ディベートテーマ</label>
-                            <input type="text" id="ai-topic" class="topic-input" placeholder="例：リモートワークは生産性を向上させるか" maxlength="100">
-                            <div class="text-xs text-gray-500 mt-1">空欄の場合はランダムテーマが選ばれます</div>
+                            <label class="block text-cyan-300 font-bold mb-3">
+                                <i class="fas fa-vote-yea mr-1"></i>ディベートテーマ
+                            </label>
+                            <div id="theme-loading" class="text-center py-4 text-gray-400">
+                                <i class="fas fa-spinner fa-spin mr-2"></i>テーマを読み込み中...
+                            </div>
+                            <div id="theme-list" class="hidden mb-3" style="max-height: 200px; overflow-y: auto; padding: 4px;">
+                            </div>
+                            <div id="selected-theme-display" class="hidden mb-3 p-3 bg-cyan-500/10 border border-cyan-500/40 rounded-lg">
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <div class="text-sm text-gray-400">選択中のテーマ:</div>
+                                        <div class="text-lg font-bold text-cyan-300" id="selected-theme-text"></div>
+                                    </div>
+                                    <button class="text-gray-500 hover:text-red-400 text-sm" onclick="clearThemeSelection()">
+                                        <i class="fas fa-times"></i> 解除
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <button class="dice-btn" id="dice-btn" onclick="rollRandomTheme()">
+                                    <i class="fas fa-dice mr-2" id="dice-icon"></i>ランダム選択
+                                </button>
+                                <span class="text-xs text-gray-500">投票で承認されたテーマからランダムに選ばれます</span>
+                            </div>
                         </div>
 
-                        <!-- Stance Selection -->
+                        <!-- Stance Selection - stance-based -->
                         <div class="mb-6">
                             <label class="block text-cyan-300 font-bold mb-3">あなたの立場</label>
-                            <div class="grid grid-cols-2 gap-4">
+                            <div id="stance-container" class="grid grid-cols-2 gap-4">
                                 <div class="mode-card selected" id="stance-agree" onclick="selectStance('agree')">
                                     <div class="text-center">
-                                        <i class="fas fa-check-circle text-4xl text-green-400 mb-3"></i>
-                                        <h3 class="text-xl font-bold text-green-400">賛成</h3>
-                                        <p class="text-sm text-gray-400 mt-2">テーマに対して賛成の立場で議論</p>
+                                        <i class="fas fa-thumbs-up text-4xl text-green-400 mb-3"></i>
+                                        <h3 class="text-xl font-bold text-green-400" id="stance-agree-label">立場A</h3>
+                                        <p class="text-sm text-gray-400 mt-2" id="stance-agree-desc">テーマ選択後に表示されます</p>
                                     </div>
                                 </div>
                                 <div class="mode-card" id="stance-disagree" onclick="selectStance('disagree')">
                                     <div class="text-center">
-                                        <i class="fas fa-times-circle text-4xl text-red-400 mb-3"></i>
-                                        <h3 class="text-xl font-bold text-red-400">反対</h3>
-                                        <p class="text-sm text-gray-400 mt-2">テーマに対して反対の立場で議論</p>
+                                        <i class="fas fa-thumbs-down text-4xl text-red-400 mb-3"></i>
+                                        <h3 class="text-xl font-bold text-red-400" id="stance-disagree-label">立場B</h3>
+                                        <p class="text-sm text-gray-400 mt-2" id="stance-disagree-desc">テーマ選択後に表示されます</p>
                                     </div>
                                 </div>
                             </div>
@@ -103,23 +136,38 @@ export const battlePage = (user: any) => `
                                 <button class="mode-card text-center py-4" id="diff-easy" onclick="selectDifficulty('easy')" style="padding:16px;">
                                     <i class="fas fa-seedling text-2xl text-green-400 mb-2"></i>
                                     <div class="text-sm font-bold">かんたん</div>
+                                    <div class="credit-cost-badge cost-normal mt-2">
+                                        <i class="fas fa-coins text-xs"></i> 50 消費。
+                                    </div>
                                 </button>
                                 <button class="mode-card selected text-center py-4" id="diff-normal" onclick="selectDifficulty('normal')" style="padding:16px;">
                                     <i class="fas fa-fire text-2xl text-yellow-400 mb-2"></i>
                                     <div class="text-sm font-bold">ふつう</div>
+                                    <div class="credit-cost-badge cost-normal mt-2">
+                                        <i class="fas fa-coins text-xs"></i> 50 消費。
+                                    </div>
                                 </button>
                                 <button class="mode-card text-center py-4" id="diff-hard" onclick="selectDifficulty('hard')" style="padding:16px;">
                                     <i class="fas fa-skull-crossbones text-2xl text-red-400 mb-2"></i>
                                     <div class="text-sm font-bold">むずかしい</div>
+                                    <div class="credit-cost-badge cost-hard mt-2">
+                                        <i class="fas fa-coins text-xs"></i> 80 消費。
+                                    </div>
                                 </button>
                             </div>
                         </div>
 
                         <div class="text-center">
-                            <button class="battle-btn" onclick="startAIBattle()">
+                            <div class="mb-3">
+                                <span class="text-gray-400 text-sm">消費クレジット: </span>
+                                <span class="text-yellow-400 font-bold text-lg" id="credit-cost-display">50</span>
+                                <span class="text-gray-400 text-sm"> / 現在: </span>
+                                <span class="text-cyan-400 font-bold" id="current-credits">${(user.credits || 0).toLocaleString()}</span>
+                            </div>
+                            <button class="battle-btn" id="start-battle-btn" onclick="startAIBattle()">
                                 <i class="fas fa-play mr-2"></i>対戦開始
                             </button>
-                            <p class="text-xs text-gray-500 mt-3">※ 現在プレビュー版です。クレジットは消費しません。</p>
+                            <p class="text-xs text-gray-500 mt-3" id="credit-warning"></p>
                         </div>
                     </div>
                 </div>
@@ -222,6 +270,7 @@ export const battlePage = (user: any) => `
 
     <script>
         const userId = '${user.user_id}';
+        const userCredits = ${user.credits || 0};
         let currentMode = 'ai';
         let selectedStance = 'agree';
         let selectedDifficulty = 'normal';
@@ -229,19 +278,143 @@ export const battlePage = (user: any) => `
         let turnCount = 0;
         const MAX_TURNS = 5;
         let battleHistory = [];
+        let approvedThemes = [];
+        let selectedThemeObj = null;
 
-        const RANDOM_TOPICS = [
-            'AIは人間の仕事を奪うのか',
-            'SNSは社会にとって有益か',
-            'ベーシックインカムは導入すべきか',
-            '大学教育は必要か',
-            '原子力発電は推進すべきか',
-            'リモートワークは生産性を向上させるか',
-            '自動運転車は安全か',
-            '死刑制度は廃止すべきか',
-            'ゲームは教育に役立つか',
-            '宇宙開発に投資すべきか'
-        ];
+        // Credit cost per difficulty
+        function getCreditCost() {
+            return selectedDifficulty === 'hard' ? 80 : 50;
+        }
+
+        function updateCreditCostDisplay() {
+            const cost = getCreditCost();
+            document.getElementById('credit-cost-display').textContent = cost;
+            const warning = document.getElementById('credit-warning');
+            const currentEl = document.getElementById('current-credits');
+            // Fetch fresh credits
+            fetch('/api/user').then(r => r.json()).then(data => {
+                if (data.credits !== undefined) {
+                    const c = Number(data.credits);
+                    currentEl.textContent = c.toLocaleString();
+                    if (c < cost) {
+                        warning.textContent = 'クレジットが不足しています（必要: ' + cost + 'クレジット）';
+                        warning.style.color = '#ff4444';
+                        document.getElementById('start-battle-btn').disabled = true;
+                    } else {
+                        warning.textContent = '';
+                        document.getElementById('start-battle-btn').disabled = false;
+                    }
+                    if (window.updateCreditsDisplay) window.updateCreditsDisplay(c);
+                }
+            }).catch(() => {});
+        }
+
+        // Load approved themes from theme-votes API
+        async function loadApprovedThemes() {
+            try {
+                const res = await fetch('/api/theme-votes?sort=votes');
+                const data = await res.json();
+                if (data.success && data.themes && data.themes.length > 0) {
+                    approvedThemes = data.themes;
+                    renderThemeList();
+                } else {
+                    // Fallback: built-in themes
+                    approvedThemes = getBuiltInThemes();
+                    renderThemeList();
+                }
+            } catch (e) {
+                approvedThemes = getBuiltInThemes();
+                renderThemeList();
+            }
+        }
+
+        function getBuiltInThemes() {
+            return [
+                { id: 'b1', title: 'AIは人間の仕事を奪うのか', agree_opinion: 'AIは多くの仕事を代替し雇用が減少する', disagree_opinion: 'AIは新たな仕事を生み出し人間を補助する' },
+                { id: 'b2', title: 'SNSは社会にとって有益か', agree_opinion: 'SNSは情報共有と民主化を促進する', disagree_opinion: 'SNSは分断やフェイクニュースを助長する' },
+                { id: 'b3', title: 'ベーシックインカムは導入すべきか', agree_opinion: '最低限の生活保障で社会が安定する', disagree_opinion: '労働意欲の低下と財源確保が困難' },
+                { id: 'b4', title: '大学教育は必要か', agree_opinion: '体系的な学問と人脈形成に不可欠', disagree_opinion: '実践的スキルは大学外でも習得可能' },
+                { id: 'b5', title: '原子力発電は推進すべきか', agree_opinion: 'CO2削減と安定供給に有効', disagree_opinion: '事故リスクと廃棄物処理の問題が深刻' },
+                { id: 'b6', title: 'リモートワークは生産性を向上させるか', agree_opinion: '通勤不要で集中力と効率が上がる', disagree_opinion: '孤立やコミュニケーション不足が生産性を下げる' },
+                { id: 'b7', title: '自動運転車は安全か', agree_opinion: 'ヒューマンエラーを排除し事故が減る', disagree_opinion: '技術的限界と倫理的判断の問題がある' },
+                { id: 'b8', title: 'ゲームは教育に役立つか', agree_opinion: '問題解決能力や創造性を育む', disagree_opinion: '依存性が高く学習時間を奪う' },
+                { id: 'b9', title: '宇宙開発に投資すべきか', agree_opinion: '人類の未来と技術革新に不可欠', disagree_opinion: '地球上の課題解決が先決' },
+                { id: 'b10', title: '死刑制度は廃止すべきか', agree_opinion: '冤罪のリスクがあり人権に反する', disagree_opinion: '凶悪犯罪の抑止力として必要' }
+            ];
+        }
+
+        function renderThemeList() {
+            const container = document.getElementById('theme-list');
+            const loading = document.getElementById('theme-loading');
+            loading.classList.add('hidden');
+            container.classList.remove('hidden');
+
+            container.innerHTML = '';
+            approvedThemes.forEach((theme, idx) => {
+                const chip = document.createElement('span');
+                chip.className = 'theme-chip';
+                chip.dataset.index = idx;
+                const votes = theme.vote_count !== undefined ? ' (' + theme.vote_count + '票)' : '';
+                chip.innerHTML = '<i class="fas fa-comment-dots mr-1 text-cyan-400"></i>' + theme.title + votes;
+                chip.onclick = () => selectTheme(idx);
+                container.appendChild(chip);
+            });
+        }
+
+        function selectTheme(index) {
+            selectedThemeObj = approvedThemes[index];
+            // Highlight chip
+            document.querySelectorAll('.theme-chip').forEach((c, i) => {
+                c.classList.toggle('selected', i === index);
+            });
+            // Show selected theme
+            document.getElementById('selected-theme-display').classList.remove('hidden');
+            document.getElementById('selected-theme-text').textContent = selectedThemeObj.title;
+            // Update stance labels
+            updateStanceLabels();
+        }
+
+        function clearThemeSelection() {
+            selectedThemeObj = null;
+            document.querySelectorAll('.theme-chip').forEach(c => c.classList.remove('selected'));
+            document.getElementById('selected-theme-display').classList.add('hidden');
+            document.getElementById('stance-agree-label').textContent = '立場A';
+            document.getElementById('stance-agree-desc').textContent = 'テーマ選択後に表示されます';
+            document.getElementById('stance-disagree-label').textContent = '立場B';
+            document.getElementById('stance-disagree-desc').textContent = 'テーマ選択後に表示されます';
+        }
+
+        function updateStanceLabels() {
+            if (!selectedThemeObj) return;
+            const agreeOp = selectedThemeObj.agree_opinion || '賛成の立場';
+            const disagreeOp = selectedThemeObj.disagree_opinion || '反対の立場';
+            document.getElementById('stance-agree-label').textContent = '立場A';
+            document.getElementById('stance-agree-desc').textContent = agreeOp;
+            document.getElementById('stance-disagree-label').textContent = '立場B';
+            document.getElementById('stance-disagree-desc').textContent = disagreeOp;
+        }
+
+        function rollRandomTheme() {
+            if (approvedThemes.length === 0) return;
+            const btn = document.getElementById('dice-btn');
+            const icon = document.getElementById('dice-icon');
+            btn.disabled = true;
+            icon.classList.add('dice-rolling');
+            
+            // Animate through themes quickly
+            let rolls = 0;
+            const maxRolls = 12;
+            const interval = setInterval(() => {
+                const randomIdx = Math.floor(Math.random() * approvedThemes.length);
+                selectTheme(randomIdx);
+                rolls++;
+                if (rolls >= maxRolls) {
+                    clearInterval(interval);
+                    icon.classList.remove('dice-rolling');
+                    btn.disabled = false;
+                }
+            }, 100);
+        }
 
         function switchMode(mode) {
             currentMode = mode;
@@ -261,20 +434,49 @@ export const battlePage = (user: any) => `
             ['easy','normal','hard'].forEach(d => {
                 document.getElementById('diff-' + d).classList.toggle('selected', d === diff);
             });
+            updateCreditCostDisplay();
         }
 
-        function startAIBattle() {
-            let topic = document.getElementById('ai-topic').value.trim();
-            if (!topic) {
-                topic = RANDOM_TOPICS[Math.floor(Math.random() * RANDOM_TOPICS.length)];
+        async function startAIBattle() {
+            if (!selectedThemeObj) {
+                alert('テーマを選択してください（ランダム選択ボタンも使えます）');
+                return;
             }
+
+            const cost = getCreditCost();
+            
+            // Consume credits via API
+            try {
+                const res = await fetch('/api/battle/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ difficulty: selectedDifficulty })
+                });
+                const data = await res.json();
+                if (!data.success) {
+                    alert(data.error || 'クレジットが不足しています');
+                    return;
+                }
+                // Update credits display
+                if (data.new_credits !== undefined && window.updateCreditsDisplay) {
+                    window.updateCreditsDisplay(data.new_credits);
+                }
+            } catch (e) {
+                alert('通信エラーが発生しました');
+                return;
+            }
+
+            const topic = selectedThemeObj.title;
+            const agreeOp = selectedThemeObj.agree_opinion || '賛成の立場';
+            const disagreeOp = selectedThemeObj.disagree_opinion || '反対の立場';
+            const myStance = selectedStance === 'agree' ? agreeOp : disagreeOp;
             
             battleActive = true;
             turnCount = 0;
             battleHistory = [];
             
             document.getElementById('battle-topic-display').textContent = topic;
-            document.getElementById('battle-stance-display').textContent = selectedStance === 'agree' ? 'あなた: 賛成側' : 'あなた: 反対側';
+            document.getElementById('battle-stance-display').textContent = 'あなたの立場: ' + myStance;
             document.getElementById('turn-count').textContent = '0';
             document.getElementById('battle-messages').innerHTML = '';
             
@@ -282,9 +484,14 @@ export const battlePage = (user: any) => `
             document.getElementById('ai-battle').classList.remove('hidden');
             document.getElementById('ai-result').classList.add('hidden');
             
+            // ディベート開始後はモードタブとユーザー対戦セクションを非表示
+            document.querySelector('.flex.justify-center.gap-4.mb-8').classList.add('hidden');
+            document.getElementById('user-battle-section').classList.add('hidden');
+            
             // Add system message
             addSystemMessage('ディベート開始！テーマ: 「' + topic + '」');
-            addSystemMessage('あなたは' + (selectedStance === 'agree' ? '賛成' : '反対') + '側です。主張を入力してください。');
+            addSystemMessage('あなたの立場: ' + myStance);
+            addSystemMessage('主張を入力してください。');
         }
 
         function addSystemMessage(text) {
@@ -350,11 +557,13 @@ export const battlePage = (user: any) => `
             showTypingIndicator();
 
             try {
-                const topic = document.getElementById('battle-topic-display').textContent;
-                const aiStance = selectedStance === 'agree' ? 'disagree' : 'agree';
+                const topic = selectedThemeObj.title;
+                const aiStance = selectedStance === 'agree'
+                    ? (selectedThemeObj.disagree_opinion || '反対の立場')
+                    : (selectedThemeObj.agree_opinion || '賛成の立場');
                 const diffPrompt = selectedDifficulty === 'easy' ? 'シンプルで短い反論をしてください。' : selectedDifficulty === 'hard' ? '鋭く高度な反論をしてください。データや具体例を使ってください。' : '適切な反論をしてください。';
                 
-                const systemPrompt = 'あなたはディベートの' + (aiStance === 'agree' ? '賛成' : '反対') + '側です。テーマ:「' + topic + '」。' + diffPrompt + '180文字以内、句点で終えること。相手の立場を認めないこと。';
+                const systemPrompt = 'あなたはディベーターです。テーマ:「' + topic + '」。あなたの立場:「' + aiStance + '」。' + diffPrompt + '180文字以内、句点で終えること。相手の立場を認めないこと。';
 
                 const response = await fetch('/api/debate/generate', {
                     method: 'POST',
@@ -406,15 +615,24 @@ export const battlePage = (user: any) => `
             battleActive = false;
             turnCount = 0;
             battleHistory = [];
+            selectedThemeObj = null;
+            clearThemeSelection();
             document.getElementById('ai-setup').classList.remove('hidden');
             document.getElementById('ai-battle').classList.add('hidden');
             document.getElementById('ai-result').classList.add('hidden');
+            // モードタブを再表示
+            document.querySelector('.flex.justify-center.gap-4.mb-8').classList.remove('hidden');
+            updateCreditCostDisplay();
         }
 
         // Character count
         document.getElementById('battle-input').addEventListener('input', function() {
             document.getElementById('char-count').textContent = this.value.length + '/180';
         });
+
+        // Init
+        loadApprovedThemes();
+        updateCreditCostDisplay();
     </script>
 </body>
 </html>

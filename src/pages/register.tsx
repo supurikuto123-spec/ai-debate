@@ -29,7 +29,6 @@ export const registerPage = (data: { email: string; name: string }) => `
                                 <i class="fas fa-gift mr-2"></i>
                                 事前登録ボーナス：500クレジット獲得
                             </p>
-                            <p class="text-xs text-center text-gray-400 mt-1">通常登録は300クレジット</p>
                         </div>
                         
                         <form id="registerForm">

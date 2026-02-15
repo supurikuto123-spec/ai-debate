@@ -68,7 +68,9 @@ export const legalPage = (user: any) => `
                         <p class="mb-3"><strong>クレジット制度：</strong></p>
                         <ul class="list-disc list-inside space-y-2 pl-4">
                             <li>新規登録時：500クレジット付与</li>
-                            <li>アーカイブ視聴：15クレジット/1試合</li>
+                            <li>AI対戦（かんたん/ふつう）：50クレジット/1回</li>
+                            <li>AI対戦（むずかしい）：80クレジット/1回</li>
+                            <li>アーカイブ視聴：50クレジット/1試合</li>
                             <li>テーマ提案：10クレジット/1回</li>
                             <li>テーマ投票：5クレジット/1回</li>
                         </ul>

@@ -74,7 +74,7 @@ export const demoPage = (user: any) => `
 
                 <p class="text-lg mb-8 text-gray-300 max-w-2xl mx-auto">
                     <strong class="text-cyan-400">${user.username}</strong> さん（@${user.user_id}）<br>
-                    特別ボーナスとして <strong class="text-yellow-400">${user.initial_credits || 500}クレジット</strong> を付与しました
+                    特別ボーナスとして <strong class="text-yellow-400">+${(user.credits || 0).toLocaleString()}クレジット</strong> を付与しました
                 </p>
 
                 <!-- Stats Cards -->
@@ -83,18 +83,9 @@ export const demoPage = (user: any) => `
                         <div class="stat-icon">
                             <svg class="w-10 h-10 text-yellow-400"><use href="#icon-credit"/></svg>
                         </div>
-                        <div class="stat-value">${(user.credits || 0).toLocaleString()}</div>
-                        <div class="stat-label">現在のクレジット</div>
-                        <div class="stat-badge bonus">残高</div>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <div class="text-4xl">🎁</div>
-                        </div>
-                        <div class="stat-value">+${user.initial_credits || 500}</div>
+                        <div class="stat-value">+${(user.credits || 0).toLocaleString()}</div>
                         <div class="stat-label">付与クレジット</div>
-                        <div class="stat-badge">事前登録特典</div>
+                        <div class="stat-badge bonus">事前登録特典</div>
                     </div>
 
                     <div class="stat-card">
@@ -237,7 +228,7 @@ export const demoPage = (user: any) => `
             <div class="container mx-auto px-6 text-center">
                 <p class="text-gray-400 mb-4">
                     ご質問やフィードバックは<br>
-                    <a href="mailto:support@aidebate.example.com" class="text-cyan-400 hover:text-cyan-300">support@aidebate.example.com</a>
+                    <a href="/tickets" class="text-cyan-400 hover:text-cyan-300">サポートチャット</a>
                 </p>
                 <p class="text-gray-500">&copy; 2026 AI Debate. All rights reserved.</p>
             </div>

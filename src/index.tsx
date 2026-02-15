@@ -561,6 +561,50 @@ app.get('/battle', async (c) => {
   return c.html(battlePage(user))
 })
 
+// API: Battle Start (consume credits)
+app.post('/api/battle/start', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    if (!userCookie) {
+      return c.json({ success: false, error: 'Not authenticated' }, 401)
+    }
+    
+    const user = JSON.parse(userCookie)
+    const { difficulty } = await c.req.json()
+    
+    // Determine credit cost: easy/normal = 50, hard = 80
+    const cost = difficulty === 'hard' ? 80 : 50
+    
+    // Get fresh credits from DB
+    const freshUser = await c.env.DB.prepare('SELECT credits FROM users WHERE user_id = ?').bind(user.user_id).first()
+    if (!freshUser) {
+      return c.json({ success: false, error: 'ユーザーが見つかりません' }, 404)
+    }
+    
+    const currentCredits = freshUser.credits as number
+    if (currentCredits < cost) {
+      return c.json({ success: false, error: `クレジットが不足しています（必要: ${cost}クレジット、現在: ${currentCredits}）` })
+    }
+    
+    // Deduct credits
+    await c.env.DB.prepare('UPDATE users SET credits = credits - ? WHERE user_id = ?').bind(cost, user.user_id).run()
+    
+    // Record transaction
+    await c.env.DB.prepare(`
+      INSERT INTO credit_transactions (id, user_id, amount, type, reason, created_at)
+      VALUES (?, ?, ?, 'spend', 'AI対戦（' || ? || '）', datetime('now'))
+    `).bind(crypto.randomUUID(), user.user_id, -cost, difficulty || 'normal').run()
+    
+    // Return new credits
+    const updatedUser = await c.env.DB.prepare('SELECT credits FROM users WHERE user_id = ?').bind(user.user_id).first()
+    
+    return c.json({ success: true, new_credits: updatedUser?.credits, cost })
+  } catch (error) {
+    console.error('Battle start error:', error)
+    return c.json({ success: false, error: 'サーバーエラーが発生しました' }, 500)
+  }
+})
+
 // Theme Vote Page
 app.get('/theme-vote', async (c) => {
   const userCookie = getCookie(c, 'user')
