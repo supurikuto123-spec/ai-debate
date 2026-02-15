@@ -1,6 +1,10 @@
 import { globalNav } from '../components/global-nav';
 
-export const myPage = (userData: any) => `
+const AVATAR_TYPE = 'bottts';
+
+export const myPage = (userData: any) => {
+  const avatarType = userData.avatar_type || AVATAR_TYPE;
+  return `
     <!DOCTYPE html>
     <html lang="ja">
     <head>
@@ -174,9 +178,9 @@ export const myPage = (userData: any) => `
                                     <img 
                                         src="https://api.dicebear.com/7.x/${avatarType}/svg?seed=${seed}" 
                                         alt="Avatar ${seed}" 
-                                        class="avatar-preset ${userData.avatar_type === 'preset' && userData.avatar_value === seed.toString() ? 'selected' : ''}"
+                                        class="avatar-preset ${(userData.avatar_type === avatarType || userData.avatar_type === 'preset') && userData.avatar_value === seed.toString() ? 'selected' : ''}"
                                         data-seed="${seed}"
-                                        onclick="selectAvatar('preset', '${seed}')"
+                                        onclick="selectAvatar('${avatarType}', '${seed}')"
                                     />
                                 `).join('')}
                             </div>
@@ -226,7 +230,8 @@ export const myPage = (userData: any) => `
         </div>
 
         <script>
-            let selectedAvatarType = '${userData.avatar_type || 'preset'}';
+            const AVATAR_STYLE = '${avatarType}';
+            let selectedAvatarType = '${userData.avatar_type || avatarType}';
             let selectedAvatarValue = '${userData.avatar_value || '1'}';
             let uploadedFile = null;
 
@@ -247,7 +252,7 @@ export const myPage = (userData: any) => `
                 }
                 
                 document.getElementById('current-avatar').src = 
-                    \`https://api.dicebear.com/7.x/\${avatarType}/svg?seed=\${value}\`;
+                    \`https://api.dicebear.com/7.x/\${AVATAR_STYLE}/svg?seed=\${value}\`;
                 
                 // Hide upload preview
                 document.getElementById('upload-preview').classList.add('hidden');
@@ -362,4 +367,5 @@ export const myPage = (userData: any) => `
         </script>
     </body>
     </html>
-`
+`;
+}

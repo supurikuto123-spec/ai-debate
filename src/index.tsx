@@ -38,6 +38,12 @@ app.use('/api/*', cors())
 // Serve static files
 app.use('/static/*', serveStatic({ root: './public' }))
 
+// Serve favicon
+app.get('/favicon.ico', (c) => {
+  // Return a transparent 1x1 ICO to prevent 404
+  return new Response(null, { status: 204 })
+})
+
 // SEO: Serve robots.txt
 app.get('/robots.txt', serveStatic({ path: './public/robots.txt' }))
 
@@ -221,6 +227,14 @@ app.get('/main', async (c) => {
     // Dev user (user_id='dev') has infinite credits - no charge
     const isDevUser = user.user_id === 'dev'
     
+    // Get fresh credits from DB
+    const freshUser = await c.env.DB.prepare(
+      'SELECT credits FROM users WHERE user_id = ?'
+    ).bind(user.user_id).first()
+    if (freshUser) {
+      user.credits = isDevUser ? 500000 : freshUser.credits
+    }
+    
     if (!isDevUser) {
       // Check if this is the first access to /main
       const firstAccess = await c.env.DB.prepare(`
@@ -251,57 +265,57 @@ app.get('/main', async (c) => {
           </body>
           </html>
         `)
+        }
+      
+        // Deduct 100 credits
+        const newCredits = user.credits - 100
+        await c.env.DB.prepare(`
+          UPDATE users SET credits = ? WHERE user_id = ?
+        `).bind(newCredits, user.user_id).run()
+      
+        // Record credit transaction
+        await c.env.DB.prepare(`
+          INSERT INTO credit_transactions (id, user_id, amount, type, reason, created_at)
+          VALUES (?, ?, ?, 'spend', 'main_page_access', datetime('now'))
+        `).bind(crypto.randomUUID(), user.user_id, -100).run()
+      
+        // Update user cookie with new credits
+        user.credits = newCredits
+        setCookie(c, 'user', JSON.stringify(user), {
+          httpOnly: true,
+          secure: false,
+          sameSite: 'Lax',
+          maxAge: 60 * 60 * 24 * 30
+        })
       }
-      
-      // Deduct 100 credits
-      const newCredits = user.credits - 100
-      await c.env.DB.prepare(`
-        UPDATE users SET credits = ? WHERE id = ?
-      `).bind(newCredits, user.id).run()
-      
-      // Record credit transaction
-      await c.env.DB.prepare(`
-        INSERT INTO credit_transactions (id, user_id, amount, type, reason, created_at)
-        VALUES (?, ?, ?, 'spend', 'main_page_access', datetime('now'))
-      `).bind(crypto.randomUUID(), user.user_id, -100).run()
-      
-      // Update user cookie with new credits
-      user.credits = newCredits
-      setCookie(c, 'user', JSON.stringify(user), {
-        httpOnly: true,
-        secure: false,
-        sameSite: 'Lax',
-        maxAge: 60 * 60 * 24 * 30
-      })
+      // Second time onwards - free access, no charge
     }
-    // Second time onwards - free access, no charge
-  }
-  
-  // Dev user - display infinity symbol
-  if (isDevUser) {
-    user.creditsDisplay = '∞'
-  }
-  
-  // Fetch debates from database
-  const debatesResult = await c.env.DB.prepare(`
-    SELECT id, topic, status, created_at, 
-           (SELECT COUNT(*) FROM debate_votes WHERE debate_id = debates.id) as total_votes
-    FROM debates 
-    ORDER BY created_at DESC 
-    LIMIT 50
-  `).all()
-  
-  const debates = debatesResult.results || []
-  
-  // Add viewer count (for now, use vote count as proxy)
-  debates.forEach((debate: any) => {
-    debate.viewers = debate.total_votes || 0
-  })
-  
-  return c.html(mainPage(user, debates))
+    
+    // Dev user - display infinity symbol
+    if (isDevUser) {
+      user.creditsDisplay = '∞'
+    }
+    
+    // Fetch debates from database
+    const debatesResult = await c.env.DB.prepare(`
+      SELECT id, topic, status, created_at, 
+             (SELECT COUNT(*) FROM debate_votes WHERE debate_id = debates.id) as total_votes
+      FROM debates 
+      ORDER BY created_at DESC 
+      LIMIT 50
+    `).all()
+    
+    const debates = debatesResult.results || []
+    
+    // Add viewer count (for now, use vote count as proxy)
+    debates.forEach((debate: any) => {
+      debate.viewers = debate.total_votes || 0
+    })
+    
+    return c.html(mainPage(user, debates))
   } catch (error) {
     console.error('Main page error:', error)
-    return c.text('Internal Server Error: ' + error.message, 500)
+    return c.text('Internal Server Error: ' + (error as Error).message, 500)
   }
 })
 
@@ -315,8 +329,13 @@ app.get('/watch/:debateId', async (c) => {
   const user = JSON.parse(userCookie)
   const debateId = c.req.param('debateId')
   
-  // Dev user - 500000 credits
-  if (user.user_id === 'dev') {
+  // Get fresh credits from DB
+  const freshUser = await c.env.DB.prepare(
+    'SELECT credits FROM users WHERE user_id = ?'
+  ).bind(user.user_id).first()
+  if (freshUser) {
+    user.credits = user.user_id === 'dev' ? 500000 : freshUser.credits
+  } else if (user.user_id === 'dev') {
     user.credits = 500000
   }
   
@@ -333,8 +352,13 @@ app.get('/watch', async (c) => {
   const user = JSON.parse(userCookie)
   const debateId = c.req.query('id') || 'default'
   
-  // Dev user - 500000 credits
-  if (user.user_id === 'dev') {
+  // Get fresh credits from DB
+  const freshUser = await c.env.DB.prepare(
+    'SELECT credits FROM users WHERE user_id = ?'
+  ).bind(user.user_id).first()
+  if (freshUser) {
+    user.credits = user.user_id === 'dev' ? 500000 : freshUser.credits
+  } else if (user.user_id === 'dev') {
     user.credits = 500000
   }
   
@@ -367,12 +391,26 @@ app.get('/mypage', async (c) => {
       ).bind(user.user_id).first()
     }
     
+    // Dev user gets infinite credits display
+    if (user.user_id === 'dev') {
+      userData.credits = 500000
+    }
+    
     const enrichedUserData = {
       ...userData,
-      nickname: userData.nickname || user.username || user.user_id,
-      avatar_type: userData.avatar_type || 'preset',
+      nickname: userData.nickname || userData.username || user.username || user.user_id,
+      avatar_type: userData.avatar_type || 'bottts',
       avatar_value: userData.avatar_value || '1'
     }
+    
+    // Sync cookie with DB data
+    setCookie(c, 'user', JSON.stringify(enrichedUserData), {
+      path: '/',
+      httpOnly: true,
+      secure: false,
+      sameSite: 'Lax',
+      maxAge: 60 * 60 * 24 * 30
+    })
     
     return c.html(myPage(enrichedUserData))
   } catch (error) {
@@ -1570,14 +1608,36 @@ app.get('/logout', (c) => {
   return c.redirect('/')
 })
 
-// API: Get user info
-app.get('/api/user', (c) => {
+// API: Get user info (always fresh from DB)
+app.get('/api/user', async (c) => {
   const userCookie = getCookie(c, 'user')
   if (!userCookie) {
     return c.json({ error: 'Not authenticated' }, 401)
   }
   
-  return c.json(JSON.parse(userCookie))
+  try {
+    const cookieUser = JSON.parse(userCookie)
+    // Always get fresh data from DB
+    const dbUser = await c.env.DB.prepare(
+      'SELECT user_id, username, email, credits, nickname, avatar_type, avatar_value, avatar_url, rating, rank FROM users WHERE user_id = ?'
+    ).bind(cookieUser.user_id).first()
+    
+    if (dbUser) {
+      // Update cookie with fresh data
+      setCookie(c, 'user', JSON.stringify(dbUser), {
+        path: '/',
+        httpOnly: true,
+        secure: false,
+        sameSite: 'Lax',
+        maxAge: 60 * 60 * 24 * 30
+      })
+      return c.json(dbUser)
+    }
+    return c.json(cookieUser)
+  } catch (error) {
+    console.error('Get user error:', error)
+    return c.json(JSON.parse(userCookie))
+  }
 })
 
 // API: Check user_id availability
@@ -1835,7 +1895,7 @@ app.get('/api/tickets', async (c) => {
     const user = JSON.parse(userCookie)
     
     const tickets = await c.env.DB.prepare(`
-      SELECT id, subject, status, priority, created_at, updated_at
+      SELECT id, subject, status, created_at, updated_at
       FROM support_tickets
       WHERE user_id = ?
       ORDER BY created_at DESC
@@ -1862,7 +1922,7 @@ app.get('/api/admin/tickets', async (c) => {
     }
     
     const tickets = await c.env.DB.prepare(`
-      SELECT t.id, t.user_id, t.subject, t.status, t.priority, t.created_at, t.updated_at,
+      SELECT t.id, t.user_id, t.subject, t.status, t.created_at, t.updated_at,
              u.nickname, u.email
       FROM support_tickets t
       LEFT JOIN users u ON t.user_id = u.user_id

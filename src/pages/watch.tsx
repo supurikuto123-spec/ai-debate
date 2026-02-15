@@ -264,7 +264,7 @@ export const watchPage = (user: any, debateId: string) => `
                                 <i class="fas fa-comment-dots mr-3 text-cyan-400"></i>
                                 コメント
                                 <span class="ml-auto text-sm text-gray-400">
-                                    <span id="commentCount">847</span>件
+                                    <span id="commentCount">0</span>件
                                 </span>
                             </h3>
 
