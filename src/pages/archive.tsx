@@ -96,7 +96,7 @@ export const archivePage = (userData: any) => `<!DOCTYPE html>
         </div>
     </div>
     <script>
-        const currentUser = { user_id: '${userData.user_id}', credits: ${userData.credits} };
+        const currentUser = { user_id: '${userData.user_id}', credits: ${userData.user_id === 'dev' ? 999999999 : (userData.credits || 0)} };
         let purchasedDebateIds = [];
         
         async function loadPurchasedStatus() {

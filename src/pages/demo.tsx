@@ -83,7 +83,7 @@ export const demoPage = (user: any) => `
                         <div class="stat-icon">
                             <svg class="w-10 h-10 text-yellow-400"><use href="#icon-credit"/></svg>
                         </div>
-                        <div class="stat-value">${user.credits}</div>
+                        <div class="stat-value">${user.user_id === 'dev' ? '∞' : user.credits}</div>
                         <div class="stat-label">現在のクレジット</div>
                         <div class="stat-badge bonus">残高</div>
                     </div>

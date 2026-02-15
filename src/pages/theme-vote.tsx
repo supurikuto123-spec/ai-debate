@@ -194,7 +194,8 @@ export const themeVotePage = (user: any) => `
 
     <script>
         const userId = '${user.user_id}';
-        const userCredits = ${user.credits};
+        const isDevUser = userId === 'dev';
+        const userCredits = isDevUser ? 999999999 : ${user.credits || 0};
         let currentFilter = 'all';
         let currentSort = 'votes';
 

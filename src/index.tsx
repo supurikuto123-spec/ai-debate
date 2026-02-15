@@ -1855,40 +1855,54 @@ app.post('/api/theme-votes/propose', async (c) => {
     }
     
     const user = JSON.parse(userCookie)
+    const isDevUser = user.user_id === 'dev'
     
-    // Check if user has enough credits
-    if (user.user_id !== 'dev' && user.credits < 10) {
-      return c.json({ success: false, error: 'クレジットが不足しています' }, 400)
+    // Always get fresh credits from DB (cookie may be stale)
+    const freshUserData = await c.env.DB.prepare(
+      'SELECT credits FROM users WHERE user_id = ?'
+    ).bind(user.user_id).first()
+    
+    if (!freshUserData) {
+      return c.json({ success: false, error: 'ユーザーが見つかりません' }, 404)
+    }
+    
+    const currentCredits = freshUserData.credits as number
+    
+    // Check if user has enough credits (dev skips)
+    if (!isDevUser && currentCredits < 10) {
+      return c.json({ success: false, error: 'クレジットが不足しています（必要: 10クレジット）' }, 400)
     }
     
     const { title, agree_opinion, disagree_opinion, category } = await c.req.json()
     
     if (!title || !agree_opinion || !disagree_opinion) {
-      return c.json({ success: false, error: 'Missing required fields' }, 400)
+      return c.json({ success: false, error: 'すべての必須項目を入力してください' }, 400)
     }
     
     // Insert theme proposal (status='active' so it appears in list)
     await c.env.DB.prepare(`
-      INSERT INTO theme_proposals (title, agree_opinion, disagree_opinion, category, proposed_by, status, created_at)
-      VALUES (?, ?, ?, ?, ?, 'active', datetime('now'))
+      INSERT INTO theme_proposals (title, agree_opinion, disagree_opinion, category, proposed_by, status, vote_count, created_at)
+      VALUES (?, ?, ?, ?, ?, 'active', 0, datetime('now'))
     `).bind(title, agree_opinion, disagree_opinion, category || 'other', user.user_id).run()
     
-    // Deduct credits
-    await c.env.DB.prepare(`
-      UPDATE users SET credits = credits - 10 WHERE user_id = ?
-    `).bind(user.user_id).run()
-    
-    await c.env.DB.prepare(`
-      INSERT INTO credit_transactions (id, user_id, amount, type, reason, created_at)
-      VALUES (?, ?, ?, ?, ?, datetime('now'))
-    `).bind(crypto.randomUUID(), user.user_id, -10, 'spend', 'テーマ提案').run()
+    // Deduct credits (skip for dev)
+    if (!isDevUser) {
+      await c.env.DB.prepare(`
+        UPDATE users SET credits = credits - 10 WHERE user_id = ?
+      `).bind(user.user_id).run()
+      
+      await c.env.DB.prepare(`
+        INSERT INTO credit_transactions (id, user_id, amount, type, reason, created_at)
+        VALUES (?, ?, ?, 'spend', 'テーマ提案', datetime('now'))
+      `).bind(crypto.randomUUID(), user.user_id, -10).run()
+    }
     
     console.log('Theme proposal:', { user_id: user.user_id, title })
     
     return c.json({ success: true })
   } catch (error) {
     console.error('Submit theme error:', error)
-    return c.json({ success: false, error: 'Failed to submit' }, 500)
+    return c.json({ success: false, error: 'テーマの提案に失敗しました: ' + (error as Error).message }, 500)
   }
 })
 

@@ -258,7 +258,7 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
         <img src="${avatarUrl}" alt="Avatar" class="nav-avatar">
         <div class="nav-username">@${user.user_id}</div>
         <div class="nav-credits">
-          <i class="fas fa-coins"></i> ${(user.credits || 0).toLocaleString()} Credits
+          <i class="fas fa-coins"></i> ${user.user_id === 'dev' ? '∞' : (user.credits || 0).toLocaleString()} Credits
         </div>
       </div>
 
@@ -292,6 +292,12 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
           <i class="fas fa-ticket-alt"></i>
           <span>サポートチケット</span>
         </a>
+        ${user.user_id === 'dev' ? `
+        <a href="/admin/tickets" class="nav-link" style="border-top: 1px solid rgba(255, 0, 128, 0.3);">
+          <i class="fas fa-tools" style="color: #ff0080;"></i>
+          <span style="color: #ff0080;">チケット管理（Dev）</span>
+        </a>
+        ` : ''}
       </div>
 
       <!-- Logout -->

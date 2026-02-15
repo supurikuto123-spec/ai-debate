@@ -900,7 +900,9 @@ async function syncCredits() {
             if (userData.credits !== undefined) {
                 currentUser.credits = userData.credits;
                 const navCredits = document.getElementById('navCredits');
-                if (navCredits) navCredits.textContent = userData.credits.toLocaleString();
+                if (navCredits) {
+                    navCredits.textContent = (currentUser.user_id === 'dev') ? '∞' : Number(userData.credits).toLocaleString();
+                }
             }
         }
     } catch (e) { console.error('Credit sync error:', e); }
