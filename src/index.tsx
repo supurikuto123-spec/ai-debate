@@ -1876,7 +1876,8 @@ app.get('/api/theme-votes', async (c) => {
         tp.proposed_by,
         tp.vote_count,
         tp.created_at,
-        CASE WHEN tv.user_id IS NOT NULL THEN 1 ELSE 0 END as has_voted
+        CASE WHEN tv.user_id IS NOT NULL THEN 1 ELSE 0 END as has_voted,
+        COALESCE(tp.adopted, 0) as adopted
       FROM theme_proposals tp
       LEFT JOIN theme_votes tv ON tp.id = tv.theme_id AND tv.user_id = ?
       WHERE tp.status = 'active'
@@ -1891,6 +1892,8 @@ app.get('/api/theme-votes', async (c) => {
     
     if (sort === 'votes') {
       query += ' ORDER BY tp.vote_count DESC, tp.created_at DESC'
+    } else if (sort === 'adopted') {
+      query += ' ORDER BY tp.adopted DESC, tp.vote_count DESC'
     } else {
       query += ' ORDER BY tp.created_at DESC'
     }
@@ -1927,9 +1930,9 @@ app.post('/api/theme-votes/propose', async (c) => {
     
     const currentCredits = freshUserData.credits as number
     
-    // Check credits (dev also pays but has more)
-    if (currentCredits < 10) {
-      return c.json({ success: false, error: 'クレジットが不足しています（必要: 10クレジット）' }, 400)
+    // Check credits: 20 credits for proposal
+    if (currentCredits < 20) {
+      return c.json({ success: false, error: 'クレジットが不足しています（必要: 20クレジット）' }, 400)
     }
     
     const { title, agree_opinion, disagree_opinion, category } = await c.req.json()
@@ -1945,14 +1948,14 @@ app.post('/api/theme-votes/propose', async (c) => {
       VALUES (?, ?, ?, ?, ?, ?, 'active', 0, datetime('now'))
     `).bind(proposedBy, title, agree_opinion, disagree_opinion, category || 'other', proposedBy).run()
     
-    // Deduct credits
+    // Deduct 20 credits for proposal
     await c.env.DB.prepare(
-      'UPDATE users SET credits = credits - 10 WHERE user_id = ?'
+      'UPDATE users SET credits = credits - 20 WHERE user_id = ?'
     ).bind(user.user_id).run()
     
     await c.env.DB.prepare(`
       INSERT INTO credit_transactions (id, user_id, amount, type, reason, created_at)
-      VALUES (?, ?, -10, 'spend', 'テーマ提案', datetime('now'))
+      VALUES (?, ?, -20, 'spend', 'テーマ提案', datetime('now'))
     `).bind(crypto.randomUUID(), user.user_id).run()
     
     // Return new credits for instant UI update
@@ -1976,11 +1979,7 @@ app.post('/api/theme-votes/:id/vote', async (c) => {
     const user = JSON.parse(userCookie)
     const themeId = c.req.param('id')
     
-    // Check credits from DB
-    const voteUserData = await c.env.DB.prepare('SELECT credits FROM users WHERE user_id = ?').bind(user.user_id).first()
-    if ((voteUserData?.credits || 0) < 5) {
-      return c.json({ success: false, error: 'クレジットが不足しています' }, 400)
-    }
+    // Voting is FREE - no credit check needed
     
     // Check if already voted
     const existingVote = await c.env.DB.prepare(`
@@ -2002,19 +2001,10 @@ app.post('/api/theme-votes/:id/vote', async (c) => {
       UPDATE theme_proposals SET vote_count = vote_count + 1 WHERE id = ?
     `).bind(themeId).run()
     
-    // Deduct credits
-    await c.env.DB.prepare(`
-      UPDATE users SET credits = credits - 5 WHERE user_id = ?
-    `).bind(user.user_id).run()
+    // Voting is FREE - no credit deduction
+    console.log('Theme vote (free):', { user_id: user.user_id, theme_id: themeId })
     
-    await c.env.DB.prepare(`
-      INSERT INTO credit_transactions (id, user_id, amount, type, reason, created_at)
-      VALUES (?, ?, ?, ?, ?, datetime('now'))
-    `).bind(crypto.randomUUID(), user.user_id, -5, 'spend', 'テーマ投票').run()
-    
-    console.log('Theme vote:', { user_id: user.user_id, theme_id: themeId })
-    
-    // Return new credits for instant UI update
+    // Return current credits (unchanged)
     const updatedVoteUser = await c.env.DB.prepare('SELECT credits FROM users WHERE user_id = ?').bind(user.user_id).first()
     
     return c.json({ success: true, new_credits: updatedVoteUser?.credits })
@@ -2024,7 +2014,34 @@ app.post('/api/theme-votes/:id/vote', async (c) => {
   }
 })
 
-// ==================== Support Ticket System APIs ====================
+// API: Adopt/unadopt theme (dev only)
+app.post('/api/theme-votes/:id/adopt', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    if (!userCookie) {
+      return c.json({ success: false, error: 'Not authenticated' }, 401)
+    }
+    
+    const user = JSON.parse(userCookie)
+    if (user.user_id !== 'dev') {
+      return c.json({ success: false, error: 'Permission denied' }, 403)
+    }
+    
+    const themeId = c.req.param('id')
+    const { adopt } = await c.req.json()
+    
+    await c.env.DB.prepare(`
+      UPDATE theme_proposals SET adopted = ? WHERE id = ?
+    `).bind(adopt ? 1 : 0, themeId).run()
+    
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('Adopt theme error:', error)
+    return c.json({ success: false, error: 'Failed to adopt theme' }, 500)
+  }
+})
+
+// ==================== Support Ticket System APIs ==
 
 // API: Get user's tickets
 app.get('/api/tickets', async (c) => {

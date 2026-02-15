@@ -329,18 +329,57 @@ export const battlePage = (user: any) => `
         }
 
         function getBuiltInThemes() {
-            return [
+            const allThemes = [
+                // テクノロジー
                 { id: 'b1', title: 'AIは人間の仕事を奪うのか', agree_opinion: 'AIは多くの仕事を代替し雇用が減少する', disagree_opinion: 'AIは新たな仕事を生み出し人間を補助する' },
                 { id: 'b2', title: 'SNSは社会にとって有益か', agree_opinion: 'SNSは情報共有と民主化を促進する', disagree_opinion: 'SNSは分断やフェイクニュースを助長する' },
-                { id: 'b3', title: 'ベーシックインカムは導入すべきか', agree_opinion: '最低限の生活保障で社会が安定する', disagree_opinion: '労働意欲の低下と財源確保が困難' },
-                { id: 'b4', title: '大学教育は必要か', agree_opinion: '体系的な学問と人脈形成に不可欠', disagree_opinion: '実践的スキルは大学外でも習得可能' },
-                { id: 'b5', title: '原子力発電は推進すべきか', agree_opinion: 'CO2削減と安定供給に有効', disagree_opinion: '事故リスクと廃棄物処理の問題が深刻' },
-                { id: 'b6', title: 'リモートワークは生産性を向上させるか', agree_opinion: '通勤不要で集中力と効率が上がる', disagree_opinion: '孤立やコミュニケーション不足が生産性を下げる' },
-                { id: 'b7', title: '自動運転車は安全か', agree_opinion: 'ヒューマンエラーを排除し事故が減る', disagree_opinion: '技術的限界と倫理的判断の問題がある' },
-                { id: 'b8', title: 'ゲームは教育に役立つか', agree_opinion: '問題解決能力や創造性を育む', disagree_opinion: '依存性が高く学習時間を奪う' },
-                { id: 'b9', title: '宇宙開発に投資すべきか', agree_opinion: '人類の未来と技術革新に不可欠', disagree_opinion: '地球上の課題解決が先決' },
-                { id: 'b10', title: '死刑制度は廃止すべきか', agree_opinion: '冤罪のリスクがあり人権に反する', disagree_opinion: '凶悪犯罪の抑止力として必要' }
+                { id: 'b3', title: '自動運転車は安全か', agree_opinion: 'ヒューマンエラーを排除し事故が減る', disagree_opinion: '技術的限界と倫理的判断の問題がある' },
+                { id: 'b4', title: 'AGI開発は今すぐ規制すべきか', agree_opinion: '制御不能になる前に安全性を確保すべき', disagree_opinion: '過度な規制は技術革新と競争力を損なう' },
+                { id: 'b5', title: 'プログラミング教育は全員必修にすべきか', agree_opinion: 'デジタル社会の基礎力として全員が学ぶべき', disagree_opinion: '適性があり全員強制は非効率' },
+                { id: 'b6', title: 'メタバースは社会を変えるか', agree_opinion: '新たな経済圏とコミュニケーション革命をもたらす', disagree_opinion: '現実逃避と企業の利益追求に過ぎない' },
+                // 社会
+                { id: 'b7', title: 'ベーシックインカムは導入すべきか', agree_opinion: '最低限の生活保障で社会が安定する', disagree_opinion: '労働意欲の低下と財源確保が困難' },
+                { id: 'b8', title: 'リモートワークは生産性を向上させるか', agree_opinion: '通勤不要で集中力と効率が上がる', disagree_opinion: '孤立やコミュニケーション不足が生産性を下げる' },
+                { id: 'b9', title: '死刑制度は廃止すべきか', agree_opinion: '冤罪のリスクがあり人権に反する', disagree_opinion: '凶悪犯罪の抑止力として必要' },
+                { id: 'b10', title: '選挙権年齢は16歳に引き下げるべきか', agree_opinion: '若者の政治参加が民主主義を活性化させる', disagree_opinion: '十分な判断力が育つ前に投票させるのは危険' },
+                { id: 'b11', title: '子どものSNS利用は制限すべきか', agree_opinion: 'メンタルヘルスと安全のために制限が必要', disagree_opinion: '制限よりデジタルリテラシー教育が重要' },
+                // 教育
+                { id: 'b12', title: '大学教育は必要か', agree_opinion: '体系的な学問と人脈形成に不可欠', disagree_opinion: '実践的スキルは大学外でも習得可能' },
+                { id: 'b13', title: 'ゲームは教育に役立つか', agree_opinion: '問題解決能力や創造性を育む', disagree_opinion: '依存性が高く学習時間を奪う' },
+                { id: 'b14', title: '宿題は廃止すべきか', agree_opinion: '自由な時間が創造性と自主性を育てる', disagree_opinion: '反復学習が知識の定着に不可欠' },
+                { id: 'b15', title: 'AIが教師の代わりになれるか', agree_opinion: '個別最適化された学習を提供できる', disagree_opinion: '人間的成長には人との関わりが不可欠' },
+                // 環境
+                { id: 'b16', title: '原子力発電は推進すべきか', agree_opinion: 'CO2削減と安定供給に有効', disagree_opinion: '事故リスクと廃棄物処理の問題が深刻' },
+                { id: 'b17', title: '宇宙開発に投資すべきか', agree_opinion: '人類の未来と技術革新に不可欠', disagree_opinion: '地球上の課題解決が先決' },
+                { id: 'b18', title: '肉食は倫理的に問題があるか', agree_opinion: '動物の苦痛と環境負荷を考えると問題がある', disagree_opinion: '食文化の自由と栄養的合理性がある' },
+                { id: 'b19', title: '電気自動車は本当にエコか', agree_opinion: '走行時の排出ゼロが環境に貢献する', disagree_opinion: '製造・廃棄時の環境負荷を考えると疑問' },
+                // 経済
+                { id: 'b20', title: '仮想通貨は規制すべきか', agree_opinion: '投機と詐欺から消費者を守るため規制が必要', disagree_opinion: '規制はイノベーションと金融の自由を損なう' },
+                { id: 'b21', title: '富の再分配は強化すべきか', agree_opinion: '格差縮小が社会の安定と経済成長に繋がる', disagree_opinion: '過度な再分配は労働意欲と経済の活力を削ぐ' },
+                { id: 'b22', title: '副業を全企業が認めるべきか', agree_opinion: '個人のキャリア形成と収入多様化に有益', disagree_opinion: '本業への集中力低下と情報漏洩リスクがある' },
+                // 文化
+                { id: 'b23', title: 'AIが作った芸術は本物の芸術か', agree_opinion: '創造的な出力があれば手段は問わない', disagree_opinion: '人間の感情や経験なき創作は芸術と言えない' },
+                { id: 'b24', title: '漫画・アニメはもっと評価されるべきか', agree_opinion: '表現の多様性と国際的影響力が高い', disagree_opinion: '娯楽と文化は別のものとして評価すべき' },
+                { id: 'b25', title: 'eスポーツはオリンピック正式種目にすべきか', agree_opinion: '競技性と国際的人気を考えれば正式種目にふさわしい', disagree_opinion: '身体的運動を伴わないものはスポーツと言えない' },
+                // 哲学
+                { id: 'b26', title: '自由意志は存在するか', agree_opinion: '意識的な選択ができる時点で自由意志は存在する', disagree_opinion: '脳の神経活動が全て決めており自由意志は幻想' },
+                { id: 'b27', title: 'AIに意識は芽生えるか', agree_opinion: '十分複雑なシステムから意識が発現する可能性がある', disagree_opinion: '生物学的基盤なき意識は生まれない' },
+                { id: 'b28', title: '正義は普遍的かそれとも相対的か', agree_opinion: '全人類に共通する道徳的原則が存在する', disagree_opinion: '正義は文化や時代によって変わる相対的なもの' },
+                // ライフスタイル
+                { id: 'b29', title: '早起きは成功の鍵か', agree_opinion: '朝型生活が集中力と健康を高める', disagree_opinion: 'クロノタイプは個人差があり夜型でも成功できる' },
+                { id: 'b30', title: 'お金で幸福は買えるか', agree_opinion: '経済的安定が幸福の基盤を作る', disagree_opinion: '人間関係や自己実現などお金では得られないものがある' },
+                { id: 'b31', title: '完璧主義は成長を促すか妨げるか', agree_opinion: '高い基準が優れた成果を生む', disagree_opinion: '完璧を求めすぎると行動が遅れメンタルを損なう' },
+                // 国際
+                { id: 'b32', title: 'グローバリゼーションは続けるべきか', agree_opinion: '国際協力と経済成長に不可欠', disagree_opinion: '地元経済を圧迫し文化の画一化を招く' },
+                { id: 'b33', title: '移民を積極的に受け入れるべきか', agree_opinion: '労働力不足解消と文化の多様性に貢献', disagree_opinion: '社会保障の負担と文化摩擦のリスクがある' },
+                // ビジネス
+                { id: 'b34', title: '週休4日勤務は導入すべきか', agree_opinion: '労働者の健康と生産性向上に繋がる', disagree_opinion: '経済成長が低下し企業競争力が落ちる' },
+                { id: 'b35', title: '学歴社会は変わるべきか', agree_opinion: '実力主義が公平な社会を実現する', disagree_opinion: '学歴は基礎力の指標として有効' },
+                { id: 'b36', title: 'タイパ重視の生き方は正しいか', agree_opinion: '限られた時間を効率的に使うのは合理的', disagree_opinion: '効率だけ追求すると人生の深みが失われる' },
             ];
+            // 毎回シャッフルして異なるテーマを表示
+            const shuffled = allThemes.sort(() => Math.random() - 0.5);
+            return shuffled.slice(0, 12);
         }
 
         function renderThemeList() {
@@ -561,9 +600,23 @@ export const battlePage = (user: any) => `
                 const aiStance = selectedStance === 'agree'
                     ? (selectedThemeObj.disagree_opinion || '反対の立場')
                     : (selectedThemeObj.agree_opinion || '賛成の立場');
-                const diffPrompt = selectedDifficulty === 'easy' ? 'シンプルで短い反論をしてください。' : selectedDifficulty === 'hard' ? '鋭く高度な反論をしてください。データや具体例を使ってください。' : '適切な反論をしてください。';
+                const diffPrompt = selectedDifficulty === 'easy' 
+                    ? '初心者向けに分かりやすく反論してください。短くシンプルに。' 
+                    : selectedDifficulty === 'hard' 
+                    ? '上級者向けに鋭く高度な反論をしてください。統計データ、具体的な事例、学術的根拠を交えて論理的に反駁してください。相手の論点の矛盾を突いてください。' 
+                    : '論理的な反論をしてください。具体例や根拠を1つ以上含めてください。';
                 
-                const systemPrompt = 'あなたはディベーターです。テーマ:「' + topic + '」。あなたの立場:「' + aiStance + '」。' + diffPrompt + '180文字以内、句点で終えること。相手の立場を認めないこと。';
+                const systemPrompt = 'あなたは日本語ディベートの熟練者です。\n' +
+                    'テーマ:「' + topic + '」\n' +
+                    'あなたの立場:「' + aiStance + '」\n\n' +
+                    'ルール:\n' +
+                    '- 必ず180文字以内で完結させること\n' +
+                    '- 句点（。）で文を終えること\n' +
+                    '- 自分の立場を一貫して主張し、相手の立場を論破すること\n' +
+                    '- 相手の直前の主張に対して具体的に反論すること\n' +
+                    '- 感情論ではなく論理とエビデンスで議論すること\n' +
+                    '- 同じ論点を繰り返さず、新しい角度から主張すること\n' +
+                    diffPrompt;
 
                 const response = await fetch('/api/debate/generate', {
                     method: 'POST',

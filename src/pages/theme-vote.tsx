@@ -29,6 +29,11 @@ export const themeVotePage = (user: any) => `
                 <p class="text-gray-300">
                     次回のディベートテーマを決めよう！気になるテーマに投票したり、新しいテーマを提案できます。
                 </p>
+                <div class="mt-3 text-sm text-gray-400">
+                    <span class="text-yellow-400"><i class="fas fa-coins mr-1"></i>テーマ提案: 20クレジット消費</span>
+                    <span class="mx-3">|</span>
+                    <span class="text-green-400"><i class="fas fa-thumbs-up mr-1"></i>投票: 無料</span>
+                </div>
             </div>
 
             <!-- Propose New Theme -->
@@ -36,6 +41,9 @@ export const themeVotePage = (user: any) => `
                 <h2 class="text-2xl font-bold text-cyan-300 mb-4 flex items-center">
                     <i class="fas fa-lightbulb mr-3"></i>
                     新しいテーマを提案
+                    <span class="ml-auto text-sm text-yellow-400 font-normal">
+                        <i class="fas fa-coins mr-1"></i>20クレジット消費
+                    </span>
                 </h2>
                 
                 <form id="proposeForm" class="space-y-4">
@@ -55,28 +63,28 @@ export const themeVotePage = (user: any) => `
 
                     <div class="grid md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-green-400 font-bold mb-2">
-                                <i class="fas fa-check mr-2"></i>賛成意見（A側）
+                            <label class="block text-cyan-400 font-bold mb-2">
+                                <i class="fas fa-arrow-right mr-2"></i>立場A
                             </label>
                             <textarea 
                                 id="agreeOpinion" 
                                 rows="3"
                                 placeholder="例：リモートワークにより通勤時間が削減され、集中して仕事ができる環境が整う"
-                                class="w-full bg-gray-900 border-2 border-green-500 rounded p-3 text-white focus:outline-none focus:border-green-300 resize-none" 
+                                class="w-full bg-gray-900 border-2 border-cyan-500 rounded p-3 text-white focus:outline-none focus:border-cyan-300 resize-none" 
                                 maxlength="200"
                                 required
                             ></textarea>
                         </div>
 
                         <div>
-                            <label class="block text-red-400 font-bold mb-2">
-                                <i class="fas fa-times mr-2"></i>反対意見（B側）
+                            <label class="block text-pink-400 font-bold mb-2">
+                                <i class="fas fa-arrow-left mr-2"></i>立場B
                             </label>
                             <textarea 
                                 id="disagreeOpinion" 
                                 rows="3"
                                 placeholder="例：対面コミュニケーションが減少し、チームワークや創造性が低下する"
-                                class="w-full bg-gray-900 border-2 border-red-500 rounded p-3 text-white focus:outline-none focus:border-red-300 resize-none" 
+                                class="w-full bg-gray-900 border-2 border-pink-500 rounded p-3 text-white focus:outline-none focus:border-pink-300 resize-none" 
                                 maxlength="200"
                                 required
                             ></textarea>
@@ -100,7 +108,7 @@ export const themeVotePage = (user: any) => `
                     </div>
 
                     <button type="submit" class="btn-primary w-full">
-                        <i class="fas fa-paper-plane mr-2"></i>テーマを提案する（10クレジット消費）
+                        <i class="fas fa-paper-plane mr-2"></i>テーマを提案する（20クレジット消費。）
                     </button>
                 </form>
             </div>
@@ -115,8 +123,8 @@ export const themeVotePage = (user: any) => `
                     </span>
                 </h2>
 
-                <!-- Filter -->
-                <div class="flex flex-wrap gap-2 mb-6">
+                <!-- Category Filter -->
+                <div class="flex flex-wrap gap-2 mb-4">
                     <button class="filter-btn active" data-category="all">
                         <i class="fas fa-th mr-2"></i>すべて
                     </button>
@@ -140,12 +148,19 @@ export const themeVotePage = (user: any) => `
                     </button>
                 </div>
 
-                <!-- Sort -->
+                <!-- Sort Tabs -->
                 <div class="flex gap-2 mb-6">
-                    <select id="sortBy" class="bg-gray-900 border border-cyan-500 rounded px-4 py-2 text-white text-sm">
-                        <option value="votes">投票数順</option>
-                        <option value="recent">新着順</option>
-                    </select>
+                    <button class="sort-tab active" data-sort="votes" onclick="changeSort('votes')">
+                        <i class="fas fa-fire mr-1"></i>いいね順
+                    </button>
+                    <button class="sort-tab" data-sort="recent" onclick="changeSort('recent')">
+                        <i class="fas fa-clock mr-1"></i>新着順
+                    </button>
+                    ${user.user_id === 'dev' ? `
+                    <button class="sort-tab" data-sort="adopted" onclick="changeSort('adopted')">
+                        <i class="fas fa-check-circle mr-1"></i>採用済み
+                    </button>
+                    ` : ''}
                 </div>
 
                 <!-- Themes List -->
@@ -179,6 +194,26 @@ export const themeVotePage = (user: any) => `
             border-color: #06b6d4;
             color: #ffffff;
         }
+        .sort-tab {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            color: #9ca3af;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+        }
+        .sort-tab:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+        .sort-tab.active {
+            background: rgba(6, 182, 212, 0.25);
+            border-color: #06b6d4;
+            color: #06b6d4;
+        }
         .theme-card {
             background: rgba(17, 24, 39, 0.8);
             border: 1px solid rgba(6, 182, 212, 0.3);
@@ -190,10 +225,46 @@ export const themeVotePage = (user: any) => `
             border-color: #06b6d4;
             box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
         }
+        .theme-card.adopted {
+            border-color: rgba(34, 197, 94, 0.5);
+            background: rgba(17, 24, 39, 0.9);
+        }
+        .adopt-btn {
+            padding: 6px 14px;
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.4);
+            border-radius: 6px;
+            color: #22c55e;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .adopt-btn:hover {
+            background: rgba(34, 197, 94, 0.3);
+            border-color: #22c55e;
+        }
+        .adopt-btn.adopted {
+            background: rgba(34, 197, 94, 0.3);
+            border-color: #22c55e;
+            color: #fff;
+        }
+        .proposer-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            background: rgba(139, 92, 246, 0.15);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 12px;
+            font-size: 12px;
+            color: #a78bfa;
+        }
     </style>
 
     <script>
         const userId = '${user.user_id}';
+        const isDev = userId === 'dev';
         let userCredits = ${user.credits || 0};
         let currentFilter = 'all';
         let currentSort = 'votes';
@@ -209,10 +280,11 @@ export const themeVotePage = (user: any) => `
         });
 
         // Sort change
-        document.getElementById('sortBy').addEventListener('change', (e) => {
-            currentSort = e.target.value;
+        function changeSort(sort) {
+            currentSort = sort;
+            document.querySelectorAll('.sort-tab').forEach(t => t.classList.toggle('active', t.dataset.sort === sort));
             loadThemes();
-        });
+        }
 
         // Load themes
         async function loadThemes() {
@@ -236,45 +308,62 @@ export const themeVotePage = (user: any) => `
                 }
 
                 themesList.innerHTML = data.themes.map(theme => \`
-                    <div class="theme-card">
+                    <div class="theme-card \${theme.adopted ? 'adopted' : ''}">
                         <div class="flex justify-between items-start mb-3">
                             <div class="flex-1">
-                                <h3 class="text-xl font-bold text-white mb-2">\${theme.title}</h3>
-                                <div class="flex items-center gap-4 text-sm text-gray-400">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <h3 class="text-xl font-bold text-white">\${escapeHtml(theme.title)}</h3>
+                                    \${theme.adopted ? '<span class="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded border border-green-500/30"><i class="fas fa-check-circle mr-1"></i>採用</span>' : ''}
+                                </div>
+                                <div class="flex flex-wrap items-center gap-3 text-sm text-gray-400">
                                     <span><i class="fas fa-tag mr-1"></i>\${getCategoryName(theme.category)}</span>
-                                    <span><i class="fas fa-user mr-1"></i>@\${theme.proposed_by}</span>
+                                    <span class="proposer-badge">
+                                        <i class="fas fa-user-edit"></i>
+                                        <a href="/user/\${theme.proposed_by}" class="hover:text-purple-300">@\${theme.proposed_by}</a>
+                                    </span>
                                     <span><i class="fas fa-clock mr-1"></i>\${formatDate(theme.created_at)}</span>
                                 </div>
                             </div>
-                            <div class="text-center">
+                            <div class="text-center ml-4">
                                 <div class="text-2xl font-bold text-cyan-400">\${theme.vote_count}</div>
                                 <div class="text-xs text-gray-400">票</div>
                             </div>
                         </div>
 
                         <div class="grid md:grid-cols-2 gap-3 mb-4">
-                            <div class="bg-green-500/10 border border-green-500/30 rounded p-3">
-                                <div class="text-green-400 font-bold text-sm mb-1">
-                                    <i class="fas fa-check mr-1"></i>賛成（A側）
+                            <div class="bg-cyan-500/10 border border-cyan-500/30 rounded p-3">
+                                <div class="text-cyan-400 font-bold text-sm mb-1">
+                                    <i class="fas fa-arrow-right mr-1"></i>立場A
                                 </div>
-                                <p class="text-sm text-gray-300">\${theme.agree_opinion}</p>
+                                <p class="text-sm text-gray-300">\${escapeHtml(theme.agree_opinion || '')}</p>
                             </div>
-                            <div class="bg-red-500/10 border border-red-500/30 rounded p-3">
-                                <div class="text-red-400 font-bold text-sm mb-1">
-                                    <i class="fas fa-times mr-1"></i>反対（B側）
+                            <div class="bg-pink-500/10 border border-pink-500/30 rounded p-3">
+                                <div class="text-pink-400 font-bold text-sm mb-1">
+                                    <i class="fas fa-arrow-left mr-1"></i>立場B
                                 </div>
-                                <p class="text-sm text-gray-300">\${theme.disagree_opinion}</p>
+                                <p class="text-sm text-gray-300">\${escapeHtml(theme.disagree_opinion || '')}</p>
                             </div>
                         </div>
 
-                        <button 
-                            onclick="voteTheme('\${theme.id}', \${theme.has_voted})" 
-                            class="btn-primary w-full \${theme.has_voted ? 'opacity-50 cursor-not-allowed' : ''}"
-                            \${theme.has_voted ? 'disabled' : ''}
-                        >
-                            <i class="fas fa-\${theme.has_voted ? 'check' : 'thumbs-up'} mr-2"></i>
-                            \${theme.has_voted ? '投票済み' : 'このテーマに投票（5クレジット）'}
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button 
+                                onclick="voteTheme('\${theme.id}', \${theme.has_voted})" 
+                                class="btn-primary flex-1 \${theme.has_voted ? 'opacity-50' : ''}"
+                                \${theme.has_voted ? 'disabled' : ''}
+                            >
+                                <i class="fas fa-\${theme.has_voted ? 'check' : 'thumbs-up'} mr-2"></i>
+                                \${theme.has_voted ? '投票済み' : 'このテーマに投票（無料）'}
+                            </button>
+                            \${isDev ? \`
+                                <button 
+                                    onclick="adoptTheme('\${theme.id}', \${theme.adopted ? 1 : 0})"
+                                    class="adopt-btn \${theme.adopted ? 'adopted' : ''}"
+                                >
+                                    <i class="fas fa-\${theme.adopted ? 'check-circle' : 'star'} mr-1"></i>
+                                    \${theme.adopted ? '採用済' : '採用'}
+                                </button>
+                            \` : ''}
+                        </div>
                     </div>
                 \`).join('');
             } catch (error) {
@@ -291,11 +380,6 @@ export const themeVotePage = (user: any) => `
         // Propose theme
         document.getElementById('proposeForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-
-            if (userCredits < 10) {
-                alert('クレジットが不足しています（必要: 10クレジット）');
-                return;
-            }
 
             try {
                 const response = await fetch('/api/theme-votes/propose', {
@@ -328,14 +412,9 @@ export const themeVotePage = (user: any) => `
             }
         });
 
-        // Vote for theme
+        // Vote for theme (free)
         async function voteTheme(themeId, hasVoted) {
             if (hasVoted) return;
-
-            if (userCredits < 5) {
-                alert('クレジットが不足しています（必要: 5クレジット）');
-                return;
-            }
 
             try {
                 const response = await fetch(\`/api/theme-votes/\${themeId}/vote\`, {
@@ -350,7 +429,6 @@ export const themeVotePage = (user: any) => `
                         userCredits = result.new_credits;
                         if (window.updateCreditsDisplay) window.updateCreditsDisplay(result.new_credits);
                     }
-                    alert('投票しました！');
                     loadThemes();
                 } else {
                     alert(result.error || '投票に失敗しました');
@@ -361,7 +439,37 @@ export const themeVotePage = (user: any) => `
             }
         }
 
+        // Adopt theme (dev only)
+        async function adoptTheme(themeId, currentlyAdopted) {
+            if (!isDev) return;
+            
+            try {
+                const response = await fetch(\`/api/theme-votes/\${themeId}/adopt\`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ adopt: !currentlyAdopted })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    loadThemes();
+                } else {
+                    alert(result.error || '採用操作に失敗しました');
+                }
+            } catch (error) {
+                console.error('Adopt error:', error);
+                alert('採用操作に失敗しました');
+            }
+        }
+
         // Helper functions
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
         function getCategoryName(category) {
             const names = {
                 technology: 'テクノロジー',

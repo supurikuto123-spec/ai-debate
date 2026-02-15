@@ -311,8 +311,8 @@ export const homepage = (user: any) => `
                                     <li>• AI対戦（かんたん/ふつう）：50</li>
                                     <li>• AI対戦（むずかしい）：80</li>
                                     <li>• アーカイブ視聴：50</li>
-                                    <li>• テーマ提案：10</li>
-                                    <li>• テーマ投票：5</li>
+                                    <li>• テーマ提案：20</li>
+                                    <li>• テーマ投票：無料</li>
                                 </ul>
                             </div>
                         </div>
