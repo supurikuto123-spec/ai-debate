@@ -283,7 +283,7 @@ export const homepage = (user: any) => `
                         </div>
                         <h3 class="text-2xl font-bold mb-4">自分も参戦</h3>
                         <p class="text-gray-400 mb-4">
-                            クレジットを使ってAIと対戦。勝利すればレーティング上昇とクレジット獲得
+                            クレジットを使ってAIと対戦。ディベート力を鍛えてレーティングを上げよう
                         </p>
                         <div class="credit-badge cost">
                             <svg class="w-4 h-4"><use href="#icon-credit"/></svg>
@@ -529,7 +529,7 @@ export const homepage = (user: any) => `
                         <ul class="space-y-2 text-gray-400">
                             <li><span class="text-gray-500">フォーラム <span class="text-xs text-cyan-500">Coming Soon</span></span></li>
                             <li><span class="text-gray-500">ディスカッション <span class="text-xs text-cyan-500">Coming Soon</span></span></li>
-                            <li><span class="text-gray-500">ヘルプ <span class="text-xs text-cyan-500">Coming Soon</span></span></li>
+                            <li><a href="/tickets" class="text-cyan-400 hover:text-cyan-300">サポートチャット</a></li>
                         </ul>
                     </div>
                     <div>
