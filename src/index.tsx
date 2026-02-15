@@ -48,8 +48,34 @@ app.get('/favicon.ico', (c) => {
 // SEO: Serve robots.txt
 app.get('/robots.txt', serveStatic({ path: './public/robots.txt' }))
 
-// SEO: Serve sitemap.xml
-app.get('/sitemap.xml', serveStatic({ path: './public/sitemap.xml' }))
+// SEO: Serve sitemap.xml dynamically (overrides static file)
+app.get('/sitemap.xml', (c) => {
+  const baseUrl = 'https://ai-debate.jp'
+  const today = new Date().toISOString().split('T')[0]
+  const pages = [
+    { loc: '/', changefreq: 'daily', priority: '1.0' },
+    { loc: '/theme-vote', changefreq: 'daily', priority: '0.8' },
+    { loc: '/community', changefreq: 'daily', priority: '0.7' },
+    { loc: '/announcements', changefreq: 'daily', priority: '0.7' },
+    { loc: '/archive', changefreq: 'weekly', priority: '0.6' },
+    { loc: '/battle', changefreq: 'monthly', priority: '0.5' },
+    { loc: '/terms', changefreq: 'monthly', priority: '0.3' },
+    { loc: '/privacy', changefreq: 'monthly', priority: '0.3' },
+    { loc: '/legal', changefreq: 'monthly', priority: '0.3' },
+  ]
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${pages.map(p => `  <url>
+    <loc>${baseUrl}${p.loc}</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>${p.changefreq}</changefreq>
+    <priority>${p.priority}</priority>
+  </url>`).join('\n')}
+</urlset>`
+  return new Response(xml, {
+    headers: { 'Content-Type': 'application/xml; charset=utf-8' }
+  })
+})
 
 // Homepage
 app.get('/', async (c) => {
@@ -89,7 +115,27 @@ app.get('/', async (c) => {
     console.error('Error tracking visit:', error)
   }
   
-  return c.html(homepage(user ? JSON.parse(user) : null))
+  // Get fresh credits from DB if user is logged in
+  let userData = user ? JSON.parse(user) : null
+  if (userData && userData.user_id) {
+    try {
+      const freshUser = await c.env.DB.prepare('SELECT credits FROM users WHERE user_id = ?').bind(userData.user_id).first()
+      if (freshUser) {
+        userData.credits = freshUser.credits
+        // Update cookie with fresh credits
+        setCookie(c, 'user', JSON.stringify(userData), {
+          httpOnly: true,
+          secure: false,
+          sameSite: 'Lax',
+          maxAge: 60 * 60 * 24 * 30
+        })
+      }
+    } catch (e) {
+      console.error('Error refreshing credits:', e)
+    }
+  }
+  
+  return c.html(homepage(userData))
 })
 
 // Registration page
@@ -202,9 +248,18 @@ app.get('/demo', async (c) => {
   const user = JSON.parse(userCookie)
   
   // Get registration number
+  // Get fresh user data from DB (not stale cookie)
+  const freshUserData = await c.env.DB.prepare(`
+    SELECT * FROM users WHERE user_id = ?
+  `).bind(user.user_id).first()
+  
+  if (freshUserData) {
+    user.credits = freshUserData.credits
+  }
+  
   const userInfo = await c.env.DB.prepare(`
-    SELECT created_at, credits FROM users WHERE id = ?
-  `).bind(user.id).first()
+    SELECT created_at, credits FROM users WHERE user_id = ?
+  `).bind(user.user_id).first()
   
   const countResult = await c.env.DB.prepare(`
     SELECT COUNT(*) as count FROM users WHERE created_at <= ?
@@ -213,6 +268,14 @@ app.get('/demo', async (c) => {
   user.registration_number = countResult?.count || 1
   // Show the original registration bonus, not current balance
   user.initial_credits = user.user_id === 'dev' ? 50000 : 500
+  
+  // Update cookie with fresh credits
+  setCookie(c, 'user', JSON.stringify(user), {
+    httpOnly: true,
+    secure: false,
+    sameSite: 'Lax',
+    maxAge: 60 * 60 * 24 * 30
+  })
   
   return c.html(demoPage(user))
 })
@@ -562,48 +625,9 @@ app.get('/battle', async (c) => {
   return c.html(battlePage(user))
 })
 
-// API: Battle Start (consume credits)
+// API: Battle Start - DISABLED (battles are not yet available)
 app.post('/api/battle/start', async (c) => {
-  try {
-    const userCookie = getCookie(c, 'user')
-    if (!userCookie) {
-      return c.json({ success: false, error: 'Not authenticated' }, 401)
-    }
-    
-    const user = JSON.parse(userCookie)
-    const { difficulty } = await c.req.json()
-    
-    // Determine credit cost: easy/normal = 50, hard = 80
-    const cost = difficulty === 'hard' ? 80 : 50
-    
-    // Get fresh credits from DB
-    const freshUser = await c.env.DB.prepare('SELECT credits FROM users WHERE user_id = ?').bind(user.user_id).first()
-    if (!freshUser) {
-      return c.json({ success: false, error: 'ユーザーが見つかりません' }, 404)
-    }
-    
-    const currentCredits = freshUser.credits as number
-    if (currentCredits < cost) {
-      return c.json({ success: false, error: `クレジットが不足しています（必要: ${cost}クレジット、現在: ${currentCredits}）` })
-    }
-    
-    // Deduct credits
-    await c.env.DB.prepare('UPDATE users SET credits = credits - ? WHERE user_id = ?').bind(cost, user.user_id).run()
-    
-    // Record transaction
-    await c.env.DB.prepare(`
-      INSERT INTO credit_transactions (id, user_id, amount, type, reason, created_at)
-      VALUES (?, ?, ?, 'spend', 'AI対戦（' || ? || '）', datetime('now'))
-    `).bind(crypto.randomUUID(), user.user_id, -cost, difficulty || 'normal').run()
-    
-    // Return new credits
-    const updatedUser = await c.env.DB.prepare('SELECT credits FROM users WHERE user_id = ?').bind(user.user_id).first()
-    
-    return c.json({ success: true, new_credits: updatedUser?.credits, cost })
-  } catch (error) {
-    console.error('Battle start error:', error)
-    return c.json({ success: false, error: 'サーバーエラーが発生しました' }, 500)
-  }
+  return c.json({ success: false, error: '対戦機能は現在開発中です。リリースまでお待ちください。' }, 403)
 })
 
 // Theme Vote Page
@@ -711,9 +735,9 @@ app.post('/api/avatar/upload', async (c) => {
       return c.json({ success: false, error: 'No file uploaded' }, 400)
     }
     
-    // Validate file size (2MB max)
-    if (file.size > 2 * 1024 * 1024) {
-      return c.json({ success: false, error: 'File too large (max 2MB)' }, 400)
+    // Validate file size (5MB max - increased for larger icons)
+    if (file.size > 5 * 1024 * 1024) {
+      return c.json({ success: false, error: 'File too large (max 5MB)' }, 400)
     }
     
     // Generate unique filename
@@ -1867,6 +1891,14 @@ app.get('/api/theme-votes', async (c) => {
     const category = c.req.query('category') || 'all'
     const sort = c.req.query('sort') || 'votes'
     
+    // Safely check if 'adopted' column exists (production may not have migration yet)
+    let hasAdoptedColumn = true;
+    try {
+      await c.env.DB.prepare("SELECT adopted FROM theme_proposals LIMIT 0").all();
+    } catch {
+      hasAdoptedColumn = false;
+    }
+
     let query = `
       SELECT 
         tp.id,
@@ -1877,8 +1909,8 @@ app.get('/api/theme-votes', async (c) => {
         tp.proposed_by,
         tp.vote_count,
         tp.created_at,
-        CASE WHEN tv.user_id IS NOT NULL THEN 1 ELSE 0 END as has_voted,
-        COALESCE(tp.adopted, 0) as adopted
+        CASE WHEN tv.user_id IS NOT NULL THEN 1 ELSE 0 END as has_voted
+        ${hasAdoptedColumn ? ', COALESCE(tp.adopted, 0) as adopted' : ', 0 as adopted'}
       FROM theme_proposals tp
       LEFT JOIN theme_votes tv ON tp.id = tv.theme_id AND tv.user_id = ?
       WHERE tp.status = 'active'
@@ -2031,9 +2063,15 @@ app.post('/api/theme-votes/:id/adopt', async (c) => {
     const themeId = c.req.param('id')
     const { adopt } = await c.req.json()
     
-    await c.env.DB.prepare(`
-      UPDATE theme_proposals SET adopted = ? WHERE id = ?
-    `).bind(adopt ? 1 : 0, themeId).run()
+    try {
+      await c.env.DB.prepare(`
+        UPDATE theme_proposals SET adopted = ? WHERE id = ?
+      `).bind(adopt ? 1 : 0, themeId).run()
+    } catch {
+      // If adopted column doesn't exist, try to add it
+      await c.env.DB.prepare(`ALTER TABLE theme_proposals ADD COLUMN adopted INTEGER DEFAULT 0`).run()
+      await c.env.DB.prepare(`UPDATE theme_proposals SET adopted = ? WHERE id = ?`).bind(adopt ? 1 : 0, themeId).run()
+    }
     
     return c.json({ success: true })
   } catch (error) {

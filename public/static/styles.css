@@ -340,16 +340,17 @@ body {
 }
 
 .feature-icon {
-    width: 80px;
-    height: 80px;
+    width: 90px;
+    height: 90px;
     background: linear-gradient(135deg, #00ffff, #0080ff);
-    border-radius: 16px;
+    border-radius: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
     margin-bottom: 1.5rem;
     box-shadow: 0 4px 20px rgba(0, 255, 255, 0.4);
     animation: iconFloat 3s ease-in-out infinite;
+    font-size: 2.5rem;
 }
 
 @keyframes iconFloat {
@@ -552,15 +553,16 @@ body {
 }
 
 .category-icon {
-    width: 80px;
-    height: 80px;
+    width: 90px;
+    height: 90px;
     margin: 0 auto 1.5rem;
-    border-radius: 16px;
+    border-radius: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
     box-shadow: 0 4px 20px rgba(0, 255, 255, 0.4);
     animation: iconFloat 3s ease-in-out infinite;
+    font-size: 2.5rem;
 }
 
 .category-icon.tech {
@@ -1212,4 +1214,202 @@ section {
         transform: rotate(90deg);
         margin: 0.5rem 0;
     }
+}
+
+/* ================================
+   COMPREHENSIVE MOBILE OPTIMIZATION
+   ================================ */
+
+/* Mobile-first text readability */
+@media (max-width: 640px) {
+    body {
+        font-size: 15px;
+        line-height: 1.7;
+        -webkit-text-size-adjust: 100%;
+    }
+
+    /* Homepage hero */
+    .glitch {
+        font-size: 2.2rem !important;
+    }
+
+    h1 { font-size: 1.6rem; }
+    h2 { font-size: 1.3rem; }
+    h3 { font-size: 1.15rem; }
+    h4 { font-size: 1rem; }
+
+    /* Better touch targets */
+    .btn-primary, .btn-secondary, .btn-glow, .btn-outline, .btn-watch {
+        padding: 0.85rem 1.2rem;
+        font-size: 0.95rem;
+        min-height: 44px;
+    }
+
+    .btn-glow {
+        font-size: 1.1rem;
+        padding: 1rem 1.5rem;
+    }
+
+    /* Navigation on mobile */
+    nav.fixed .container {
+        padding: 0.75rem 1rem;
+    }
+
+    nav .text-2xl {
+        font-size: 1.3rem;
+    }
+
+    /* Feature cards on mobile */
+    .feature-card, .category-card, .debate-card {
+        padding: 1.25rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .feature-icon {
+        width: 60px;
+        height: 60px;
+    }
+
+    .category-icon {
+        width: 60px;
+        height: 60px;
+    }
+
+    .feature-card h3 {
+        font-size: 1.15rem;
+    }
+
+    .feature-card p, .category-card p {
+        font-size: 0.875rem;
+        line-height: 1.6;
+    }
+
+    /* Step numbers */
+    .step-number {
+        font-size: 2.5rem;
+    }
+
+    /* Grid spacing */
+    section {
+        padding-top: 3rem;
+        padding-bottom: 3rem;
+    }
+
+    section .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    /* CTA box */
+    .cta-box {
+        padding: 2rem 1.25rem;
+        border-radius: 16px;
+    }
+
+    .cta-box h2 {
+        font-size: 1.5rem;
+    }
+
+    .cta-box p {
+        font-size: 0.95rem;
+    }
+
+    /* Credit system section */
+    .credit-info-box {
+        padding: 1.25rem;
+    }
+
+    .credit-badge {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.8rem;
+    }
+
+    /* Stat meter boxes */
+    .stat-meter-box {
+        padding: 1.25rem;
+    }
+
+    .meter-value {
+        font-size: 2rem;
+    }
+
+    /* Footer */
+    footer .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    footer h4 {
+        font-size: 1rem;
+    }
+
+    footer p, footer li, footer a {
+        font-size: 0.875rem;
+    }
+
+    .social-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+    }
+
+    /* Credit display in nav */
+    .credit-display {
+        padding: 0.35rem 0.75rem;
+        font-size: 0.8rem;
+    }
+
+    /* Countdown */
+    .countdown-box-home {
+        padding: 1rem;
+    }
+
+    .meter-segment-home {
+        width: 28px;
+        height: 42px;
+        font-size: 1.3rem;
+    }
+
+    .meter-separator-home {
+        font-size: 1.3rem;
+    }
+
+    /* Cyber card (global-nav sidebar cards etc.) */
+    .cyber-card {
+        padding: 1.25rem !important;
+        border-radius: 12px;
+    }
+}
+
+/* Tablet adjustments */
+@media (min-width: 641px) and (max-width: 1024px) {
+    body {
+        font-size: 16px;
+    }
+
+    .glitch {
+        font-size: 3.5rem !important;
+    }
+
+    .stat-meter-box {
+        padding: 1.5rem;
+    }
+
+    .meter-value {
+        font-size: 2.8rem;
+    }
+}
+
+/* Cyber card base style (used on many pages) */
+.cyber-card {
+    background: linear-gradient(135deg, rgba(0,20,40,0.9), rgba(20,0,40,0.9));
+    border: 2px solid rgba(0,255,255,0.3);
+    border-radius: 16px;
+    padding: 24px;
+    transition: all 0.3s ease;
+}
+
+.cyber-card:hover {
+    border-color: rgba(0,255,255,0.5);
+    box-shadow: 0 0 20px rgba(0,255,255,0.15);
 }

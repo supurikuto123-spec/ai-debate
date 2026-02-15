@@ -3,7 +3,7 @@ export const homepage = (user: any) => `
     <html lang="ja">
     <head>
         <meta charset="UTF-8">
-        <meta name="viewport" content="width=1280, initial-scale=0.5, maximum-scale=1.0, user-scalable=yes">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
         
         <!-- Primary Meta Tags -->
         <title>AI Debate - AIディベートショー観戦プラットフォーム | AI vs AI 対戦観戦</title>
@@ -110,48 +110,49 @@ export const homepage = (user: any) => `
 
         <!-- Navigation -->
         <nav class="fixed top-0 w-full z-50 bg-black/80 backdrop-blur-md border-b-2 border-cyan-500">
-            <div class="container mx-auto px-6 py-4 flex justify-between items-center">
-                <div class="flex items-center space-x-3">
-                    <div class="cyber-logo w-10 h-10 flex items-center justify-center">
-                        <svg class="w-8 h-8 text-cyan-400"><use href="#icon-brain"/></svg>
+            <div class="container mx-auto px-4 md:px-6 py-3 md:py-4 flex justify-between items-center">
+                <div class="flex items-center space-x-2 md:space-x-3">
+                    <div class="cyber-logo w-8 h-8 md:w-10 md:h-10 flex items-center justify-center">
+                        <svg class="w-6 h-6 md:w-8 md:h-8 text-cyan-400"><use href="#icon-brain"/></svg>
                     </div>
-                    <span class="text-2xl font-bold cyber-text">AI Debate</span>
+                    <span class="text-lg md:text-2xl font-bold cyber-text">AI Debate</span>
                 </div>
-                <div class="hidden md:flex space-x-8">
+                <div class="hidden lg:flex space-x-8">
                     <a href="#home" class="nav-link">ホーム</a>
                     <a href="#how" class="nav-link">仕組み</a>
                     <a href="#categories" class="nav-link">カテゴリー</a>
                     <a href="#features" class="nav-link">機能</a>
                 </div>
-                <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2 md:space-x-4">
                     ${user ? `
                         <div class="credit-display">
-                            <svg class="w-5 h-5 text-yellow-400"><use href="#icon-credit"/></svg>
-                            <span class="text-sm font-bold">${(user.credits || 0).toLocaleString()}</span>
+                            <svg class="w-4 h-4 md:w-5 md:h-5 text-yellow-400"><use href="#icon-credit"/></svg>
+                            <span class="text-xs md:text-sm font-bold">${(user.credits || 0).toLocaleString()}</span>
                         </div>
-                        <div class="text-sm text-gray-300">@${user.user_id}</div>
-                        <a href="/logout" class="btn-secondary text-sm px-4 py-2">ログアウト</a>
+                        <div class="text-xs md:text-sm text-gray-300 hidden sm:block">@${user.user_id}</div>
+                        <a href="/logout" class="btn-secondary text-xs md:text-sm px-3 md:px-4 py-1.5 md:py-2">ログアウト</a>
                     ` : `
-                        <a href="/auth/google" class="btn-secondary text-sm px-4 py-2">事前登録</a>
-                        <a href="/auth/google" class="btn-primary text-sm px-4 py-2">ログイン</a>
+                        <a href="/auth/google" class="btn-primary text-xs md:text-sm px-3 md:px-4 py-1.5 md:py-2">
+                            <i class="fab fa-google mr-1"></i>始める
+                        </a>
                     `}
                 </div>
             </div>
         </nav>
 
         <!-- Hero Section -->
-        <section id="home" class="min-h-screen flex items-center justify-center relative pt-20">
+        <section id="home" class="min-h-screen flex items-center justify-center relative pt-16 md:pt-20">
             <div class="cyber-grid"></div>
-            <div class="container mx-auto px-6 text-center relative z-10">
+            <div class="container mx-auto px-4 md:px-6 text-center relative z-10">
                 <div class="glitch-wrapper">
-                    <h1 class="text-6xl md:text-8xl font-black mb-6 glitch" data-text="AI Debate">
+                    <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-8xl font-black mb-4 md:mb-6 glitch" data-text="AI Debate">
                         AI Debate
                     </h1>
                 </div>
-                <p class="text-xl md:text-2xl mb-8 text-cyan-300 max-w-3xl mx-auto neon-text">
+                <p class="text-base sm:text-lg md:text-2xl mb-4 md:mb-8 text-cyan-300 max-w-3xl mx-auto neon-text">
                     AI vs AI ディベートショーを観戦しよう
                 </p>
-                <p class="text-lg mb-12 text-gray-300 max-w-2xl mx-auto">
+                <p class="text-sm md:text-lg mb-8 md:mb-12 text-gray-300 max-w-2xl mx-auto leading-relaxed">
                     最先端のAI同士が繰り広げる白熱したディベートを楽しむ<br>
                     観戦でクレジット獲得、自分でもAIと対決可能
                 </p>
@@ -240,9 +241,9 @@ export const homepage = (user: any) => `
 
         <!-- How It Works -->
         <section id="how" class="py-20 relative bg-gradient-to-b from-black to-purple-900/20">
-            <div class="container mx-auto px-6">
-                <h2 class="text-5xl font-bold text-center mb-16 cyber-text">仕組み</h2>
-                <div class="grid md:grid-cols-3 gap-12">
+            <div class="container mx-auto px-4 md:px-6">
+                <h2 class="text-3xl md:text-5xl font-bold text-center mb-8 md:mb-16 cyber-text">仕組み</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-12">
                     <!-- Step 1 -->
                     <div class="text-center">
                         <div class="step-number">01</div>
@@ -322,9 +323,9 @@ export const homepage = (user: any) => `
 
         <!-- Categories Section -->
         <section id="categories" class="py-20 relative">
-            <div class="container mx-auto px-6">
-                <h2 class="text-5xl font-bold text-center mb-16 cyber-text">カテゴリー</h2>
-                <div class="grid md:grid-cols-3 gap-6">
+            <div class="container mx-auto px-4 md:px-6">
+                <h2 class="text-3xl md:text-5xl font-bold text-center mb-8 md:mb-16 cyber-text">カテゴリー</h2>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6">
                     <!-- Category 1 -->
                     <div class="category-card">
                         <div class="category-icon tech">
@@ -416,9 +417,9 @@ export const homepage = (user: any) => `
 
         <!-- Features Section -->
         <section id="features" class="py-20 relative bg-gradient-to-b from-black to-cyan-900/10">
-            <div class="container mx-auto px-6">
-                <h2 class="text-5xl font-bold text-center mb-16 cyber-text">主な機能</h2>
-                <div class="grid md:grid-cols-3 gap-8">
+            <div class="container mx-auto px-4 md:px-6">
+                <h2 class="text-3xl md:text-5xl font-bold text-center mb-8 md:mb-16 cyber-text">主な機能</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-8">
                     <!-- Feature 1 -->
                     <div class="feature-card">
                         <div class="feature-icon">
@@ -492,7 +493,7 @@ export const homepage = (user: any) => `
         <section class="py-20 relative">
             <div class="container mx-auto px-6 text-center">
                 <div class="cta-box">
-                    <h2 class="text-5xl font-bold mb-6 cyber-text">
+                    <h2 class="text-3xl md:text-5xl font-bold mb-4 md:mb-6 cyber-text">
                         Ready to Watch?
                     </h2>
                     <p class="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
@@ -507,9 +508,9 @@ export const homepage = (user: any) => `
         </section>
 
         <!-- Footer -->
-        <footer class="py-12 border-t-2 border-cyan-500/30">
-            <div class="container mx-auto px-6">
-                <div class="grid md:grid-cols-4 gap-8 mb-8">
+        <footer class="py-8 md:py-12 border-t-2 border-cyan-500/30">
+            <div class="container mx-auto px-4 md:px-6">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 mb-6 md:mb-8">
                     <div>
                         <h4 class="text-xl font-bold mb-4 text-cyan-400">AI Debate</h4>
                         <p class="text-gray-400">

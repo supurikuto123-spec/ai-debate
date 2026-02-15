@@ -25,14 +25,14 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
       #nav-menu { position: fixed; top: 0; right: -100%; width: 400px; max-width: 90%; height: 100vh; background: linear-gradient(135deg, rgba(0,20,40,0.95), rgba(20,0,40,0.95)); border-left: 2px solid #00ffff; z-index: 9999; transition: right 0.5s cubic-bezier(0.68,-0.55,0.265,1.55); overflow-y: auto; box-shadow: -10px 0 50px rgba(0,255,255,0.3); }
       #nav-menu.active { right: 0; }
       .nav-profile { padding: 40px 30px 30px; border-bottom: 2px solid rgba(0,255,255,0.3); background: linear-gradient(135deg, rgba(0,255,255,0.1), rgba(255,0,255,0.1)); }
-      .nav-avatar { width: 80px; height: 80px; border-radius: 50%; border: 3px solid #00ffff; margin: 0 auto 15px; display: block; box-shadow: 0 0 20px rgba(0,255,255,0.5); }
+      .nav-avatar { width: 100px; height: 100px; border-radius: 50%; border: 3px solid #00ffff; margin: 0 auto 15px; display: block; box-shadow: 0 0 20px rgba(0,255,255,0.5); object-fit: cover; }
       .nav-username { font-family: 'Orbitron', sans-serif; font-size: 1.2rem; font-weight: 700; text-align: center; color: #00ffff; margin-bottom: 10px; text-shadow: 0 0 10px rgba(0,255,255,0.5); }
       .nav-credits { text-align: center; font-size: 1.1rem; color: #ffff00; font-weight: 700; text-shadow: 0 0 10px rgba(255,255,0,0.5); }
       .nav-links { padding: 20px 0; }
       .nav-link { display: flex; align-items: center; gap: 15px; padding: 18px 30px; color: #ffffff; text-decoration: none; font-size: 1.1rem; font-weight: 500; transition: all 0.3s ease; border-left: 4px solid transparent; }
       .nav-link:hover { background: linear-gradient(90deg, rgba(0,255,255,0.2), transparent); border-left: 4px solid #00ffff; padding-left: 35px; color: #00ffff; text-shadow: 0 0 10px rgba(0,255,255,0.5); }
       .nav-link.active { background: linear-gradient(90deg, rgba(0,255,255,0.3), transparent); border-left: 4px solid #00ffff; color: #00ffff; }
-      .nav-link i { font-size: 1.3rem; width: 30px; text-align: center; }
+      .nav-link i { font-size: 1.5rem; width: 34px; text-align: center; }
       .nav-logout { margin: 20px 30px; padding: 15px; background: linear-gradient(135deg, rgba(255,0,0,0.2), rgba(255,0,255,0.2)); border: 2px solid #ff0080; border-radius: 10px; color: #ff0080; font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 1rem; cursor: pointer; transition: all 0.3s ease; text-align: center; text-decoration: none; display: block; box-shadow: 0 0 20px rgba(255,0,128,0.3); }
       .nav-logout:hover { background: linear-gradient(135deg, rgba(255,0,0,0.4), rgba(255,0,255,0.4)); transform: translateY(-2px); box-shadow: 0 5px 25px rgba(255,0,128,0.5); }
       @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }

@@ -41,14 +41,12 @@ export const legalPage = (user: any) => `
 
                     <section class="bg-gray-900/50 border border-cyan-500/30 rounded p-6">
                         <h2 class="text-xl font-bold text-cyan-300 mb-4">所在地</h2>
-                        <p>〒100-0001<br>
-                        東京都千代田区千代田1-1-1<br>
-                        ※請求があった場合、遅滞なく開示いたします。</p>
+                        <p>請求があった場合、遅滞なく開示いたします。</p>
                     </section>
 
                     <section class="bg-gray-900/50 border border-cyan-500/30 rounded p-6">
                         <h2 class="text-xl font-bold text-cyan-300 mb-4">お問い合わせ</h2>
-                        <p>本サービス内の<a href="/contact" class="text-cyan-400 hover:text-cyan-300 underline">お問い合わせフォーム</a>よりご連絡ください。</p>
+                        <p>本サービス内の<a href="/tickets" class="text-cyan-400 hover:text-cyan-300 underline">サポートチャット</a>よりご連絡ください。</p>
                     </section>
 
                     <section class="bg-gray-900/50 border border-cyan-500/30 rounded p-6">
@@ -71,8 +69,8 @@ export const legalPage = (user: any) => `
                             <li>AI対戦（かんたん/ふつう）：50クレジット/1回</li>
                             <li>AI対戦（むずかしい）：80クレジット/1回</li>
                             <li>アーカイブ視聴：50クレジット/1試合</li>
-                            <li>テーマ提案：10クレジット/1回</li>
-                            <li>テーマ投票：5クレジット/1回</li>
+                            <li>テーマ提案：20クレジット/1回</li>
+                            <li>テーマ投票：無料</li>
                         </ul>
                         <p class="mt-3 text-sm text-gray-400">
                             ※クレジットは本サービス内の仮想通貨であり、法定通貨での購入・換金はできません<br>
@@ -99,7 +97,7 @@ export const legalPage = (user: any) => `
                             <li>システム障害によりサービスが正常に提供されなかった場合</li>
                             <li>運営側の重大な過失によりサービスが利用できなかった場合</li>
                         </ul>
-                        <p class="mt-3">上記の場合は、<a href="/contact" class="text-cyan-400 hover:text-cyan-300 underline">お問い合わせフォーム</a>よりご連絡ください。</p>
+                        <p class="mt-3">上記の場合は、<a href="/tickets" class="text-cyan-400 hover:text-cyan-300 underline">サポートチャット</a>よりご連絡ください。</p>
                     </section>
 
                     <section class="bg-gray-900/50 border border-cyan-500/30 rounded p-6">
@@ -144,7 +142,7 @@ export const legalPage = (user: any) => `
                     <div class="bg-cyan-500/10 border border-cyan-500/30 rounded p-6 mt-8">
                         <p class="text-center text-cyan-300">
                             <i class="fas fa-info-circle mr-2"></i>
-                            ご不明な点がございましたら、<a href="/contact" class="text-cyan-400 hover:text-cyan-300 underline font-bold">お問い合わせフォーム</a>よりお気軽にご連絡ください。
+                            ご不明な点がございましたら、<a href="/tickets" class="text-cyan-400 hover:text-cyan-300 underline font-bold">サポートチャット</a>よりお気軽にご連絡ください。
                         </p>
                     </div>
                 </div>
