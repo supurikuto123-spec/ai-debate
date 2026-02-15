@@ -340,7 +340,7 @@ export const communityPage = (userData: any) => `<!DOCTYPE html>
                                     <img src="\${getAvatarUrl(post)}" alt="\${post.user_id}" class="user-avatar" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=\${post.user_id}'" />
                                     <div>
                                         <div class="user-name">@\${post.user_id}</div>
-                                        <div class="message-time">\${new Date(post.created_at).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
+                                        <div class="message-time">\${new Date(post.created_at + (post.created_at.includes && !post.created_at.includes('Z') && !post.created_at.includes('+') ? 'Z' : '')).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
                                     </div>
                                 </div>
                                 \${isOwner ? \`<button class="delete-btn" onclick="deletePost(\${post.id})"><i class="fas fa-trash"></i></button>\` : ''}

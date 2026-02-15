@@ -540,7 +540,7 @@ async function startDebate() {
     const startTimeElement = document.getElementById('debateStartTime');
     if (startTimeElement) {
         const d = new Date(debateStartTime);
-        startTimeElement.textContent = d.getFullYear() + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + String(d.getDate()).padStart(2,'0') + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0') + ' 開始';
+        startTimeElement.textContent = d.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) + ' 開始';
     }
     
     document.getElementById('debateMessages').innerHTML = '<div class="text-center text-cyan-300 p-4"><i class="fas fa-spinner fa-spin mr-2"></i>ディベート開始...</div>';
@@ -900,9 +900,8 @@ async function syncCredits() {
             if (userData.credits !== undefined) {
                 currentUser.credits = userData.credits;
                 const navCredits = document.getElementById('navCredits');
-                if (navCredits) {
-                    navCredits.textContent = (currentUser.user_id === 'dev') ? '∞' : Number(userData.credits).toLocaleString();
-                }
+                if (navCredits) navCredits.textContent = Number(userData.credits).toLocaleString();
+                if (window.updateCreditsDisplay) window.updateCreditsDisplay(userData.credits);
             }
         }
     } catch (e) { console.error('Credit sync error:', e); }

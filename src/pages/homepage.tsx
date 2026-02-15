@@ -132,7 +132,7 @@ export const homepage = (user: any) => `
                     ${user ? `
                         <div class="credit-display">
                             <svg class="w-5 h-5 text-yellow-400"><use href="#icon-credit"/></svg>
-                            <span class="text-sm font-bold">${user.user_id === 'dev' ? '∞' : user.credits}</span>
+                            <span class="text-sm font-bold">${(user.credits || 0).toLocaleString()}</span>
                         </div>
                         <div class="text-sm text-gray-300">@${user.user_id}</div>
                         <a href="/logout" class="btn-secondary text-sm px-4 py-2">ログアウト</a>

@@ -135,7 +135,7 @@ export const watchPage = (user: any, debateId: string) => `
                 <div class="flex items-center space-x-4">
                     <div class="credit-display">
                         <i class="fas fa-coins text-yellow-400"></i>
-                        <span class="text-sm font-bold" id="navCredits">${user.user_id === 'dev' ? '∞' : user.credits}</span>
+                        <span class="text-sm font-bold" id="navCredits">${(user.credits || 0).toLocaleString()}</span>
                     </div>
                     <div class="text-sm text-gray-400">@${user.user_id}</div>
                     <a href="/main" class="btn-secondary text-sm px-4 py-2">
@@ -361,7 +361,7 @@ export const watchPage = (user: any, debateId: string) => `
         <div id="app-data" 
              data-debate-id="${debateId}" 
              data-user-id="${user.user_id}" 
-             data-user-credits="${user.user_id === 'dev' ? '999999999' : user.credits}"
+             data-user-credits="${user.credits || 0}"
              style="display:none;"></div>
         
         <script src="/static/watch.js"></script>

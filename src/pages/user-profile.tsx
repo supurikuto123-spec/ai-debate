@@ -273,7 +273,7 @@ export const UserProfile: FC<UserProfileProps> = ({ profileUser, currentUser, st
                     </div>
                     
                     <div class="member-since">
-                        登録日: {new Date(profileUser.created_at).toLocaleDateString('ja-JP')}
+                        登録日: {new Date(profileUser.created_at + (typeof profileUser.created_at === 'string' && !profileUser.created_at.includes('Z') && !profileUser.created_at.includes('+') ? 'Z' : '')).toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo' })}
                     </div>
                 </div>
             </div>

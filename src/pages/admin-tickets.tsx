@@ -6,7 +6,7 @@ export const adminTicketsPage = (user: any) => `
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>チケット管理 - AI Debate Admin</title>
+        <title>サポートチャット管理 - AI Debate Admin</title>
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
         <link href="/static/styles.css" rel="stylesheet">
@@ -161,7 +161,7 @@ export const adminTicketsPage = (user: any) => `
         
         <div class="container mx-auto px-4 py-20">
             <h1 class="text-3xl font-bold mb-4 cyber-text">
-                <i class="fas fa-tools mr-3 text-red-500"></i>チケット管理 (DEV)
+                <i class="fas fa-tools mr-3 text-red-500"></i>サポートチャット管理 (DEV)
             </h1>
             
             <!-- Filter Tabs -->
@@ -330,13 +330,13 @@ export const adminTicketsPage = (user: any) => `
             
             function formatDate(dateStr) {
                 if (!dateStr) return '';
-                const d = new Date(dateStr);
+                const d = new Date(dateStr + (dateStr.includes('Z') || dateStr.includes('+') ? '' : 'Z'));
                 const now = new Date();
                 const diff = now - d;
                 if (diff < 60000) return 'たった今';
                 if (diff < 3600000) return Math.floor(diff/60000) + '分前';
                 if (diff < 86400000) return Math.floor(diff/3600000) + '時間前';
-                return d.toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' });
+                return d.toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo', month: 'short', day: 'numeric' });
             }
             
             async function openTicket(ticketId) {
@@ -389,7 +389,7 @@ export const adminTicketsPage = (user: any) => `
                     const cls = isStaff ? 'msg-staff' : 'msg-user';
                     const senderName = isStaff ? 'スタッフ (あなた)' : (msg.nickname || msg.user_id || 'ユーザー');
                     const senderIcon = isStaff ? '<i class="fas fa-shield-alt mr-1 text-red-400"></i>' : '<i class="fas fa-user mr-1 text-cyan-400"></i>';
-                    const time = new Date(msg.created_at).toLocaleString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    const time = new Date(msg.created_at + (msg.created_at.includes('Z') || msg.created_at.includes('+') ? '' : 'Z')).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
                     
                     return '<div class="' + cls + '">' +
                         '<div class="msg-sender">' + senderIcon + senderName + '</div>' +

@@ -195,7 +195,7 @@ export const announcementsPage = (userData: any) => `<!DOCTYPE html>
                                     <span class="px-3 py-1 rounded-full text-xs font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
                                         <i class="fas fa-bullhorn mr-1"></i>運営
                                     </span>
-                                    <span class="text-xs text-gray-400">\${new Date(ann.created_at).toLocaleString('ja-JP')}</span>
+                                    <span class="text-xs text-gray-400">\${new Date(ann.created_at + (ann.created_at.includes && !ann.created_at.includes('Z') && !ann.created_at.includes('+') ? 'Z' : '')).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</span>
                                 </div>
                             </div>
                             <div class="text-gray-300 whitespace-pre-wrap mb-4">\${escapeHtml(ann.content)}</div>

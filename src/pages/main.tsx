@@ -15,12 +15,10 @@ export const mainPage = (user: any, debates: any[] = []) => `
     <body class="bg-black text-white overflow-x-hidden">
         ${globalNav(user)}
         
-        <!-- Main Content -->
         <div class="pt-24 pb-12">
             <div class="cyber-grid"></div>
             
             <div class="container mx-auto px-6 relative z-10">
-                <!-- Header -->
                 <div class="text-center mb-12">
                     <h1 class="text-5xl font-black cyber-text glitch mb-4" data-text="AI DEBATE ARENA">
                         AI DEBATE ARENA
@@ -72,7 +70,7 @@ export const mainPage = (user: any, debates: any[] = []) => `
                         <div class="match-details">
                             <div class="match-time">
                                 <i class="fas fa-calendar-alt text-cyan-400 mr-2"></i>
-                                ${debate.created_at ? new Date(debate.created_at).toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '日時未定'}
+                                <span class="jst-time" data-utc="${debate.created_at || ''}"></span>
                             </div>
                             ${debate.viewers !== undefined ? `
                             <div class="match-viewers">
@@ -103,8 +101,7 @@ export const mainPage = (user: any, debates: any[] = []) => `
                         </a>
                     </div>
                     `).join('') : `
-                    <!-- Empty State -->
-                    <div class="col-span-full flex flex-col items-center justify-center py-20">
+                    <div class="col-span-full flex flex-col items-center justify-center py-20" id="empty-state">
                         <div class="text-center">
                             <i class="fas fa-inbox text-gray-600 text-6xl mb-6"></i>
                             <h3 class="text-2xl font-bold text-gray-400 mb-4">現在開催中のディベートはありません</h3>
@@ -119,41 +116,129 @@ export const mainPage = (user: any, debates: any[] = []) => `
                     </div>
                     `}
                 </div>
+
+                <!-- Finished archives container (loaded dynamically) -->
+                <div id="archive-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12" style="display:none;"></div>
             </div>
         </div>
 
-        <!-- Toast Notification -->
         <div id="toast" class="toast">
             <i class="fas fa-info-circle mr-2"></i>
             <span id="toast-message"></span>
         </div>
 
         <script>
+            // JST time formatting
+            function formatJST(utcStr) {
+                if (!utcStr) return '日時未定';
+                try {
+                    const d = new Date(utcStr + (utcStr.includes('Z') || utcStr.includes('+') ? '' : 'Z'));
+                    return d.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+                } catch(e) { return utcStr; }
+            }
+            // Convert all JST time elements
+            document.querySelectorAll('.jst-time').forEach(el => {
+                el.textContent = formatJST(el.dataset.utc);
+            });
+
+            let currentFilter = 'all';
+            const debateGrid = document.getElementById('debate-grid');
+            const archiveGrid = document.getElementById('archive-grid');
+
             // Tab filtering
             document.querySelectorAll('.tab-button').forEach(button => {
                 button.addEventListener('click', () => {
                     document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
                     button.classList.add('active');
-                    
-                    const filter = button.dataset.filter;
-                    document.querySelectorAll('.match-card').forEach(card => {
-                        if (filter === 'all' || card.dataset.category === filter) {
-                            card.style.display = 'block';
-                        } else {
-                            card.style.display = 'none';
-                        }
-                    });
+                    currentFilter = button.dataset.filter;
+
+                    if (currentFilter === 'finished') {
+                        // Show archive grid, hide debate grid
+                        debateGrid.style.display = 'none';
+                        archiveGrid.style.display = 'grid';
+                        loadFinishedArchives();
+                    } else {
+                        // Show debate grid, hide archive grid
+                        debateGrid.style.display = 'grid';
+                        archiveGrid.style.display = 'none';
+                        document.querySelectorAll('.match-card').forEach(card => {
+                            if (currentFilter === 'all' || card.dataset.category === currentFilter) {
+                                card.style.display = 'block';
+                            } else {
+                                card.style.display = 'none';
+                            }
+                        });
+                        const emptyState = document.getElementById('empty-state');
+                        if (emptyState) emptyState.style.display = '';
+                    }
                 });
             });
+
+            // Load finished archives
+            async function loadFinishedArchives() {
+                try {
+                    archiveGrid.innerHTML = '<div class="col-span-full text-center py-12"><i class="fas fa-spinner fa-spin text-4xl text-cyan-400"></i><p class="text-gray-400 mt-4">アーカイブを読み込み中...</p></div>';
+                    
+                    const res = await fetch('/api/archive/debates');
+                    const data = await res.json();
+                    
+                    if (!data.success || !data.debates || data.debates.length === 0) {
+                        archiveGrid.innerHTML = '<div class="col-span-full text-center py-12"><i class="fas fa-archive text-gray-600 text-6xl mb-6"></i><h3 class="text-2xl font-bold text-gray-400 mb-4">アーカイブはまだありません</h3></div>';
+                        return;
+                    }
+
+                    archiveGrid.innerHTML = data.debates.map(d => {
+                        const totalVotes = (d.agree_votes || 0) + (d.disagree_votes || 0);
+                        const winnerLabel = d.winner === 'agree' ? '賛成側勝利' : d.winner === 'disagree' ? '反対側勝利' : '引き分け';
+                        const winnerColor = d.winner === 'agree' ? 'text-green-400' : d.winner === 'disagree' ? 'text-red-400' : 'text-yellow-400';
+                        return \`
+                        <div class="match-card finished" style="border-color: rgba(107,114,128,0.4);">
+                            <div class="match-status finished">
+                                <i class="fas fa-trophy"></i> \${winnerLabel}
+                            </div>
+                            <div class="match-header">
+                                <h3 class="match-title">\${d.theme || d.title || 'アーカイブ'}</h3>
+                                <div class="match-type ai-vs-ai"><i class="fas fa-microchip"></i> AI vs AI</div>
+                            </div>
+                            <div class="match-details">
+                                <div class="match-time">
+                                    <i class="fas fa-calendar-alt text-cyan-400 mr-2"></i>
+                                    \${formatJST(d.created_at)}
+                                </div>
+                                <div class="match-viewers">
+                                    <i class="fas fa-chart-bar text-yellow-400 mr-2"></i>
+                                    投票: \${totalVotes}票
+                                </div>
+                            </div>
+                            <div style="display:flex; gap:8px; margin:10px 0;">
+                                <div style="flex:1; background:rgba(16,185,129,0.2); border:1px solid rgba(16,185,129,0.4); border-radius:6px; padding:8px; text-align:center;">
+                                    <div style="font-size:11px; color:#34d399;">賛成</div>
+                                    <div style="font-weight:bold; color:white;">\${d.opinion_a || d.agree_position || '-'}</div>
+                                    <div style="font-size:13px; color:#34d399; font-weight:bold;">\${d.agree_votes || 0}票</div>
+                                </div>
+                                <div style="flex:1; background:rgba(239,68,68,0.2); border:1px solid rgba(239,68,68,0.4); border-radius:6px; padding:8px; text-align:center;">
+                                    <div style="font-size:11px; color:#f87171;">反対</div>
+                                    <div style="font-weight:bold; color:white;">\${d.opinion_b || d.disagree_position || '-'}</div>
+                                    <div style="font-size:13px; color:#f87171; font-weight:bold;">\${d.disagree_votes || 0}票</div>
+                                </div>
+                            </div>
+                            <a href="/archive" class="match-watch-btn finished block text-center no-underline">
+                                <i class="fas fa-play-circle mr-2"></i>アーカイブで視聴
+                            </a>
+                        </div>\`;
+                    }).join('');
+                } catch(err) {
+                    console.error('Archive load error:', err);
+                    archiveGrid.innerHTML = '<div class="col-span-full text-center py-12 text-red-400"><i class="fas fa-exclamation-triangle text-4xl mb-4"></i><p>読み込みに失敗しました</p></div>';
+                }
+            }
 
             function showToast(message) {
                 const toast = document.getElementById('toast');
                 const toastMessage = document.getElementById('toast-message');
                 toastMessage.textContent = message;
                 toast.classList.add('show');
-                setTimeout(() => {
-                    toast.classList.remove('show');
-                }, 3000);
+                setTimeout(() => { toast.classList.remove('show'); }, 3000);
             }
         </script>
     </body>

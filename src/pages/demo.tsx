@@ -27,7 +27,7 @@ export const demoPage = (user: any) => `
                 <div class="flex items-center space-x-4">
                     <div class="credit-display">
                         <svg class="w-5 h-5 text-yellow-400"><use href="#icon-credit"/></svg>
-                        <span class="text-sm font-bold">${user.user_id === 'dev' ? '∞' : user.credits}</span>
+                        <span class="text-sm font-bold">${(user.credits || 0).toLocaleString()}</span>
                     </div>
                     <div class="text-sm text-gray-400">@${user.user_id}</div>
                     <a href="/logout" class="btn-secondary text-sm px-4 py-2">ログアウト</a>
@@ -83,7 +83,7 @@ export const demoPage = (user: any) => `
                         <div class="stat-icon">
                             <svg class="w-10 h-10 text-yellow-400"><use href="#icon-credit"/></svg>
                         </div>
-                        <div class="stat-value">${user.user_id === 'dev' ? '∞' : user.credits}</div>
+                        <div class="stat-value">${(user.credits || 0).toLocaleString()}</div>
                         <div class="stat-label">現在のクレジット</div>
                         <div class="stat-badge bonus">残高</div>
                     </div>

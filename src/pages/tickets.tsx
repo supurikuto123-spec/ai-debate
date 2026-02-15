@@ -6,7 +6,7 @@ export const ticketsPage = (user: any) => `
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>サポートチケット - AI Debate</title>
+        <title>サポートチャット - AI Debate</title>
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
         <link href="/static/styles.css" rel="stylesheet">
@@ -129,7 +129,7 @@ export const ticketsPage = (user: any) => `
             <div class="max-w-6xl mx-auto">
                 <div class="flex justify-between items-center mb-6">
                     <h1 class="text-3xl font-bold cyber-text">
-                        <i class="fas fa-headset mr-3"></i>サポート
+                        <i class="fas fa-headset mr-3"></i>サポートチャット
                     </h1>
                     <button id="new-ticket-btn" class="btn-primary text-sm">
                         <i class="fas fa-plus mr-2"></i>新しいチケット
@@ -292,13 +292,13 @@ export const ticketsPage = (user: any) => `
             
             function formatDate(dateStr) {
                 if (!dateStr) return '';
-                const d = new Date(dateStr);
+                const d = new Date(dateStr + (dateStr.includes('Z') || dateStr.includes('+') ? '' : 'Z'));
                 const now = new Date();
                 const diff = now - d;
                 if (diff < 60000) return 'たった今';
                 if (diff < 3600000) return Math.floor(diff/60000) + '分前';
                 if (diff < 86400000) return Math.floor(diff/3600000) + '時間前';
-                return d.toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' });
+                return d.toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo', month: 'short', day: 'numeric' });
             }
             
             async function openTicket(ticketId) {
@@ -354,7 +354,7 @@ export const ticketsPage = (user: any) => `
                     const cls = isStaff ? 'msg-staff' : 'msg-user';
                     const senderName = isStaff ? 'サポートスタッフ' : 'あなた';
                     const senderIcon = isStaff ? '<i class="fas fa-headset mr-1 text-purple-400"></i>' : '<i class="fas fa-user mr-1 text-cyan-400"></i>';
-                    const time = new Date(msg.created_at).toLocaleString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    const time = new Date(msg.created_at + (msg.created_at.includes('Z') || msg.created_at.includes('+') ? '' : 'Z')).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
                     
                     return '<div class="' + cls + '">' +
                         '<div class="msg-sender">' + senderIcon + senderName + '</div>' +

@@ -19,6 +19,7 @@ import { legalPage } from './pages/legal'
 import { themeVotePage } from './pages/theme-vote'
 import { ticketsPage } from './pages/tickets'
 import { adminTicketsPage } from './pages/admin-tickets'
+import { battlePage } from './pages/battle'
 
 type Bindings = {
   DB: D1Database
@@ -154,10 +155,10 @@ app.post('/api/register', async (c) => {
       return c.json({ error: 'このメールアドレスは既に登録されています' }, 400)
     }
     
-    // Create user: 500 credits for normal users, special amount for dev
+    // Create user: 500 credits for normal users, 50000 for dev
     const userId = crypto.randomUUID()
     const isDevUser = user_id === 'dev'
-    const credits = isDevUser ? 500000 : 500 // dev gets 500000, normal users get 500
+    const credits = isDevUser ? 50000 : 500 // dev gets 50000, normal users get 500
     
     await c.env.DB.prepare(`
       INSERT INTO users (id, user_id, username, email, google_id, credits, is_pre_registration, created_at, updated_at)
@@ -292,10 +293,7 @@ app.get('/main', async (c) => {
       // Second time onwards - free access, no charge
     }
     
-    // Dev user - display infinity symbol (visual only)
-    if (isDevUser) {
-      user.creditsDisplay = '∞'
-    }
+
     
     // Fetch debates from database
     const debatesResult = await c.env.DB.prepare(`
@@ -379,7 +377,7 @@ app.get('/mypage', async (c) => {
     if (!userData) {
       // Create user if not exists (with required columns)
       const newId = crypto.randomUUID()
-      const defaultCredits = user.user_id === 'dev' ? 500000 : 500
+      const defaultCredits = user.user_id === 'dev' ? 50000 : 500
       await c.env.DB.prepare(`
         INSERT INTO users (id, user_id, username, email, google_id, credits, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
@@ -547,6 +545,20 @@ app.get('/legal', async (c) => {
 // Contact Page - redirects to tickets (merged)
 app.get('/contact', (c) => {
   return c.redirect('/tickets')
+})
+
+// Battle Page
+app.get('/battle', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  if (!userCookie) {
+    return c.redirect('/')
+  }
+  
+  const user = JSON.parse(userCookie)
+  const freshUser = await c.env.DB.prepare('SELECT credits FROM users WHERE user_id = ?').bind(user.user_id).first()
+  if (freshUser) user.credits = freshUser.credits
+  
+  return c.html(battlePage(user))
 })
 
 // Theme Vote Page
@@ -989,7 +1001,10 @@ app.post('/api/archive/purchase', async (c) => {
       'INSERT INTO archive_views (id, user_id, debate_id, session_id, created_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)'
     ).bind(crypto.randomUUID(), user.user_id, debate_id, sessionId).run()
     
-    return c.json({ success: true, session_id: sessionId })
+    // Return new credits for instant UI update
+    const updatedPurchaseUser = await c.env.DB.prepare('SELECT credits FROM users WHERE user_id = ?').bind(user.user_id).first()
+    
+    return c.json({ success: true, session_id: sessionId, new_credits: updatedPurchaseUser?.credits })
   } catch (error) {
     console.error('Purchase error:', error)
     return c.json({ success: false, error: 'サーバーエラーが発生しました' }, 500)
@@ -1857,9 +1872,9 @@ app.post('/api/theme-votes/propose', async (c) => {
     const user = JSON.parse(userCookie)
     const isDevUser = user.user_id === 'dev'
     
-    // Always get fresh credits from DB (cookie may be stale)
+    // Always get fresh user data from DB
     const freshUserData = await c.env.DB.prepare(
-      'SELECT credits FROM users WHERE user_id = ?'
+      'SELECT user_id, credits FROM users WHERE user_id = ?'
     ).bind(user.user_id).first()
     
     if (!freshUserData) {
@@ -1868,8 +1883,8 @@ app.post('/api/theme-votes/propose', async (c) => {
     
     const currentCredits = freshUserData.credits as number
     
-    // Check if user has enough credits (dev skips)
-    if (!isDevUser && currentCredits < 10) {
+    // Check credits (dev also pays but has more)
+    if (currentCredits < 10) {
       return c.json({ success: false, error: 'クレジットが不足しています（必要: 10クレジット）' }, 400)
     }
     
@@ -1879,27 +1894,27 @@ app.post('/api/theme-votes/propose', async (c) => {
       return c.json({ success: false, error: 'すべての必須項目を入力してください' }, 400)
     }
     
-    // Insert theme proposal (status='active' so it appears in list)
+    // Insert theme proposal - must include user_id (NOT NULL in schema) AND proposed_by
+    const proposedBy = freshUserData.user_id as string
     await c.env.DB.prepare(`
-      INSERT INTO theme_proposals (title, agree_opinion, disagree_opinion, category, proposed_by, status, vote_count, created_at)
-      VALUES (?, ?, ?, ?, ?, 'active', 0, datetime('now'))
-    `).bind(title, agree_opinion, disagree_opinion, category || 'other', user.user_id).run()
+      INSERT INTO theme_proposals (user_id, title, agree_opinion, disagree_opinion, category, proposed_by, status, vote_count, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, 'active', 0, datetime('now'))
+    `).bind(proposedBy, title, agree_opinion, disagree_opinion, category || 'other', proposedBy).run()
     
-    // Deduct credits (skip for dev)
-    if (!isDevUser) {
-      await c.env.DB.prepare(`
-        UPDATE users SET credits = credits - 10 WHERE user_id = ?
-      `).bind(user.user_id).run()
-      
-      await c.env.DB.prepare(`
-        INSERT INTO credit_transactions (id, user_id, amount, type, reason, created_at)
-        VALUES (?, ?, ?, 'spend', 'テーマ提案', datetime('now'))
-      `).bind(crypto.randomUUID(), user.user_id, -10).run()
-    }
+    // Deduct credits
+    await c.env.DB.prepare(
+      'UPDATE users SET credits = credits - 10 WHERE user_id = ?'
+    ).bind(user.user_id).run()
     
-    console.log('Theme proposal:', { user_id: user.user_id, title })
+    await c.env.DB.prepare(`
+      INSERT INTO credit_transactions (id, user_id, amount, type, reason, created_at)
+      VALUES (?, ?, -10, 'spend', 'テーマ提案', datetime('now'))
+    `).bind(crypto.randomUUID(), user.user_id).run()
     
-    return c.json({ success: true })
+    // Return new credits for instant UI update
+    const updatedUser = await c.env.DB.prepare('SELECT credits FROM users WHERE user_id = ?').bind(user.user_id).first()
+    
+    return c.json({ success: true, new_credits: updatedUser?.credits })
   } catch (error) {
     console.error('Submit theme error:', error)
     return c.json({ success: false, error: 'テーマの提案に失敗しました: ' + (error as Error).message }, 500)
@@ -1955,7 +1970,10 @@ app.post('/api/theme-votes/:id/vote', async (c) => {
     
     console.log('Theme vote:', { user_id: user.user_id, theme_id: themeId })
     
-    return c.json({ success: true })
+    // Return new credits for instant UI update
+    const updatedVoteUser = await c.env.DB.prepare('SELECT credits FROM users WHERE user_id = ?').bind(user.user_id).first()
+    
+    return c.json({ success: true, new_credits: updatedVoteUser?.credits })
   } catch (error) {
     console.error('Vote theme error:', error)
     return c.json({ success: false, error: 'Failed to vote' }, 500)

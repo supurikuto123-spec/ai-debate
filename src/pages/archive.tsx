@@ -96,7 +96,7 @@ export const archivePage = (userData: any) => `<!DOCTYPE html>
         </div>
     </div>
     <script>
-        const currentUser = { user_id: '${userData.user_id}', credits: ${userData.user_id === 'dev' ? 999999999 : (userData.credits || 0)} };
+        const currentUser = { user_id: '${userData.user_id}', credits: ${userData.credits || 0} };
         let purchasedDebateIds = [];
         
         async function loadPurchasedStatus() {
@@ -181,7 +181,7 @@ export const archivePage = (userData: any) => `<!DOCTYPE html>
         async function purchaseDebate(id, debateId) {
             const alreadyPurchased = isPurchased(debateId);
             
-            if (!alreadyPurchased && currentUser.user_id !== 'dev') {
+            if (!alreadyPurchased) {
                 if (currentUser.credits < 50) {
                     alert('クレジットが不足しています（必要: 50クレジット）');
                     return;
@@ -199,9 +199,10 @@ export const archivePage = (userData: any) => `<!DOCTYPE html>
                 });
                 
                 const result = await response.json();
-                if (result.success || currentUser.user_id === 'dev') {
-                    if (!result.already_purchased && currentUser.user_id !== 'dev') {
-                        currentUser.credits -= 50;
+                if (result.success) {
+                    if (result.new_credits !== undefined) {
+                        currentUser.credits = result.new_credits;
+                        if (window.updateCreditsDisplay) window.updateCreditsDisplay(result.new_credits);
                     }
                     // Add to purchased list
                     if (!purchasedDebateIds.includes(debateId)) {

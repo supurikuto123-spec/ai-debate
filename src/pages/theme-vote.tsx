@@ -194,8 +194,7 @@ export const themeVotePage = (user: any) => `
 
     <script>
         const userId = '${user.user_id}';
-        const isDevUser = userId === 'dev';
-        const userCredits = isDevUser ? 999999999 : ${user.credits || 0};
+        let userCredits = ${user.credits || 0};
         let currentFilter = 'all';
         let currentSort = 'votes';
 
@@ -313,10 +312,13 @@ export const themeVotePage = (user: any) => `
                 const result = await response.json();
 
                 if (result.success) {
+                    if (result.new_credits !== undefined) {
+                        userCredits = result.new_credits;
+                        if (window.updateCreditsDisplay) window.updateCreditsDisplay(result.new_credits);
+                    }
                     alert('テーマを提案しました！');
                     e.target.reset();
                     loadThemes();
-                    location.reload();
                 } else {
                     alert(result.error || 'テーマの提案に失敗しました');
                 }
@@ -344,9 +346,12 @@ export const themeVotePage = (user: any) => `
                 const result = await response.json();
 
                 if (result.success) {
+                    if (result.new_credits !== undefined) {
+                        userCredits = result.new_credits;
+                        if (window.updateCreditsDisplay) window.updateCreditsDisplay(result.new_credits);
+                    }
                     alert('投票しました！');
                     loadThemes();
-                    location.reload();
                 } else {
                     alert(result.error || '投票に失敗しました');
                 }
@@ -372,7 +377,7 @@ export const themeVotePage = (user: any) => `
         }
 
         function formatDate(dateStr) {
-            const date = new Date(dateStr);
+            const date = new Date(dateStr + (dateStr.includes('Z') || dateStr.includes('+') ? '' : 'Z'));
             const now = new Date();
             const diff = now - date;
             const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -380,7 +385,7 @@ export const themeVotePage = (user: any) => `
             if (days === 0) return '今日';
             if (days === 1) return '昨日';
             if (days < 7) return \`\${days}日前\`;
-            return date.toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' });
+            return date.toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo', month: 'short', day: 'numeric' });
         }
 
         // Initial load

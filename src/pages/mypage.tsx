@@ -146,7 +146,7 @@ export const myPage = (userData: any) => {
                         <div class="text-2xl font-bold text-cyan-400">@${userData.user_id}</div>
                         <div class="text-lg text-gray-300 mt-2">${userData.nickname || 'No Nickname'}</div>
                         <div class="mt-3 text-yellow-400 font-bold text-xl" id="credits-display">
-                            <i class="fas fa-coins mr-2"></i><span id="credits-value">${userData.user_id === 'dev' ? '∞' : (userData.credits || 0).toLocaleString()}</span> Credits
+                            <i class="fas fa-coins mr-2"></i><span id="credits-value">${Number(userData.credits || 0).toLocaleString()}</span> Credits
                         </div>
                     </div>
 
@@ -425,7 +425,8 @@ export const myPage = (userData: any) => {
                         const userData = await response.json();
                         const creditsEl = document.getElementById('credits-value');
                         if (creditsEl && userData.credits !== undefined) {
-                            creditsEl.textContent = userData.user_id === 'dev' ? '∞' : Number(userData.credits).toLocaleString();
+                            creditsEl.textContent = Number(userData.credits).toLocaleString();
+                        if (window.updateCreditsDisplay) window.updateCreditsDisplay(userData.credits);
                         }
                     }
                 } catch (e) {
