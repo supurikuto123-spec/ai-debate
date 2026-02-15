@@ -10,20 +10,13 @@
     {
       "binding": "DB",
       "database_name": "ai-debate-db",
-      "database_id": "local-dev"
+      "database_id": "d1536065-48a2-4c4e-9cf7-b884b5848be3"
     }
   ],
   "kv_namespaces": [
     {
       "binding": "KV",
-      "id": "local-kv",
-      "preview_id": "local-kv"
-    }
-  ],
-  "r2_buckets": [
-    {
-      "binding": "R2",
-      "bucket_name": "ai-debate-avatars"
+      "id": "b15ea67c913b42819b231d4af4039a60"
     }
   ]
 }
