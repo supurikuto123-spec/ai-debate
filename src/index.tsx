@@ -137,7 +137,17 @@ app.get('/', async (c) => {
   }
   
   // Get fresh credits from DB if user is logged in
-  let userData = user ? JSON.parse(user) : null
+  let userData = null
+  if (user) {
+    try {
+      userData = JSON.parse(user)
+    } catch (e) {
+      // Corrupted user cookie - clear it
+      console.error('Invalid user cookie, clearing:', e)
+      deleteCookie(c, 'user')
+      userData = null
+    }
+  }
   if (userData && userData.user_id) {
     try {
       const freshUser = await c.env.DB.prepare('SELECT credits FROM users WHERE user_id = ?').bind(userData.user_id).first()
@@ -2131,35 +2141,40 @@ app.get('/auth/google', async (c) => {
     const mockEmail = 'user' + Date.now() + '@example.com'
     const mockName = 'Test User'
     
-    // Check if user already exists (for mock)
-    const existingUser = await c.env.DB.prepare(
-      'SELECT * FROM users WHERE google_id = ? OR email = ?'
-    ).bind(mockGoogleId, mockEmail).first()
-    
-    if (existingUser) {
-      const userData = {
-        id: existingUser.id,
-        user_id: existingUser.user_id,
-        username: existingUser.username,
-        email: existingUser.email,
-        credits: existingUser.credits
+    try {
+      // Check if user already exists (for mock)
+      const existingUser = await c.env.DB.prepare(
+        'SELECT * FROM users WHERE google_id = ? OR email = ?'
+      ).bind(mockGoogleId, mockEmail).first()
+      
+      if (existingUser) {
+        const userData = {
+          id: existingUser.id,
+          user_id: existingUser.user_id,
+          username: existingUser.username,
+          email: existingUser.email,
+          credits: existingUser.credits
+        }
+        
+        setCookie(c, 'user', JSON.stringify(userData), {
+          httpOnly: true,
+          secure: false,
+          sameSite: 'Lax',
+          maxAge: 60 * 60 * 24 * 30
+        })
+        
+        return c.redirect('/demo')
       }
-      
-      setCookie(c, 'user', JSON.stringify(userData), {
-        httpOnly: true,
-        secure: false,
-        sameSite: 'Lax',
-        maxAge: 60 * 60 * 24 * 30
-      })
-      
-      return c.redirect('/demo')
-    } else {
-      setCookie(c, 'google_id', mockGoogleId, { maxAge: 600 })
-      setCookie(c, 'google_email', mockEmail, { maxAge: 600 })
-      setCookie(c, 'google_name', mockName, { maxAge: 600 })
-      
-      return c.redirect('/register')
+    } catch (dbError) {
+      console.error('Mock auth DB error (tables may not exist):', dbError)
+      // Continue to register flow even if DB check fails
     }
+    
+    setCookie(c, 'google_id', mockGoogleId, { maxAge: 600, sameSite: 'Lax' })
+    setCookie(c, 'google_email', mockEmail, { maxAge: 600, sameSite: 'Lax' })
+    setCookie(c, 'google_name', mockName, { maxAge: 600, sameSite: 'Lax' })
+    
+    return c.redirect('/register')
   }
   
   // Production Google OAuth
@@ -2176,10 +2191,23 @@ app.get('/auth/google', async (c) => {
 // Google OAuth callback
 app.get('/auth/google/callback', async (c) => {
   const code = c.req.query('code')
+  const errorParam = c.req.query('error')
   const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI } = c.env
   
+  // Handle Google OAuth error responses (user denied access, etc.)
+  if (errorParam) {
+    console.error('Google OAuth error:', errorParam)
+    return c.redirect('/')
+  }
+  
   if (!code) {
-    return c.text('Authorization code not found', 400)
+    return c.redirect('/')
+  }
+  
+  // Validate required env vars
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_REDIRECT_URI) {
+    console.error('OAuth callback: Missing required environment variables (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI)')
+    return c.redirect('/')
   }
   
   try {
@@ -2199,8 +2227,8 @@ app.get('/auth/google/callback', async (c) => {
     const tokens = await tokenResponse.json()
     
     if (!tokens.access_token) {
-      console.error('Token error:', tokens)
-      return c.text('Failed to get access token', 500)
+      console.error('Token exchange failed:', JSON.stringify(tokens))
+      return c.redirect('/')
     }
     
     // Get user info
@@ -2208,12 +2236,25 @@ app.get('/auth/google/callback', async (c) => {
       headers: { 'Authorization': `Bearer ${tokens.access_token}` }
     })
     
+    if (!userResponse.ok) {
+      console.error('Failed to get Google user info:', userResponse.status)
+      return c.redirect('/')
+    }
+    
     const googleUser = await userResponse.json()
+    
+    if (!googleUser.id || !googleUser.email) {
+      console.error('Invalid Google user data:', JSON.stringify(googleUser))
+      return c.redirect('/')
+    }
     
     // Check if user already exists
     const existingUser = await c.env.DB.prepare(
       'SELECT * FROM users WHERE google_id = ? OR email = ?'
     ).bind(googleUser.id, googleUser.email).first()
+    
+    // Determine secure flag based on request URL
+    const isSecure = c.req.url.startsWith('https')
     
     if (existingUser) {
       // Existing user - direct login
@@ -2227,7 +2268,7 @@ app.get('/auth/google/callback', async (c) => {
       
       setCookie(c, 'user', JSON.stringify(userData), {
         httpOnly: true,
-        secure: true,
+        secure: isSecure,
         sameSite: 'Lax',
         maxAge: 60 * 60 * 24 * 30 // 30 days
       })
@@ -2235,15 +2276,16 @@ app.get('/auth/google/callback', async (c) => {
       return c.redirect('/demo')
     } else {
       // New user - go to registration
-      setCookie(c, 'google_id', googleUser.id, { httpOnly: true, secure: true, maxAge: 3600 })
-      setCookie(c, 'google_email', googleUser.email, { httpOnly: true, secure: true, maxAge: 3600 })
-      setCookie(c, 'google_name', googleUser.name, { httpOnly: true, secure: true, maxAge: 3600 })
+      setCookie(c, 'google_id', googleUser.id, { httpOnly: true, secure: isSecure, sameSite: 'Lax', maxAge: 3600 })
+      setCookie(c, 'google_email', googleUser.email, { httpOnly: true, secure: isSecure, sameSite: 'Lax', maxAge: 3600 })
+      setCookie(c, 'google_name', googleUser.name || '', { httpOnly: true, secure: isSecure, sameSite: 'Lax', maxAge: 3600 })
       
       return c.redirect('/register')
     }
   } catch (error) {
-    console.error('OAuth error:', error)
-    return c.text('Authentication failed', 500)
+    console.error('OAuth callback error:', error)
+    // Don't show raw error to user - redirect to home with a gentle fallback
+    return c.redirect('/')
   }
 })
 
