@@ -47,19 +47,15 @@ export const mainPage = (user: any, debates: any[] = []) => `
 
                 <!-- Match Grid -->
                 <div id="debate-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-                    ${debates.length > 0 ? debates.map(debate => `
+                    ${debates.filter(d => d.status === 'live' || d.status === 'upcoming').length > 0 ? debates.filter(d => d.status === 'live' || d.status === 'upcoming').map(debate => `
                     <div class="match-card ${debate.status}" data-category="${debate.status}">
                         ${debate.status === 'live' ? `
                         <div class="match-status live">
                             <i class="fas fa-circle pulse"></i> LIVE
                         </div>
-                        ` : debate.status === 'upcoming' ? `
+                        ` : `
                         <div class="match-status upcoming">
                             <i class="fas fa-clock"></i> 予定
-                        </div>
-                        ` : `
-                        <div class="match-status finished">
-                            <i class="fas fa-check-circle"></i> 終了
                         </div>
                         `}
                         <div class="match-header">
@@ -71,9 +67,9 @@ export const mainPage = (user: any, debates: any[] = []) => `
                         <div class="match-details">
                             <div class="match-time">
                                 <i class="fas fa-calendar-alt text-cyan-400 mr-2"></i>
-                                <span class="jst-time" data-utc="${debate.created_at || ''}"></span>
+                                <span class="jst-time" data-utc="${debate.scheduled_at || debate.created_at || ''}"></span>
                             </div>
-                            ${debate.viewers !== undefined ? `
+                            ${debate.status === 'live' && debate.viewers !== undefined ? `
                             <div class="match-viewers">
                                 <i class="fas fa-users text-green-400 mr-2"></i>
                                 ${debate.viewers}人 観戦中
@@ -98,7 +94,7 @@ export const mainPage = (user: any, debates: any[] = []) => `
                             </div>
                         </div>
                         <a href="/watch?id=${debate.id}" class="match-watch-btn ${debate.status} block text-center no-underline">
-                            <i class="fas fa-eye mr-2"></i>${debate.status === 'live' ? '今すぐ観戦' : debate.status === 'upcoming' ? '予約する' : '結果を見る'}
+                            <i class="fas fa-eye mr-2"></i>${debate.status === 'live' ? '今すぐ観戦' : '詳細を見る'}
                         </a>
                     </div>
                     `).join('') : `

@@ -267,20 +267,25 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
             
             switch(data.action) {
               case 'start_debate_archive':
-                resultEl.textContent = '✅ ディベートを即時開始します（終了後自動アーカイブ）...';
+                resultEl.textContent = '✅ ディベートを即時開始します（終了後自動アーカイブ）';
                 window.archiveOnComplete = true;
-                // Update live status indicator
+                // Update live status indicator if on watch page
                 const liveEl = document.getElementById('debateLiveStatus');
                 if (liveEl) { liveEl.innerHTML = '<div class="w-2 h-2 bg-green-400 rounded-full inline-block mr-2" style="animation:pulse 1s infinite;"></div>LIVE'; liveEl.className = 'text-green-400'; }
-                if (typeof window.startDebate === 'function') { closeCmdPanel(); window.startDebate(); }
-                else { resultEl.textContent = '⚠️ 観戦ページ(/watch)でのみ使用可能です'; resultEl.style.color = '#f59e0b'; }
+                if (typeof window.startDebate === 'function') {
+                  closeCmdPanel();
+                  window.startDebate();
+                } else {
+                  // Not on watch page - DB is already updated, guide user
+                  resultEl.innerHTML = '✅ ディベートをLIVEに設定しました。<br><a href="/main" style="color:#00ffff;text-decoration:underline;">メインページ</a>で確認できます。';
+                }
                 break;
               case 'schedule_debate':
                 resultEl.textContent = '✅ ' + data.schedule_minutes + '分後にディベートを予約しました。';
                 if (typeof window.startDebate === 'function') {
+                  // On watch page - start countdown
                   const mins = data.schedule_minutes;
                   resultEl.textContent += ' カウントダウン開始...';
-                  // Update status to scheduled
                   const liveEl2 = document.getElementById('debateLiveStatus');
                   if (liveEl2) { liveEl2.innerHTML = '<div class="w-2 h-2 bg-blue-400 rounded-full inline-block mr-2" style="animation:pulse 1s infinite;"></div>予約済み'; liveEl2.className = 'text-blue-400'; }
                   let remaining = mins * 60;
@@ -292,8 +297,15 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
                       window.archiveOnComplete = true;
                       const liveEl3 = document.getElementById('debateLiveStatus');
                       if (liveEl3) { liveEl3.innerHTML = '<div class="w-2 h-2 bg-green-400 rounded-full inline-block mr-2" style="animation:pulse 1s infinite;"></div>LIVE'; liveEl3.className = 'text-green-400'; }
-                      closeCmdPanel();
-                      window.startDebate();
+                      // Update DB status to live
+                      fetch('/api/commands/execute', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ command: '!s-0', debateId: debateId })
+                      }).then(() => {
+                        closeCmdPanel();
+                        window.startDebate();
+                      });
                     } else {
                       const m = Math.floor(remaining / 60);
                       const s = remaining % 60;
@@ -301,7 +313,8 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
                     }
                   }, 1000);
                 } else {
-                  resultEl.textContent = '⚠️ 観戦ページ(/watch)でのみ使用可能です'; resultEl.style.color = '#f59e0b';
+                  // Not on watch page - DB is already updated as 'upcoming', guide user
+                  resultEl.innerHTML = '✅ ' + data.schedule_minutes + '分後に予約済み。<br><a href="/main" style="color:#00ffff;text-decoration:underline;">メインページ</a>の「予定」タブに表示されます。<br>開始時刻に<a href="/watch?id=' + (debateId || 'default') + '" style="color:#00ffff;text-decoration:underline;">観戦ページ</a>を開いてください。';
                 }
                 break;
               case 'dela':

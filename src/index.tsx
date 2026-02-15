@@ -380,14 +380,36 @@ app.get('/main', async (c) => {
     
 
     
-    // Fetch debates from database
-    const debatesResult = await c.env.DB.prepare(`
-      SELECT id, topic, status, created_at, 
-             (SELECT COUNT(*) FROM debate_votes WHERE debate_id = debates.id) as total_votes
-      FROM debates 
-      ORDER BY created_at DESC 
-      LIMIT 50
-    `).all()
+    // Fetch debates from database - ONLY show live and upcoming (not pending)
+    // Debates must be started via !s-x command before they appear
+    let debatesResult: any = { results: [] }
+    try {
+      debatesResult = await c.env.DB.prepare(`
+        SELECT id, topic, status, created_at, scheduled_at,
+               (SELECT COUNT(*) FROM debate_votes WHERE debate_id = debates.id) as total_votes
+        FROM debates 
+        WHERE status IN ('live', 'upcoming')
+        ORDER BY 
+          CASE WHEN status = 'live' THEN 0 WHEN status = 'upcoming' THEN 1 ELSE 2 END,
+          created_at DESC 
+        LIMIT 50
+      `).all()
+    } catch (e) {
+      // scheduled_at column might not exist
+      try {
+        debatesResult = await c.env.DB.prepare(`
+          SELECT id, topic, status, created_at,
+                 (SELECT COUNT(*) FROM debate_votes WHERE debate_id = debates.id) as total_votes
+          FROM debates 
+          WHERE status IN ('live', 'upcoming')
+          ORDER BY created_at DESC 
+          LIMIT 50
+        `).all()
+      } catch (e2) {
+        // status column might not exist - fallback to no debates
+        debatesResult = { results: [] }
+      }
+    }
     
     const debates = debatesResult.results || []
     
@@ -1185,17 +1207,31 @@ app.post('/api/commands/execute', async (c) => {
         } catch (e) { }
       }
       
-      // Get a random adopted theme, or any theme with votes
+      // Get a random adopted theme first, then fallback to any active theme
       let randomTheme = null
       try {
+        // First try adopted themes
         randomTheme = await c.env.DB.prepare(`
           SELECT title, agree_opinion, disagree_opinion, category 
           FROM theme_proposals 
-          WHERE status = 'active'
+          WHERE status = 'active' AND adopted = 1
           ORDER BY RANDOM() 
           LIMIT 1
         `).first()
       } catch (e) { }
+      
+      if (!randomTheme) {
+        try {
+          // Fallback to any active theme
+          randomTheme = await c.env.DB.prepare(`
+            SELECT title, agree_opinion, disagree_opinion, category 
+            FROM theme_proposals 
+            WHERE status = 'active'
+            ORDER BY RANDOM() 
+            LIMIT 1
+          `).first()
+        } catch (e) { }
+      }
       
       if (!randomTheme) {
         // Fallback random themes
@@ -1242,9 +1278,54 @@ app.post('/api/commands/execute', async (c) => {
     const scheduleMatch = cmd.match(/^!s-(\d+)$/)
     if (scheduleMatch) {
       const minutes = parseInt(scheduleMatch[1])
+      
       if (minutes === 0) {
-        // Immediate start + auto archive
+        // Immediate start: set debate status to 'live' in DB
+        if (debateId) {
+          try {
+            await c.env.DB.prepare(
+              "UPDATE debates SET status = 'live', started_at = datetime('now') WHERE id = ?"
+            ).bind(debateId).run()
+          } catch (e) {
+            // Try adding started_at column if not exists
+            try {
+              await c.env.DB.prepare("ALTER TABLE debates ADD COLUMN started_at TEXT").run()
+              await c.env.DB.prepare(
+                "UPDATE debates SET status = 'live', started_at = datetime('now') WHERE id = ?"
+              ).bind(debateId).run()
+            } catch (e2) {
+              // At minimum set status
+              try { await c.env.DB.prepare("UPDATE debates SET status = 'live' WHERE id = ?").bind(debateId).run() } catch {}
+            }
+          }
+        }
         return c.json({ success: true, action: 'start_debate_archive', schedule_minutes: 0 })
+      }
+      
+      // Scheduled start: set debate status to 'upcoming' with scheduled time
+      if (debateId) {
+        try {
+          // Calculate scheduled start time
+          const scheduledAt = new Date(Date.now() + minutes * 60 * 1000).toISOString()
+          try {
+            await c.env.DB.prepare(
+              "UPDATE debates SET status = 'upcoming', scheduled_at = ? WHERE id = ?"
+            ).bind(scheduledAt, debateId).run()
+          } catch (e) {
+            // Try adding scheduled_at column if not exists
+            try {
+              await c.env.DB.prepare("ALTER TABLE debates ADD COLUMN scheduled_at TEXT").run()
+              await c.env.DB.prepare(
+                "UPDATE debates SET status = 'upcoming', scheduled_at = ? WHERE id = ?"
+              ).bind(scheduledAt, debateId).run()
+            } catch (e2) {
+              // At minimum set status
+              try { await c.env.DB.prepare("UPDATE debates SET status = 'upcoming' WHERE id = ?").bind(debateId).run() } catch {}
+            }
+          }
+        } catch (e) {
+          console.error('Schedule debate DB error:', e)
+        }
       }
       return c.json({ success: true, action: 'schedule_debate', schedule_minutes: minutes })
     }
