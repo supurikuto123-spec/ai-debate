@@ -47,30 +47,30 @@ async function loadDebateTheme() {
         const response = await fetch('/api/debate/' + DEBATE_ID + '/theme');
         if (!response.ok) return;
         const data = await response.json();
-        
+
         DEBATE_THEME = data.topic || data.title || 'テーマ未設定';
         OPINION_A = data.agree_position || '賛成意見';
         OPINION_B = data.disagree_position || '反対意見';
-        
+
         // Update all UI elements with real data
         const titleEl = document.getElementById('debateTitle');
         if (titleEl) titleEl.textContent = DEBATE_THEME;
-        
+
         const modalTheme = document.getElementById('modalTheme');
         if (modalTheme) modalTheme.textContent = DEBATE_THEME;
-        
+
         const modalA = document.getElementById('modalOpinionA');
         if (modalA) modalA.textContent = OPINION_A;
-        
+
         const modalB = document.getElementById('modalOpinionB');
         if (modalB) modalB.textContent = OPINION_B;
-        
+
         const summaryA = document.getElementById('summaryOpinionA');
         if (summaryA) summaryA.textContent = OPINION_A;
-        
+
         const summaryB = document.getElementById('summaryOpinionB');
         if (summaryB) summaryB.textContent = OPINION_B;
-        
+
     } catch (error) {
         console.error('Failed to load debate theme:', error);
     }
@@ -110,7 +110,7 @@ async function submitVote(side) {
         await fetch('/api/vote', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ debateId: DEBATE_ID, userId: currentUser.user_id, vote: side })
+            body: JSON.stringify({ debateId: DEBATE_ID, vote: side })
         });
     } catch (error) {
         console.error('Failed to save vote:', error);
@@ -143,7 +143,7 @@ async function changeVote(side) {
         await fetch('/api/vote', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ debateId: DEBATE_ID, userId: currentUser.user_id, vote: side })
+            body: JSON.stringify({ debateId: DEBATE_ID, vote: side })
         });
     } catch (error) {
         console.error('Failed to update vote:', error);
@@ -178,7 +178,7 @@ function updateVoteDisplay() {
         document.getElementById('voteStatus').innerHTML = '<i class="fas fa-eye-slash mr-2"></i>非公開中 - 投票確定で解除';
         document.getElementById('agreeBar').style.width = '50%';
         document.getElementById('disagreeBar').style.width = '50%';
-        
+
         ['judge1-eval', 'judge2-eval', 'judge3-eval'].forEach(id => {
             const elem = document.getElementById(id);
             if (elem) {
@@ -189,7 +189,7 @@ function updateVoteDisplay() {
         });
         return;
     }
-    
+
     if (voteData.total > 0) {
         const agreePercent = Math.round((voteData.agree / voteData.total) * 100);
         const disagreePercent = 100 - agreePercent;
@@ -201,7 +201,7 @@ function updateVoteDisplay() {
         document.getElementById('voteStatus').innerHTML = '<i class="fas fa-users mr-2"></i>総投票数: ' + voteData.total + '人';
         document.getElementById('agreeBar').style.width = agreePercent + '%';
         document.getElementById('disagreeBar').style.width = disagreePercent + '%';
-        
+
         updateJudgeDisplay();
     } else {
         document.getElementById('agreePercent').textContent = '--';
@@ -220,11 +220,11 @@ function updateJudgeDisplay() {
         { id: 'judge2-eval', stance: aiJudgeStances.judge2 },
         { id: 'judge3-eval', stance: aiJudgeStances.judge3 }
     ];
-    
+
     judges.forEach(judge => {
         const elem = document.getElementById(judge.id);
         if (!elem) return;
-        
+
         if (judge.stance) {
             const winner = judge.stance === 'agree' ? 'Aether' : 'Nova';
             const color = judge.stance === 'agree' ? 'text-green-400' : 'text-red-400';
@@ -246,9 +246,9 @@ function updateViewerCount() {
 
 function revealFogMode() {
     if (!fogMode) return;
-    
+
     fogMode = false;
-    
+
     const agreeBar = document.getElementById('agreeBar');
     const disagreeBar = document.getElementById('disagreeBar');
     agreeBar.style.filter = 'none';
@@ -257,12 +257,12 @@ function revealFogMode() {
     disagreeBar.style.background = '';
     agreeBar.style.transition = 'width 0.5s ease';
     disagreeBar.style.transition = 'width 0.5s ease';
-    
+
     document.getElementById('voteAgreeBtn').disabled = true;
     document.getElementById('voteDisagreeBtn').disabled = true;
     document.getElementById('voteAgreeBtn').style.opacity = '0.5';
     document.getElementById('voteDisagreeBtn').style.opacity = '0.5';
-    
+
     updateVoteDisplay();
     showToast('投票が確定されました！結果が公開されます');
 }
@@ -272,7 +272,7 @@ function revealFogMode() {
 async function postComment() {
     const input = document.getElementById('commentInput');
     const text = input.value.trim();
-    
+
     if (!text) { showToast('コメントを入力してください'); return; }
     if (!hasVoted) { showToast('投票してからコメントしてください'); return; }
 
@@ -287,7 +287,7 @@ async function postComment() {
 
     const commentsList = document.getElementById('commentsList');
     const wasAtBottom = commentsList.scrollHeight - commentsList.scrollTop - commentsList.clientHeight < 5;
-    
+
     const commentDiv = document.createElement('div');
     const stanceClass = userVote === 'agree' ? 'comment-agree' : 'comment-disagree';
     const stanceColor = userVote === 'agree' ? 'green' : 'red';
@@ -295,7 +295,7 @@ async function postComment() {
     const stanceText = userVote === 'agree' ? 'Aether支持' : 'Nova支持';
     const avatarGradient = userVote === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500';
     const initial = currentUser.user_id.charAt(0).toUpperCase();
-    
+
     commentDiv.className = 'comment-item ' + stanceClass + ' bg-gray-900/50 p-3 rounded border border-cyan-500/30';
     commentDiv.innerHTML = '<div class="flex items-center mb-2"><div class="w-8 h-8 rounded-full bg-gradient-to-br ' + avatarGradient + ' flex items-center justify-center text-xs font-bold mr-2">' + initial + '</div><div class="flex-1"><a href="/user/' + currentUser.user_id + '" class="text-sm font-bold hover:text-cyan-400 transition-colors">@' + currentUser.user_id + '</a><p class="text-xs text-' + stanceColor + '-400"><i class="fas fa-' + stanceIcon + ' mr-1"></i>' + stanceText + '</p></div></div><p class="text-sm text-gray-200">' + escapeHtml(text) + '</p>';
 
@@ -322,8 +322,8 @@ async function saveCommentToD1(content) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                debateId: DEBATE_ID, userId: currentUser.user_id,
-                username: currentUser.user_id, vote: userVote, content: content
+                debateId: DEBATE_ID,
+                vote: userVote, content: content
             })
         });
     } catch (error) { console.error('Failed to save comment:', error); }
@@ -349,7 +349,7 @@ async function getAIEvaluations(message, side) {
         if (evaluation.shouldVote) {
             displayAIEvaluation(evaluation, side);
         }
-        
+
         const currentTurn = conversationHistory.length;
         if (currentTurn >= 3) {
             await performAIJudging();
@@ -364,7 +364,7 @@ async function getAIEvaluation(message, side) {
         const fullDebate = conversationHistory.map(msg => {
             return '[' + (msg.side === 'agree' ? '意見A' : '意見B') + ']: ' + msg.content;
         }).join('\n');
-        
+
         const prompt = [
             '直近3発言：', fullDebate.split('\n').slice(-3).join('\n'), '',
             '最新「' + message + '」を評価：',
@@ -379,7 +379,7 @@ async function getAIEvaluation(message, side) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ prompt })
         });
-        
+
         const data = await response.json();
         try {
             const result = JSON.parse(data.message);
@@ -405,19 +405,19 @@ async function performAIJudging() {
         const fullDebate = conversationHistory.map(msg => {
             return '[' + (msg.side === 'agree' ? '意見A' : '意見B') + ']: ' + msg.content;
         }).join('\n');
-        
+
         const judgments = await Promise.all([
             getAIJudgment(fullDebate, 'AI-Judge-1', 0.7),
             getAIJudgment(fullDebate, 'AI-Judge-2', 0.8),
             getAIJudgment(fullDebate, 'AI-Judge-3', 0.9)
         ]);
-        
+
         judgments.forEach((judgment, index) => {
             if (judgment && judgment.winner) {
                 aiJudgeStances['judge' + (index + 1)] = judgment.winner;
             }
         });
-        
+
         if (!fogMode) {
             updateJudgeDisplay();
         }
@@ -436,13 +436,13 @@ async function getAIJudgment(fullDebate, aiName, temperature) {
             'どちらが現時点で優勢か判定してください。',
             '必ずJSON形式で返してください: {"winner": "agree"} or {"winner": "disagree"}'
         ].join('\n');
-        
+
         const response = await fetch('/api/debate/evaluate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ prompt })
         });
-        
+
         const data = await response.json();
         try {
             return JSON.parse(data.message);
@@ -459,21 +459,21 @@ async function getAIJudgment(fullDebate, aiName, temperature) {
 
 function displayAIEvaluation(evaluation, side) {
     if (!evaluation || !evaluation.symbol) return;
-    
+
     const container = document.getElementById('debateMessages');
     const bubbles = container.querySelectorAll('.bubble');
     const lastBubble = bubbles[bubbles.length - 1];
     if (!lastBubble || lastBubble.querySelector('.ai-eval-icon')) return;
-    
+
     let symbolHtml = '';
     const colors = { '!!': 'bg-green-500', '!': 'bg-green-500', '?': 'bg-orange-500', '??': 'bg-red-500' };
     const color = colors[evaluation.symbol] || 'bg-gray-500';
     symbolHtml = '<div class="w-10 h-10 rounded-full ' + color + ' flex items-center justify-center shadow-lg"><span class="text-white text-xl font-bold">' + evaluation.symbol + '</span></div>';
-    
+
     const iconDiv = document.createElement('div');
     iconDiv.className = 'ai-eval-icon absolute top-2 ' + (side === 'agree' ? 'left-2' : 'right-2');
     iconDiv.innerHTML = symbolHtml;
-    
+
     lastBubble.style.position = 'relative';
     lastBubble.appendChild(iconDiv);
 }
@@ -482,10 +482,10 @@ function displayAIEvaluation(evaluation, side) {
 
 async function startDebate() {
     if (debateActive) { showToast('ディベートは既に実行中です'); return; }
-    
+
     // Make globally accessible for command panel
     window.debateActive = true;
-    
+
     // Synchronization: Check if debate already has messages in DB
     // If yes, join existing debate instead of creating new one
     try {
@@ -513,20 +513,20 @@ async function startDebate() {
     } catch (e) {
         console.log('No existing debate found, starting fresh');
     }
-    
+
     debateActive = true;
     debateStartTime = Date.now();
     conversationHistory = [];
     aiJudgeStances = { judge1: null, judge2: null, judge3: null };
-    
+
     const startTimeElement = document.getElementById('debateStartTime');
     if (startTimeElement) {
         const d = new Date(debateStartTime);
         startTimeElement.textContent = d.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) + ' 開始';
     }
-    
+
     document.getElementById('debateMessages').innerHTML = '<div class="text-center text-cyan-300 p-4"><i class="fas fa-spinner fa-spin mr-2"></i>ディベート開始...</div>';
-    
+
     // Mark debate as active in DB
     try {
         await fetch('/api/debate/' + DEBATE_ID + '/status', {
@@ -535,7 +535,7 @@ async function startDebate() {
             body: JSON.stringify({ status: 'active' })
         });
     } catch (e) { }
-    
+
     updateDebateTimer();
     await generateAIResponse('agree');
 }
@@ -543,14 +543,14 @@ window.startDebate = startDebate;
 
 function updateDebateTimer() {
     if (!debateActive) return;
-    
+
     const elapsed = Math.floor((Date.now() - debateStartTime) / 1000);
     const remaining = MAX_DEBATE_TIME - elapsed;
-    
+
     if (remaining <= MAX_DEBATE_TIME * 0.1 && !fogMode && !finalVotingMode) {
         fogMode = true;
         showToast('ゲージ非公開化！投票を確定して結果を見よう！');
-        
+
         const agreeBar = document.getElementById('agreeBar');
         const disagreeBar = document.getElementById('disagreeBar');
         agreeBar.style.transition = 'none';
@@ -559,20 +559,20 @@ function updateDebateTimer() {
         disagreeBar.style.filter = 'blur(20px)';
         agreeBar.style.background = 'linear-gradient(90deg, #333, #555, #333)';
         disagreeBar.style.background = 'linear-gradient(90deg, #333, #555, #333)';
-        
+
         updateVoteDisplay();
     }
-    
+
     if (remaining <= 0) {
         debateActive = false;
         startFinalVotingPeriod();
         return;
     }
-    
+
     const minutes = Math.floor(remaining / 60);
     const seconds = remaining % 60;
     document.getElementById('remainingTime').textContent = minutes + ':' + seconds.toString().padStart(2, '0');
-    
+
     debateTimer = setTimeout(updateDebateTimer, 1000);
 }
 
@@ -580,24 +580,24 @@ function updateDebateTimer() {
 
 function startFinalVotingPeriod() {
     showToast('ディベート終了！1分以内に投票を確定してください');
-    
+
     const confirmBtn = document.createElement('button');
     confirmBtn.id = 'confirmVoteBtn';
     confirmBtn.className = 'w-full bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-4 px-6 rounded-lg text-xl mt-6 transition-all animate-pulse';
     confirmBtn.innerHTML = '<i class="fas fa-check-circle mr-2"></i>投票を確定する（???を解除）';
-    
+
     const predictionSection = document.querySelector('.vote-prediction-btn').parentElement.parentElement;
     predictionSection.appendChild(confirmBtn);
-    
+
     let finalVotingTimeLeft = 60;
     let userConfirmed = false;
-    
+
     const countdownDiv = document.createElement('div');
     countdownDiv.id = 'finalCountdown';
     countdownDiv.className = 'text-center text-xl text-cyan-400 mt-4';
     countdownDiv.textContent = '残り時間: 60秒';
     predictionSection.appendChild(countdownDiv);
-    
+
     confirmBtn.addEventListener('click', () => {
         if (!hasVoted) { showToast('エラー: まず意見を選択してください'); return; }
         userConfirmed = true;
@@ -606,25 +606,25 @@ function startFinalVotingPeriod() {
         confirmBtn.textContent = '投票確定済み - 結果を待っています...';
         revealFogMode();
     });
-    
+
     const finalTimer = setInterval(() => {
         finalVotingTimeLeft--;
         countdownDiv.textContent = '残り時間: ' + finalVotingTimeLeft + '秒';
-        
+
         if (finalVotingTimeLeft <= 0) {
             clearInterval(finalTimer);
-            
+
             if (!hasVoted) {
                 showToast('エラー: 投票が必要です');
                 document.getElementById('voteModal').classList.remove('hidden');
                 return;
             }
-            
+
             if (!userConfirmed) {
                 showToast('時間切れ - 現在の選択で自動確定しました');
                 revealFogMode();
             }
-            
+
             showFinalResults();
         }
     }, 1000);
@@ -637,51 +637,51 @@ async function showFinalResults() {
     if (commentInput) { commentInput.disabled = true; commentInput.placeholder = 'ディベートが終了しました'; }
     const commentBtn = document.getElementById('postCommentBtn');
     if (commentBtn) { commentBtn.disabled = true; commentBtn.style.opacity = '0.5'; }
-    
+
     fogMode = false;
     document.getElementById('agreeBar').style.filter = 'none';
     document.getElementById('disagreeBar').style.filter = 'none';
     document.getElementById('agreeBar').style.background = '';
     document.getElementById('disagreeBar').style.background = '';
     updateVoteDisplay();
-    
+
     if (!aiJudgeStances.judge1 && conversationHistory.length >= 2) {
         showToast('AIによる最終評価を実施中...');
         await performAIJudging();
     }
-    
+
     const agreePercent = Math.round((voteData.agree / voteData.total) * 100);
     const disagreePercent = 100 - agreePercent;
     const winner = voteData.agree > voteData.disagree ? 'Aether' : 'Nova';
     const winnerColor = voteData.agree > voteData.disagree ? 'text-green-400' : 'text-red-400';
-    
+
     let judgeHTML = '';
     ['judge1', 'judge2', 'judge3'].forEach((key, i) => {
         const stance = aiJudgeStances[key];
         const judgeWinner = stance ? (stance === 'agree' ? 'Aether支持' : 'Nova支持') : '判定なし';
         const judgeColor = stance ? (stance === 'agree' ? 'text-green-400' : 'text-red-400') : 'text-gray-400';
-        judgeHTML += '<div class="mb-2"><span class="text-cyan-400 font-bold">AI-Judge-' + (i+1) + ':</span> <span class="' + judgeColor + '">' + judgeWinner + '</span></div>';
+        judgeHTML += '<div class="mb-2"><span class="text-cyan-400 font-bold">AI-Judge-' + (i + 1) + ':</span> <span class="' + judgeColor + '">' + judgeWinner + '</span></div>';
     });
-    
+
     const resultModal = document.createElement('div');
     resultModal.className = 'fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center z-50';
     resultModal.innerHTML = '<div class="cyber-card max-w-3xl w-full mx-4">' +
         '<h2 class="text-4xl font-bold text-center mb-8"><i class="fas fa-trophy mr-3 text-yellow-400"></i>最終結果</h2>' +
         '<div class="text-center mb-8"><p class="text-2xl mb-4">勝者</p><p class="text-5xl font-bold ' + winnerColor + ' mb-4">' + winner + '</p></div>' +
         '<div class="grid grid-cols-2 gap-6 mb-8">' +
-            '<div class="text-center p-6 bg-green-500/20 rounded"><p class="text-xl mb-2"><i class="fas fa-brain mr-1"></i>Aether (賛成)</p><p class="text-4xl font-bold text-green-400">' + agreePercent + '%</p><p class="text-sm text-gray-400 mt-2">' + voteData.agree + ' 票</p></div>' +
-            '<div class="text-center p-6 bg-red-500/20 rounded"><p class="text-xl mb-2"><i class="fas fa-fire mr-1"></i>Nova (反対)</p><p class="text-4xl font-bold text-red-400">' + disagreePercent + '%</p><p class="text-sm text-gray-400 mt-2">' + voteData.disagree + ' 票</p></div>' +
+        '<div class="text-center p-6 bg-green-500/20 rounded"><p class="text-xl mb-2"><i class="fas fa-brain mr-1"></i>Aether (賛成)</p><p class="text-4xl font-bold text-green-400">' + agreePercent + '%</p><p class="text-sm text-gray-400 mt-2">' + voteData.agree + ' 票</p></div>' +
+        '<div class="text-center p-6 bg-red-500/20 rounded"><p class="text-xl mb-2"><i class="fas fa-fire mr-1"></i>Nova (反対)</p><p class="text-4xl font-bold text-red-400">' + disagreePercent + '%</p><p class="text-sm text-gray-400 mt-2">' + voteData.disagree + ' 票</p></div>' +
         '</div>' +
         '<div class="bg-gray-800 p-4 rounded mb-6"><h3 class="text-xl font-bold text-cyan-400 mb-4"><i class="fas fa-gavel mr-2"></i>AI審査員の評価</h3><div class="text-sm text-white">' + judgeHTML + '</div></div>' +
         '<div class="text-center grid grid-cols-2 gap-4">' +
-            '<button onclick="location.href=\'/main\'" class="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 px-8 rounded-lg"><i class="fas fa-home mr-2"></i>メインページ</button>' +
-            '<button onclick="location.href=\'/archive\'" class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-8 rounded-lg"><i class="fas fa-archive mr-2"></i>アーカイブ</button>' +
+        '<button onclick="location.href=\'/main\'" class="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 px-8 rounded-lg"><i class="fas fa-home mr-2"></i>メインページ</button>' +
+        '<button onclick="location.href=\'/archive\'" class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-8 rounded-lg"><i class="fas fa-archive mr-2"></i>アーカイブ</button>' +
         '</div>' +
         '<p class="text-lg text-gray-400 text-center mt-4">総投票数: ' + voteData.total + ' 人</p>' +
         '</div>';
-    
+
     document.body.appendChild(resultModal);
-    
+
     // Mark debate as completed in DB
     try {
         await fetch('/api/debate/' + DEBATE_ID + '/status', {
@@ -690,7 +690,7 @@ async function showFinalResults() {
             body: JSON.stringify({ status: 'completed', winner: winner === 'Aether' ? 'agree' : 'disagree' })
         });
     } catch (e) { }
-    
+
     // Archive if !sa was used
     if (window.archiveOnComplete) {
         saveToArchive(winner, agreePercent, disagreePercent);
@@ -716,7 +716,7 @@ async function saveToArchive(winner, agreePercent, disagreePercent) {
                 messages: JSON.stringify(conversationHistory)
             })
         });
-        
+
         const result = await response.json();
         if (result.success) {
             showToast('ディベートがアーカイブに保存されました');
@@ -734,37 +734,37 @@ async function saveToArchive(winner, agreePercent, disagreePercent) {
 
 async function generateAIResponse(side) {
     if (!debateActive) return;
-    
+
     const systemPrompt = 'あなたはディベートの参加者です。以下のルールを厳守してください：\n\n【厳守事項】\n1. 自分の立場を一貫して主張する\n2. 相手の立場の論点を認めない\n3. 相手の発言の矛盾・弱点を指摘する\n4. 具体的な根拠を示す\n5. 180文字以内、句点（。）で終える\n\n【禁止事項】\n- 相手の論点を認める表現（「確かに」「一方で」など）\n- 抽象的で曖昧な表現';
-    
+
     let conversationToSend = conversationHistory;
     if (conversationHistory.length === 0) {
         const initialContext = side === 'agree'
             ? '【テーマ】' + DEBATE_THEME + '\n【あなたの立場】' + OPINION_A
             : '【テーマ】' + DEBATE_THEME + '\n【あなたの立場】' + OPINION_B;
-        
+
         conversationToSend = [{ side: side, content: initialContext, role: 'user' }];
     }
-    
+
     try {
         const response = await fetch('/api/debate/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ systemPrompt, conversationHistory: conversationToSend, maxTokens: 220, temperature: 0.7 })
         });
-        
+
         if (!response.ok) throw new Error('API request failed');
         const data = await response.json();
-        
+
         if (data.message && debateActive) {
             conversationHistory.push({
                 role: side === 'agree' ? 'assistant' : 'user',
                 content: data.message, side: side
             });
-            
+
             const actualModel = data.model || 'gpt-4.1-nano';
             await addDebateMessageWithTyping(side, data.message, actualModel);
-            
+
             setTimeout(() => {
                 if (debateActive) {
                     generateAIResponse(side === 'agree' ? 'disagree' : 'agree');
@@ -785,7 +785,7 @@ function addDebateMessage(side, message, model) {
     const gradientClass = side === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500';
     const opinionLabel = side === 'agree' ? 'Aether' : 'Nova';
     const aiModel = model || 'AI';
-    
+
     container.insertAdjacentHTML('beforeend', '<div class="bubble ' + bubbleClass + ' p-4 text-white shadow-lg" style="width: 100%;"><div class="flex items-center gap-3 mb-2"><div class="w-8 h-8 rounded-full bg-gradient-to-br ' + gradientClass + ' flex items-center justify-center flex-shrink-0"><i class="fas ' + iconClass + ' text-sm"></i></div><span class="font-bold text-sm flex-shrink-0">' + aiModel + '</span><span class="text-xs opacity-75 flex-shrink-0">' + opinionLabel + '</span></div><div class="text-sm leading-relaxed" style="word-wrap: break-word; white-space: pre-wrap;">' + message + '</div></div>');
 }
 
@@ -796,19 +796,19 @@ async function addDebateMessageWithTyping(side, message, actualModel) {
         const iconClass = side === 'agree' ? 'fa-brain' : 'fa-fire';
         const gradientClass = side === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500';
         const opinionLabel = side === 'agree' ? 'Aether' : 'Nova';
-        
+
         const bubbleDiv = document.createElement('div');
         bubbleDiv.className = 'bubble ' + bubbleClass + ' p-4 text-white shadow-lg';
         bubbleDiv.style.width = '100%';
         bubbleDiv.style.position = 'relative';
         bubbleDiv.innerHTML = '<div class="flex items-center gap-3 mb-2"><div class="w-8 h-8 rounded-full bg-gradient-to-br ' + gradientClass + ' flex items-center justify-center flex-shrink-0"><i class="fas ' + iconClass + ' text-sm"></i></div><span class="font-bold text-sm flex-shrink-0">' + actualModel + '</span><span class="text-xs opacity-75 flex-shrink-0">' + opinionLabel + '</span></div><div class="text-sm leading-relaxed typing-text" style="word-wrap: break-word; white-space: pre-wrap;"></div>';
-        
+
         const wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 5;
         container.appendChild(bubbleDiv);
-        
+
         const textElement = bubbleDiv.querySelector('.typing-text');
         let charIndex = 0;
-        
+
         function typeChar() {
             if (charIndex < message.length && debateActive) {
                 textElement.textContent += message.charAt(charIndex);
@@ -845,14 +845,14 @@ async function loadDebateMessagesFromD1() {
     try {
         const response = await fetch('/api/debate/' + DEBATE_ID + '/messages');
         const data = await response.json();
-        
+
         if (data.messages && data.messages.length > lastMessageCount) {
             for (let i = lastMessageCount; i < data.messages.length; i++) {
                 const msg = data.messages[i];
                 addDebateMessage(msg.side, msg.content, msg.model);
             }
             lastMessageCount = data.messages.length;
-            
+
             // If messages exist but debate not active locally, sync conversationHistory
             if (data.messages.length > 0 && conversationHistory.length === 0) {
                 conversationHistory = data.messages.map(m => ({
@@ -869,11 +869,11 @@ async function loadCommentsFromD1() {
     try {
         const response = await fetch('/api/comments/' + DEBATE_ID);
         const data = await response.json();
-        
+
         if (data.comments && data.comments.length > lastCommentCount) {
             const commentsList = document.getElementById('commentsList');
             const wasAtBottom = commentsList.scrollHeight - commentsList.scrollTop - commentsList.clientHeight < 5;
-            
+
             for (let i = lastCommentCount; i < data.comments.length; i++) {
                 const c = data.comments[i];
                 const stanceClass = c.vote === 'agree' ? 'comment-agree' : 'comment-disagree';
@@ -882,13 +882,13 @@ async function loadCommentsFromD1() {
                 const stanceText = c.vote === 'agree' ? 'Aether支持' : 'Nova支持';
                 const avatarGradient = c.vote === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500';
                 const initial = c.username.charAt(0).toUpperCase();
-                
+
                 const div = document.createElement('div');
                 div.className = 'comment-item ' + stanceClass + ' bg-gray-900/50 p-3 rounded border border-cyan-500/30';
                 div.innerHTML = '<div class="flex items-center mb-2"><div class="w-8 h-8 rounded-full bg-gradient-to-br ' + avatarGradient + ' flex items-center justify-center text-xs font-bold mr-2">' + initial + '</div><div class="flex-1"><a href="/user/' + c.username + '" class="text-sm font-bold hover:text-cyan-400 transition-colors">@' + c.username + '</a><p class="text-xs text-' + stanceColor + '-400"><i class="fas fa-' + stanceIcon + ' mr-1"></i>' + stanceText + '</p></div></div><p class="text-sm text-gray-200">' + c.content + '</p>';
                 commentsList.appendChild(div);
             }
-            
+
             if (wasAtBottom) requestAnimationFrame(() => { commentsList.scrollTop = commentsList.scrollHeight; });
             document.getElementById('commentCount').textContent = data.comments.length;
             lastCommentCount = data.comments.length;
@@ -953,32 +953,32 @@ window.showAIProfile = showAIProfile;
 
 window.addEventListener('DOMContentLoaded', async () => {
     await Promise.all([loadDebateTheme(), loadModelInfo()]);
-    
+
     document.getElementById('debateTimeLimit').textContent = MAX_DEBATE_TIME + '秒';
     document.getElementById('debateCharLimit').textContent = MAX_CHARS + '文字';
-    
+
     const agreeModalBtn = document.getElementById('voteAgreeModalBtn');
     const disagreeModalBtn = document.getElementById('voteDisagreeModalBtn');
     const agreeBtn = document.getElementById('voteAgreeBtn');
     const disagreeBtn = document.getElementById('voteDisagreeBtn');
-    
+
     if (agreeModalBtn) agreeModalBtn.addEventListener('click', () => submitVote('agree'));
     if (disagreeModalBtn) disagreeModalBtn.addEventListener('click', () => submitVote('disagree'));
     if (agreeBtn) agreeBtn.addEventListener('click', () => changeVote('agree'));
     if (disagreeBtn) disagreeBtn.addEventListener('click', () => changeVote('disagree'));
-    
+
     updateVoteDisplay();
     loadDebateMessagesFromD1();
     loadCommentsFromD1();
     syncCredits();
-    
+
     // Realtime sync every 2 seconds
     setInterval(() => {
         loadDebateMessagesFromD1();
         loadCommentsFromD1();
     }, 2000);
     setInterval(updateViewerCount, 2000);
-    
+
     // Restore vote from localStorage
     const savedVote = localStorage.getItem('debate_vote_' + DEBATE_ID + '_' + currentUser.user_id);
     if (savedVote) {
@@ -989,7 +989,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     } else {
         document.getElementById('voteModal').classList.remove('hidden');
     }
-    
+
     const postCommentBtn = document.getElementById('postCommentBtn');
     const clearCommentBtn = document.getElementById('clearCommentBtn');
     if (postCommentBtn) postCommentBtn.addEventListener('click', postComment);

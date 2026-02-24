@@ -91,9 +91,11 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
         <a href="/mypage" class="nav-link">
           <i class="fas fa-user"></i><span>マイページ</span>
         </a>
+        ${isDevUser ? `
         <a href="#" class="nav-link" onclick="event.preventDefault();openCommandPanel();">
           <i class="fas fa-terminal" style="color: #22c55e;"></i><span style="color: #22c55e;">コマンド</span>
         </a>
+        ` : ''}
         ${isDevUser ? `
         <a href="/admin/tickets" class="nav-link" style="border-top: 1px solid rgba(255,0,128,0.3);">
           <i class="fas fa-headset" style="color: #ff0080;"></i>
