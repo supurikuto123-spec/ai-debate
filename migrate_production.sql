@@ -254,7 +254,4 @@ CREATE TABLE IF NOT EXISTS ticket_messages (
 CREATE INDEX IF NOT EXISTS idx_ticket_messages_ticket_id ON ticket_messages(ticket_id);
 CREATE INDEX IF NOT EXISTS idx_ticket_messages_user_id ON ticket_messages(user_id);
 
--- === デフォルトディベートを確実に設定 ===
-DELETE FROM debates WHERE id = 'default';
-INSERT INTO debates (id, title, topic, agree_position, disagree_position, status, created_at)
-VALUES ('default', 'AIは仕事を創出するか奪うか', 'AIと雇用の関係', 'AIは仕事を創出する', 'AIは仕事を奪う', 'live', datetime('now'));
+

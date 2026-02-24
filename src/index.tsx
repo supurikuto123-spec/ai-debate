@@ -46,7 +46,7 @@ function safeParseUserCookie(cookieValue: string | undefined): any | null {
 
 // Check if user is dev admin
 function isDevAdmin(user: any): boolean {
-  return user && user.user_id === 'dev' && DEV_ADMIN_EMAILS.includes(user.email)
+  return !!user && user.user_id === 'dev' && !!user.email && DEV_ADMIN_EMAILS.includes(user.email)
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -520,7 +520,8 @@ app.get('/mypage', async (c) => {
     if (!userData) {
       // Create user if not exists (with required columns)
       const newId = crypto.randomUUID()
-      const defaultCredits = (user.user_id === 'dev' && DEV_ADMIN_EMAILS.includes(user.email)) ? 50000 : 500
+      const isDevUser = user.user_id === 'dev' && !!user.email && DEV_ADMIN_EMAILS.includes(user.email)
+      const defaultCredits = isDevUser ? 50000 : 500
       await c.env.DB.prepare(`
         INSERT INTO users (id, user_id, username, email, google_id, credits, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
