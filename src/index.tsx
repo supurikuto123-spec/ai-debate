@@ -1279,12 +1279,12 @@ app.post('/api/commands/execute', async (c) => {
     const { command, debateId, source } = await c.req.json()
 
     // SECURITY: Commands can ONLY be executed from the command panel
-    if (source !== 'cmd-panel') {
-      return c.json({ success: false, error: 'コマンドはメニューの「コマンド」パネルからのみ実行できます' }, 403)
-    }
-
     if (!command) {
       return c.json({ success: false, error: 'コマンドが空です' }, 400)
+    }
+
+    if (source !== 'cmd-panel') {
+      return c.json({ success: false, error: 'コマンドはメニューの「コマンド」パネルからのみ実行できます' }, 403)
     }
 
     const cmd = command.trim()
