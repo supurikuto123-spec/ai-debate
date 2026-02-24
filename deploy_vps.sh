@@ -61,7 +61,7 @@ npx wrangler d1 execute ai-debate-db --local --command="ALTER TABLE debates ADD 
 npx wrangler d1 execute ai-debate-db --local --command="ALTER TABLE debates ADD COLUMN winner TEXT;" 2>/dev/null || echo "  winner: skip"
 npx wrangler d1 execute ai-debate-db --local --command="ALTER TABLE debates ADD COLUMN judge_evaluations TEXT;" 2>/dev/null || echo "  judge_evaluations: skip"
 npx wrangler d1 execute ai-debate-db --local --command="ALTER TABLE debates ADD COLUMN status TEXT DEFAULT 'pending';" 2>/dev/null || echo "  status: skip"
-npx wrangler d1 execute ai-debate-db --local --command="UPDATE debates SET status='live' WHERE id='default';" 2>/dev/null || echo "  default status: skip"
+
 
 # Restart service
 echo ""

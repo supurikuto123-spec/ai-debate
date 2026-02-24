@@ -691,10 +691,7 @@ async function showFinalResults() {
         });
     } catch (e) { }
 
-    // Archive if !sa was used
-    if (window.archiveOnComplete) {
-        saveToArchive(winner, agreePercent, disagreePercent);
-    }
+    // Auto-archive is now handled by the backend when status is set to 'completed'
 }
 
 // ===== Archive Save =====

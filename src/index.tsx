@@ -486,7 +486,11 @@ app.get('/watch', async (c) => {
     deleteCookie(c, 'user')
     return c.redirect('/')
   }
-  const debateId = c.req.query('id') || 'default'
+  const debateId = c.req.query('id')
+
+  if (!debateId) {
+    return c.redirect('/main')
+  }
 
   // Get fresh credits from DB
   const freshUser = await c.env.DB.prepare(
@@ -1254,6 +1258,47 @@ app.post('/api/debate/:debateId/status', async (c) => {
           'UPDATE debates SET status = ? WHERE id = ?'
         ).bind(status, debateId).run()
       } catch (e2) { }
+    }
+
+    // AUTO-ARCHIVE logic when status is 'completed'
+    if (status === 'completed') {
+      try {
+        // Fetch debate info
+        const debate = await c.env.DB.prepare('SELECT * FROM debates WHERE id = ?').bind(debateId).first()
+        if (debate) {
+          // Fetch messages
+          const messagesResult = await c.env.DB.prepare('SELECT side, content FROM debate_messages WHERE debate_id = ? ORDER BY created_at ASC').bind(debateId).all()
+          const messages = messagesResult.results || []
+          const messagesJson = JSON.stringify(messages)
+
+          // Get votes
+          const agreeVotes = await c.env.DB.prepare("SELECT COUNT(*) as count FROM debate_votes WHERE debate_id = ? AND vote = 'agree'").bind(debateId).first()
+          const disagreeVotes = await c.env.DB.prepare("SELECT COUNT(*) as count FROM debate_votes WHERE debate_id = ? AND vote = 'disagree'").bind(debateId).first()
+
+          // Check if already archived
+          const existingArchive = await c.env.DB.prepare('SELECT id FROM archived_debates WHERE debate_id = ?').bind(debateId).first()
+          if (!existingArchive) {
+            await c.env.DB.prepare(`
+              INSERT INTO archived_debates (debate_id, title, topic, agree_position, disagree_position, agree_votes, disagree_votes, winner, messages, created_at, archived_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+            `).bind(
+              debate.id,
+              debate.topic || 'Unknown Theme',
+              debate.topic || 'Unknown Topic',
+              debate.agree_position || 'Agree',
+              debate.disagree_position || 'Disagree',
+              agreeVotes?.count || 0,
+              disagreeVotes?.count || 0,
+              winner || debate.winner || null,
+              messagesJson,
+              debate.created_at || 'datetime("now")'
+            ).run()
+            console.log(`Auto-archived debate ${debateId}`)
+          }
+        }
+      } catch (archiveError) {
+        console.error('Auto-archive failed:', archiveError)
+      }
     }
 
     return c.json({ success: true })
