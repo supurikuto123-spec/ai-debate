@@ -1,4 +1,5 @@
 ﻿import type { FC } from 'hono/jsx'
+import { i18nScript } from '../components/i18n'
 
 
 interface UserProfileProps {
@@ -57,7 +58,7 @@ export const UserProfile: FC<UserProfileProps> = ({ profileUser, currentUser, st
 
   return (
     <html lang="ja">
-    <head>
+      <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
         <title>{profileUser.username} - プロフィール | AI Debate</title>
@@ -200,143 +201,144 @@ export const UserProfile: FC<UserProfileProps> = ({ profileUser, currentUser, st
                 .back-button { width: 44px; height: 44px; top: 15px; left: 15px; font-size: 18px; }
             }
         `}</style>
-    </head>
-    <body>
+      </head>
+      <body>
         <a href="/main" class="back-button">←</a>
-        
+
         <div class="container">
-            <div class="profile-header">
-                <img 
-                    src={getAvatarUrl(profileUser)} 
-                    alt={profileUser.username}
-                    class="avatar-large"
-                />
-                <div class="profile-info">
-                    <div class="profile-username">{profileUser.username}</div>
-                    <div class="profile-id">@{profileUser.user_id}</div>
-                    
-                    <div class="profile-badges">
-                        <div class="badge badge-rank">
-                            <span>🏆</span>
-                            <span>{profileUser.rank}</span>
-                        </div>
-                        <div class="badge badge-rating">
-                            <span>⭐</span>
-                            <span>Rating: {profileUser.rating}</span>
-                        </div>
-                        {(isOwnProfile || p.show_credits) && (
-                          <div class="badge badge-credits">
-                              <span>💰</span>
-                              <span>{profileUser.credits.toLocaleString()} Credits</span>
-                          </div>
-                        )}
-                    </div>
-                    
-                    <div class="member-since">
-                        登録日: {new Date(profileUser.created_at + (typeof profileUser.created_at === 'string' && !profileUser.created_at.includes('Z') && !profileUser.created_at.includes('+') ? 'Z' : '')).toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo' })}
-                    </div>
+          <div class="profile-header">
+            <img
+              src={getAvatarUrl(profileUser)}
+              alt={profileUser.username}
+              class="avatar-large"
+            />
+            <div class="profile-info">
+              <div class="profile-username">{profileUser.username}</div>
+              <div class="profile-id">@{profileUser.user_id}</div>
+
+              <div class="profile-badges">
+                <div class="badge badge-rank">
+                  <span>🏆</span>
+                  <span>{profileUser.rank}</span>
                 </div>
-            </div>
-            
-            {isOwnProfile && (
-              <div class="privacy-section" id="privacySection">
-                <div class="privacy-title">
-                  <span>🔒</span> プライバシー設定
+                <div class="badge badge-rating">
+                  <span>⭐</span>
+                  <span>Rating: {profileUser.rating}</span>
                 </div>
-                <div class="privacy-toggle">
-                  <span>総ディベート数を公開</span>
-                  <div class={`toggle-switch ${p.show_total_debates ? 'on' : ''}`} data-key="show_total_debates" onclick="togglePrivacy(this)"></div>
-                </div>
-                <div class="privacy-toggle">
-                  <span>勝利数を公開</span>
-                  <div class={`toggle-switch ${p.show_wins ? 'on' : ''}`} data-key="show_wins" onclick="togglePrivacy(this)"></div>
-                </div>
-                <div class="privacy-toggle">
-                  <span>敗北数を公開</span>
-                  <div class={`toggle-switch ${p.show_losses ? 'on' : ''}`} data-key="show_losses" onclick="togglePrivacy(this)"></div>
-                </div>
-                <div class="privacy-toggle">
-                  <span>引き分けを公開</span>
-                  <div class={`toggle-switch ${p.show_draws ? 'on' : ''}`} data-key="show_draws" onclick="togglePrivacy(this)"></div>
-                </div>
-                <div class="privacy-toggle">
-                  <span>勝率を公開</span>
-                  <div class={`toggle-switch ${p.show_win_rate ? 'on' : ''}`} data-key="show_win_rate" onclick="togglePrivacy(this)"></div>
-                </div>
-                <div class="privacy-toggle">
-                  <span>投稿数を公開</span>
-                  <div class={`toggle-switch ${p.show_posts ? 'on' : ''}`} data-key="show_posts" onclick="togglePrivacy(this)"></div>
-                </div>
-                <div class="privacy-toggle">
-                  <span>クレジットを公開</span>
-                  <div class={`toggle-switch ${p.show_credits ? 'on' : ''}`} data-key="show_credits" onclick="togglePrivacy(this)"></div>
-                </div>
+                {(isOwnProfile || p.show_credits) && (
+                  <div class="badge badge-credits">
+                    <span>💰</span>
+                    <span>{profileUser.credits.toLocaleString()} Credits</span>
+                  </div>
+                )}
               </div>
-            )}
-            
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-label">総ディベート数</div>
-                    {(isOwnProfile || p.show_total_debates) 
-                      ? <div class="stat-value">{stats.total_debates}</div>
-                      : <div dangerouslySetInnerHTML={{ __html: hiddenHtml }} />
-                    }
-                    <div class="stat-subtitle">Total Debates</div>
-                </div>
-                
-                <div class="stat-card">
-                    <div class="stat-label">勝利数</div>
-                    {(isOwnProfile || p.show_wins) 
-                      ? <div class="stat-value">{stats.wins}</div>
-                      : <div dangerouslySetInnerHTML={{ __html: hiddenHtml }} />
-                    }
-                    <div class="stat-subtitle">Wins</div>
-                </div>
-                
-                <div class="stat-card">
-                    <div class="stat-label">敗北数</div>
-                    {(isOwnProfile || p.show_losses) 
-                      ? <div class="stat-value">{stats.losses}</div>
-                      : <div dangerouslySetInnerHTML={{ __html: hiddenHtml }} />
-                    }
-                    <div class="stat-subtitle">Losses</div>
-                </div>
-                
-                <div class="stat-card">
-                    <div class="stat-label">引き分け</div>
-                    {(isOwnProfile || p.show_draws) 
-                      ? <div class="stat-value">{stats.draws}</div>
-                      : <div dangerouslySetInnerHTML={{ __html: hiddenHtml }} />
-                    }
-                    <div class="stat-subtitle">Draws</div>
-                </div>
-                
-                <div class="stat-card">
-                    <div class="stat-label">勝率</div>
-                    {(isOwnProfile || p.show_win_rate) 
-                      ? <>
-                          <div class="stat-value">{stats.win_rate}%</div>
-                          <div class="progress-bar">
-                            <div class="progress-fill" style={`width: ${stats.win_rate}%`}></div>
-                          </div>
-                        </>
-                      : <div dangerouslySetInnerHTML={{ __html: hiddenHtml }} />
-                    }
-                    <div class="stat-subtitle">Win Rate</div>
-                </div>
-                
-                <div class="stat-card">
-                    <div class="stat-label">投稿数</div>
-                    {(isOwnProfile || p.show_posts) 
-                      ? <div class="stat-value">{stats.total_posts}</div>
-                      : <div dangerouslySetInnerHTML={{ __html: hiddenHtml }} />
-                    }
-                    <div class="stat-subtitle">Community Posts</div>
-                </div>
+
+              <div class="member-since">
+                登録日: {new Date(profileUser.created_at + (typeof profileUser.created_at === 'string' && !profileUser.created_at.includes('Z') && !profileUser.created_at.includes('+') ? 'Z' : '')).toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo' })}
+              </div>
             </div>
+          </div>
+
+          {isOwnProfile && (
+            <div class="privacy-section" id="privacySection">
+              <div class="privacy-title">
+                <span>🔒</span> プライバシー設定
+              </div>
+              <div class="privacy-toggle">
+                <span>総ディベート数を公開</span>
+                <div class={`toggle-switch ${p.show_total_debates ? 'on' : ''}`} data-key="show_total_debates" onclick="togglePrivacy(this)"></div>
+              </div>
+              <div class="privacy-toggle">
+                <span>勝利数を公開</span>
+                <div class={`toggle-switch ${p.show_wins ? 'on' : ''}`} data-key="show_wins" onclick="togglePrivacy(this)"></div>
+              </div>
+              <div class="privacy-toggle">
+                <span>敗北数を公開</span>
+                <div class={`toggle-switch ${p.show_losses ? 'on' : ''}`} data-key="show_losses" onclick="togglePrivacy(this)"></div>
+              </div>
+              <div class="privacy-toggle">
+                <span>引き分けを公開</span>
+                <div class={`toggle-switch ${p.show_draws ? 'on' : ''}`} data-key="show_draws" onclick="togglePrivacy(this)"></div>
+              </div>
+              <div class="privacy-toggle">
+                <span>勝率を公開</span>
+                <div class={`toggle-switch ${p.show_win_rate ? 'on' : ''}`} data-key="show_win_rate" onclick="togglePrivacy(this)"></div>
+              </div>
+              <div class="privacy-toggle">
+                <span>投稿数を公開</span>
+                <div class={`toggle-switch ${p.show_posts ? 'on' : ''}`} data-key="show_posts" onclick="togglePrivacy(this)"></div>
+              </div>
+              <div class="privacy-toggle">
+                <span>クレジットを公開</span>
+                <div class={`toggle-switch ${p.show_credits ? 'on' : ''}`} data-key="show_credits" onclick="togglePrivacy(this)"></div>
+              </div>
+            </div>
+          )}
+
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-label">総ディベート数</div>
+              {(isOwnProfile || p.show_total_debates)
+                ? <div class="stat-value">{stats.total_debates}</div>
+                : <div dangerouslySetInnerHTML={{ __html: hiddenHtml }} />
+              }
+              <div class="stat-subtitle">Total Debates</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-label">勝利数</div>
+              {(isOwnProfile || p.show_wins)
+                ? <div class="stat-value">{stats.wins}</div>
+                : <div dangerouslySetInnerHTML={{ __html: hiddenHtml }} />
+              }
+              <div class="stat-subtitle">Wins</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-label">敗北数</div>
+              {(isOwnProfile || p.show_losses)
+                ? <div class="stat-value">{stats.losses}</div>
+                : <div dangerouslySetInnerHTML={{ __html: hiddenHtml }} />
+              }
+              <div class="stat-subtitle">Losses</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-label">引き分け</div>
+              {(isOwnProfile || p.show_draws)
+                ? <div class="stat-value">{stats.draws}</div>
+                : <div dangerouslySetInnerHTML={{ __html: hiddenHtml }} />
+              }
+              <div class="stat-subtitle">Draws</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-label">勝率</div>
+              {(isOwnProfile || p.show_win_rate)
+                ? <>
+                  <div class="stat-value">{stats.win_rate}%</div>
+                  <div class="progress-bar">
+                    <div class="progress-fill" style={`width: ${stats.win_rate}%`}></div>
+                  </div>
+                </>
+                : <div dangerouslySetInnerHTML={{ __html: hiddenHtml }} />
+              }
+              <div class="stat-subtitle">Win Rate</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-label">投稿数</div>
+              {(isOwnProfile || p.show_posts)
+                ? <div class="stat-value">{stats.total_posts}</div>
+                : <div dangerouslySetInnerHTML={{ __html: hiddenHtml }} />
+              }
+              <div class="stat-subtitle">Community Posts</div>
+            </div>
+          </div>
         </div>
-        
-        <script dangerouslySetInnerHTML={{ __html: `
+
+        <script dangerouslySetInnerHTML={{
+          __html: `
           function togglePrivacy(el) {
             el.classList.toggle('on');
             savePrivacy();
@@ -355,7 +357,7 @@ export const UserProfile: FC<UserProfileProps> = ({ profileUser, currentUser, st
           }
         ` }} />
         <div dangerouslySetInnerHTML={{ __html: i18nScript() }} />
-    </body>
+      </body>
     </html>
   )
 }
