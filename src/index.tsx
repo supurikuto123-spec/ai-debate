@@ -49,6 +49,23 @@ function isDevAdmin(user: any): boolean {
   return !!user && user.user_id === 'dev' && !!user.email && DEV_ADMIN_EMAILS.includes(user.email)
 }
 
+// Minimal user data for cookie (prevents 502 Bad Gateway from large cookies)
+function getMinimalUser(user: any): any {
+  if (!user) return null;
+  return {
+    user_id: user.user_id,
+    username: user.username,
+    email: user.email,
+    google_id: user.google_id,
+    credits: user.credits,
+    nickname: user.nickname,
+    avatar_type: user.avatar_type,
+    avatar_value: user.avatar_value,
+    rating: user.rating,
+    rank: user.rank
+  };
+}
+
 const app = new Hono<{ Bindings: Bindings }>()
 
 // Enable CORS
@@ -171,8 +188,8 @@ app.get('/', async (c) => {
       const freshUser = await c.env.DB.prepare('SELECT credits FROM users WHERE user_id = ?').bind(userData.user_id).first()
       if (freshUser) {
         userData.credits = freshUser.credits
-        // Update cookie with fresh credits
-        setCookie(c, 'user', JSON.stringify(userData), {
+        // Update cookie with fresh credits (MINIMAL)
+        setCookie(c, 'user', JSON.stringify(getMinimalUser(userData)), {
           httpOnly: true,
           secure: c.req.url.startsWith('https'),
           sameSite: 'Lax',
@@ -254,7 +271,6 @@ app.post('/api/register', async (c) => {
     const userId = crypto.randomUUID()
 
     // Secure dev check based on a specific email that the developer uses
-    const DEV_ADMIN_EMAILS = ['tomy63470@gmail.com', 'dev@example.com'] // you can replace with your actual dev email
     const isDevUser = user_id === 'dev' && DEV_ADMIN_EMAILS.includes(email)
 
     const credits = isDevUser ? 50000 : 500 // dev gets 50000, normal users get 500
@@ -270,9 +286,9 @@ app.post('/api/register', async (c) => {
       VALUES (?, ?, ?, 'earn', 'pre_registration_bonus', datetime('now'))
     `).bind(crypto.randomUUID(), user_id, credits).run()
 
-    // Set user cookie
-    const userData = { id: userId, user_id, username, email, credits }
-    setCookie(c, 'user', JSON.stringify(userData), {
+    // Set user cookie (MINIMAL)
+    const userDataToCookie = { id: userId, user_id, username, email, credits }
+    setCookie(c, 'user', JSON.stringify(getMinimalUser(userDataToCookie)), {
       httpOnly: true,
       secure: c.req.url.startsWith('https'), // Set to true in production
       sameSite: 'Lax',
@@ -322,8 +338,8 @@ app.get('/demo', async (c) => {
   // Show the original registration bonus, not current balance
   user.initial_credits = (user.user_id === 'dev' && DEV_ADMIN_EMAILS.includes(user.email)) ? 50000 : 500
 
-  // Update cookie with fresh credits
-  setCookie(c, 'user', JSON.stringify(user), {
+  // Update cookie with fresh credits (MINIMAL)
+  setCookie(c, 'user', JSON.stringify(getMinimalUser(user)), {
     httpOnly: true,
     secure: c.req.url.startsWith('https'),
     sameSite: 'Lax',
@@ -398,9 +414,9 @@ app.get('/main', async (c) => {
           VALUES (?, ?, ?, 'spend', 'main_page_access', datetime('now'))
         `).bind(crypto.randomUUID(), user.user_id, -100).run()
 
-        // Update user cookie with new credits
+        // Update user cookie with new credits (MINIMAL)
         user.credits = newCredits
-        setCookie(c, 'user', JSON.stringify(user), {
+        setCookie(c, 'user', JSON.stringify(getMinimalUser(user)), {
           httpOnly: true,
           secure: c.req.url.startsWith('https'),
           sameSite: 'Lax',
@@ -536,13 +552,13 @@ app.get('/mypage', async (c) => {
 
     const enrichedUserData = {
       ...userData,
-      nickname: userData.nickname || userData.username || user.username || user.user_id,
-      avatar_type: userData.avatar_type || 'bottts',
-      avatar_value: userData.avatar_value || '1'
+      nickname: (userData as any).nickname || (userData as any).username || user.username || user.user_id,
+      avatar_type: (userData as any).avatar_type || 'bottts',
+      avatar_value: (userData as any).avatar_value || '1'
     }
 
-    // Sync cookie with DB data
-    setCookie(c, 'user', JSON.stringify(enrichedUserData), {
+    // Sync cookie with fresh data (MINIMAL)
+    setCookie(c, 'user', JSON.stringify(getMinimalUser(enrichedUserData)), {
       path: '/',
       httpOnly: true,
       secure: c.req.url.startsWith('https'),
@@ -801,8 +817,8 @@ app.post('/api/profile/update', async (c) => {
       'SELECT * FROM users WHERE user_id = ?'
     ).bind(user_id).first()
 
-    // Update cookie
-    setCookie(c, 'user', JSON.stringify(updatedUser), {
+    // Update cookie (MINIMAL)
+    setCookie(c, 'user', JSON.stringify(getMinimalUser(updatedUser)), {
       path: '/',
       httpOnly: true,
       secure: c.req.url.startsWith('https'),
@@ -2267,7 +2283,7 @@ app.get('/auth/google', async (c) => {
           credits: existingUser.credits
         }
 
-        setCookie(c, 'user', JSON.stringify(userData), {
+        setCookie(c, 'user', JSON.stringify(getMinimalUser(userData)), {
           httpOnly: true,
           secure: c.req.url.startsWith('https'),
           sameSite: 'Lax',
@@ -2377,7 +2393,7 @@ app.get('/auth/google/callback', async (c) => {
         credits: existingUser.credits
       }
 
-      setCookie(c, 'user', JSON.stringify(userData), {
+      setCookie(c, 'user', JSON.stringify(getMinimalUser(userData)), {
         httpOnly: true,
         secure: isSecure,
         sameSite: 'Lax',
@@ -2421,8 +2437,8 @@ app.get('/api/user', async (c) => {
     ).bind(cookieUser.user_id).first()
 
     if (dbUser) {
-      // Update cookie with fresh data
-      setCookie(c, 'user', JSON.stringify(dbUser), {
+      // Update cookie with fresh data (MINIMAL)
+      setCookie(c, 'user', JSON.stringify(getMinimalUser(dbUser)), {
         path: '/',
         httpOnly: true,
         secure: c.req.url.startsWith('https'),
