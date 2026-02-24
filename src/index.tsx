@@ -1380,7 +1380,7 @@ app.post('/api/commands/execute', async (c) => {
             INSERT INTO debates (id, topic, agree_position, disagree_position, status, created_at)
             VALUES (?, ?, ?, ?, 'pending', datetime('now'))
           `).bind(targetDebateId, randomTheme.title, randomTheme.agree_opinion, randomTheme.disagree_opinion).run()
-        } catch (e2) { }
+        } catch (e2: any) { console.error('Failed to INSERT debate:', e2?.message || e2) }
       }
 
       if (minutes === 0) {
@@ -1395,8 +1395,9 @@ app.post('/api/commands/execute', async (c) => {
             await c.env.DB.prepare(
               "UPDATE debates SET status = 'live', started_at = datetime('now') WHERE id = ?"
             ).bind(targetDebateId).run()
-          } catch (e2) {
-            try { await c.env.DB.prepare("UPDATE debates SET status = 'live' WHERE id = ?").bind(targetDebateId).run() } catch { }
+          } catch (e2: any) {
+            console.error('Failed to ALTER+UPDATE debate to live:', e2?.message || e2)
+            try { await c.env.DB.prepare("UPDATE debates SET status = 'live' WHERE id = ?").bind(targetDebateId).run() } catch (e3: any) { console.error('Final fallback UPDATE to live failed:', e3?.message || e3) }
           }
         }
         return c.json({ success: true, action: 'start_debate_archive', schedule_minutes: 0, debateId: targetDebateId })
@@ -1415,8 +1416,9 @@ app.post('/api/commands/execute', async (c) => {
             await c.env.DB.prepare(
               "UPDATE debates SET status = 'upcoming', scheduled_at = ? WHERE id = ?"
             ).bind(scheduledAt, targetDebateId).run()
-          } catch (e2) {
-            try { await c.env.DB.prepare("UPDATE debates SET status = 'upcoming' WHERE id = ?").bind(targetDebateId).run() } catch { }
+          } catch (e2: any) {
+            console.error('Failed to ALTER+UPDATE debate to upcoming:', e2?.message || e2)
+            try { await c.env.DB.prepare("UPDATE debates SET status = 'upcoming' WHERE id = ?").bind(targetDebateId).run() } catch (e3: any) { console.error('Final fallback UPDATE to upcoming failed:', e3?.message || e3) }
           }
         }
       } catch (e) {
