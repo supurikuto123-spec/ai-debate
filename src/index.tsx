@@ -1377,9 +1377,9 @@ app.post('/api/commands/execute', async (c) => {
         }
         try {
           await c.env.DB.prepare(`
-            INSERT INTO debates (id, topic, agree_position, disagree_position, status, created_at)
-            VALUES (?, ?, ?, ?, 'pending', datetime('now'))
-          `).bind(targetDebateId, randomTheme.title, randomTheme.agree_opinion, randomTheme.disagree_opinion).run()
+            INSERT INTO debates (id, title, topic, agree_position, disagree_position, status, created_at)
+            VALUES (?, ?, ?, ?, ?, 'pending', datetime('now'))
+          `).bind(targetDebateId, randomTheme.title, randomTheme.title, randomTheme.agree_opinion, randomTheme.disagree_opinion).run()
         } catch (e2: any) { console.error('Failed to INSERT debate:', e2?.message || e2) }
       }
 
