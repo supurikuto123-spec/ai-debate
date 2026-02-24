@@ -1,5 +1,5 @@
-import { globalNav } from '../components/global-nav';
-import { i18nScript } from '../components/i18n';
+﻿import { globalNav } from '../components/global-nav';
+
 
 export const watchPage = (user: any, debateId: string) => `
     <!DOCTYPE html>
@@ -412,7 +412,7 @@ export const watchPage = (user: any, debateId: string) => `
              style="display:none;"></div>
         
         <script src="/static/watch.js"></script>
-    ${i18nScript()}
+    
 </body>
     </html>
 `

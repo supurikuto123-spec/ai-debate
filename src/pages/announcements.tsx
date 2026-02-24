@@ -1,5 +1,5 @@
-import { globalNav } from '../components/global-nav';
-import { i18nScript } from '../components/i18n';
+﻿import { globalNav } from '../components/global-nav';
+
 
 export const announcementsPage = (userData: any) => `<!DOCTYPE html>
 <html lang="ja">
@@ -369,6 +369,6 @@ export const announcementsPage = (userData: any) => `<!DOCTYPE html>
         // Auto refresh every 30 seconds
         setInterval(loadAnnouncements, 30000);
     </script>
-${i18nScript()}
+
 </body>
 </html>`

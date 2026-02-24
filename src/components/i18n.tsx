@@ -1,4 +1,4 @@
-// Complete i18n system - full page translation via pre-built dictionaries
+﻿// Complete i18n system - full page translation via pre-built dictionaries
 // Each page element gets translated entirely (not partial text replacement)
 
 // Supported languages

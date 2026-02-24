@@ -1,5 +1,5 @@
-import { globalNav } from '../components/global-nav';
-import { i18nScript } from '../components/i18n';
+﻿import { globalNav } from '../components/global-nav';
+
 
 export const archivePage = (userData: any) => `<!DOCTYPE html>
 <html lang="ja">
@@ -310,6 +310,6 @@ export const archivePage = (userData: any) => `<!DOCTYPE html>
         
         loadDebates();
     </script>
-${i18nScript()}
+
 </body>
 </html>`

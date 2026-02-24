@@ -1,4 +1,4 @@
-// Global Navigation Component - Cyberpunk Hamburger Menu
+﻿// Global Navigation Component - Cyberpunk Hamburger Menu
 export const globalNav = (user: { credits: number; user_id: string; avatar_type?: string; avatar_value?: string; avatar_url?: string }) => {
   const isDevUser = user.user_id === 'dev';
   // Avatar display logic with proper priority

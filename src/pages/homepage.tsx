@@ -1,4 +1,4 @@
-import { i18nScript } from '../components/i18n';
+﻿
 
 export const homepage = (user: any) => `
     <!DOCTYPE html>
@@ -407,11 +407,12 @@ export const homepage = (user: any) => `
                     </div>
                     
                     <!-- etc... Category -->
-                    <div class="category-card">
-                        <div class="category-icon" style="background: linear-gradient(135deg, #888, #666);">
-                            <i class="fas fa-ellipsis-h text-5xl"></i>
+                    <div class="category-card col-span-2 md:col-span-3 flex flex-col items-center justify-center py-8">
+                        <div class="category-icon mb-4 flex items-center justify-center w-16 h-16 rounded-2xl shadow-[0_0_15px_rgba(136,136,136,0.3)] transition-all duration-300" style="background: linear-gradient(135deg, #888, #666);">
+                            <i class="fas fa-ellipsis-h text-3xl"></i>
                         </div>
-                        <h3 class="text-xl font-bold mb-3">etc...</h3>
+                        <h3 class="text-xl font-bold">etc...</h3>
+                        <p class="text-sm text-gray-400 mt-2">その他多様なテーマ</p>
                     </div>
                 </div>
             </div>
@@ -560,7 +561,7 @@ export const homepage = (user: any) => `
         </footer>
 
         <script src="/static/app.js"></script>
-    ${i18nScript()}
+    
     </body>
     </html>
 `

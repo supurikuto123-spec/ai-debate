@@ -1,5 +1,5 @@
-import type { FC } from 'hono/jsx'
-import { i18nScript } from '../components/i18n'
+﻿import type { FC } from 'hono/jsx'
+
 
 interface UserProfileProps {
   profileUser: {

@@ -1,5 +1,5 @@
-import { globalNav } from '../components/global-nav';
-import { i18nScript } from '../components/i18n';
+﻿import { globalNav } from '../components/global-nav';
+
 
 export const mainPage = (user: any, debates: any[] = []) => `
     <!DOCTYPE html>
@@ -253,7 +253,7 @@ export const mainPage = (user: any, debates: any[] = []) => `
             setInterval(checkUpcomingDebates, 30000);
             checkUpcomingDebates();
         </script>
-    ${i18nScript()}
+    
 </body>
     </html>
 `

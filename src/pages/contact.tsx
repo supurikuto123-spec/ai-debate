@@ -1,5 +1,5 @@
-import { globalNav } from '../components/global-nav';
-import { i18nScript } from '../components/i18n';
+﻿import { globalNav } from '../components/global-nav';
+
 
 export const contactPage = (user: any) => `
 <!DOCTYPE html>
@@ -273,7 +273,7 @@ export const contactPage = (user: any) => `
             }
         });
     </script>
-${i18nScript()}
+
 </body>
 </html>
 `;

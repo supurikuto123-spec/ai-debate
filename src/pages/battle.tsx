@@ -1,5 +1,5 @@
-import { globalNav } from '../components/global-nav';
-import { i18nScript } from '../components/i18n';
+﻿import { globalNav } from '../components/global-nav';
+
 
 export const battlePage = (user: any) => `
 <!DOCTYPE html>
@@ -160,7 +160,7 @@ export const battlePage = (user: any) => `
             </div>
         </div>
     </div>
-${i18nScript()}
+
 </body>
 </html>
 `;

@@ -1,4 +1,4 @@
-import { i18nScript } from '../components/i18n'
+﻿
 
 export const demoPage = (user: any) => `
     <!DOCTYPE html>
@@ -13,7 +13,7 @@ export const demoPage = (user: any) => `
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
         <link href="/static/styles.css" rel="stylesheet">
-        ${i18nScript()}
+        
     </head>
     <body class="bg-black text-white overflow-x-hidden">
         <!-- Navigation -->

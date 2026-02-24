@@ -1,5 +1,5 @@
-import { globalNav } from '../components/global-nav';
-import { i18nScript } from '../components/i18n';
+﻿import { globalNav } from '../components/global-nav';
+
 
 export const communityPage = (userData: any) => `<!DOCTYPE html>
 <html lang="ja">
@@ -473,6 +473,6 @@ export const communityPage = (userData: any) => `<!DOCTYPE html>
             loadStats();
         }, 30000);
     </script>
-${i18nScript()}
+
 </body>
 </html>`
