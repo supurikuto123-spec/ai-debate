@@ -31,7 +31,7 @@ type Bindings = {
   OPENAI_API_KEY?: string
 }
 
-const DEV_ADMIN_EMAILS = ['tomy63470@gmail.com', 'dev@example.com']
+const DEV_ADMIN_EMAILS = ['tomy63470@gmail.com', 'dev@example.com', 'supurikuto123@gmail.com']
 
 // Safe cookie parser to prevent 500 errors from corrupted cookies
 function safeParseUserCookie(cookieValue: string | undefined): any | null {
