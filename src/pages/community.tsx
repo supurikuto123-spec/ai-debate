@@ -18,7 +18,7 @@ export const communityPage = (userData: any) => `<!DOCTYPE html>
         
         .fullscreen-container {
             position: fixed;
-            top: 0;
+            top: 60px; /* Account for global nav header height */
             left: 0;
             right: 0;
             bottom: 0;

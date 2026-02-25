@@ -283,7 +283,7 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
                       fetch('/api/commands/execute', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ command: '!s-0', debateId: debateId })
+                        body: JSON.stringify({ command: '!s-0', debateId: debateId, source: 'cmd-panel' })
                       }).then(() => {
                         closeCmdPanel();
                         window.startDebate();

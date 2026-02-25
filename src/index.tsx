@@ -31,6 +31,14 @@ type Bindings = {
   OPENAI_API_KEY?: string
 }
 
+// DEV_ADMIN_EMAILS: read from env var (comma-separated) with hardcoded fallback
+// SECURITY: Move to Cloudflare secret: wrangler pages secret put DEV_ADMIN_EMAILS
+function getDevAdminEmails(env?: any): string[] {
+  const envVal = env?.DEV_ADMIN_EMAILS
+  if (envVal) return envVal.split(',').map((e: string) => e.trim().toLowerCase())
+  // fallback (used only at module-level calls, prefer env-aware version)
+  return ['supurikuto123@gmail.com', 'taison0727@gmail.com']
+}
 const DEV_ADMIN_EMAILS = ['supurikuto123@gmail.com', 'taison0727@gmail.com']
 
 // Safe cookie parser to prevent 500 errors from corrupted cookies
@@ -45,9 +53,10 @@ function safeParseUserCookie(cookieValue: string | undefined): any | null {
 }
 
 // Check if user is dev admin
-function isDevAdmin(user: any): boolean {
+function isDevAdmin(user: any, env?: any): boolean {
+  const emails = env ? getDevAdminEmails(env) : DEV_ADMIN_EMAILS.map(e => e.toLowerCase())
   return !!user && user.user_id === 'dev' && !!user.email &&
-    DEV_ADMIN_EMAILS.some(email => email.toLowerCase() === user.email.toLowerCase());
+    emails.some(email => email === user.email.toLowerCase());
 }
 
 // Minimal user data for cookie (prevents 502 Bad Gateway from large cookies)
@@ -272,7 +281,7 @@ app.post('/api/register', async (c) => {
     const userId = crypto.randomUUID()
 
     // Secure dev check based on a specific email that the developer uses
-    const isDevUser = user_id === 'dev' && DEV_ADMIN_EMAILS.includes(email)
+    const isDevUser = user_id === 'dev' && getDevAdminEmails(c.env).includes(email.toLowerCase())
 
     const credits = isDevUser ? 50000 : 500 // dev gets 50000, normal users get 500
 
@@ -337,7 +346,7 @@ app.get('/demo', async (c) => {
 
   user.registration_number = countResult?.count || 1
   // Show the original registration bonus, not current balance
-  user.initial_credits = (user.user_id === 'dev' && DEV_ADMIN_EMAILS.includes(user.email)) ? 50000 : 500
+  user.initial_credits = (user.user_id === 'dev' && getDevAdminEmails(c.env).includes((user.email||'').toLowerCase())) ? 50000 : 500
 
   // Update cookie with fresh credits (MINIMAL)
   setCookie(c, 'user', JSON.stringify(getMinimalUser(user)), {
@@ -361,7 +370,7 @@ app.get('/main', async (c) => {
     }
 
     // Dev user (user_id='dev') has infinite credits - no charge
-    const isDevUser = user.user_id === 'dev' && DEV_ADMIN_EMAILS.includes(user.email)
+    const isDevUser = user.user_id === 'dev' && getDevAdminEmails(c.env).includes((user.email||'').toLowerCase())
 
     // Get fresh credits from DB
     const freshUser = await c.env.DB.prepare(
@@ -378,7 +387,7 @@ app.get('/main', async (c) => {
         WHERE user_id = ? AND reason = 'main_page_access'
       `).bind(user.user_id).first()
 
-      if (!firstAccess || firstAccess.count === 0) {
+      if (!firstAccess || Number(firstAccess.count) === 0) {
         // First time accessing /main - charge 100 credits
         if (user.credits < 100) {
           return c.html(`
@@ -537,7 +546,7 @@ app.get('/mypage', async (c) => {
     if (!userData) {
       // Create user if not exists (with required columns)
       const newId = crypto.randomUUID()
-      const isDevUser = user.user_id === 'dev' && !!user.email && DEV_ADMIN_EMAILS.includes(user.email)
+      const isDevUser = user.user_id === 'dev' && !!user.email && getDevAdminEmails(c.env).includes((user.email||'').toLowerCase())
       const defaultCredits = isDevUser ? 50000 : 500
       await c.env.DB.prepare(`
         INSERT INTO users (id, user_id, username, email, google_id, credits, created_at, updated_at)
@@ -767,7 +776,7 @@ app.get('/admin/tickets', async (c) => {
     deleteCookie(c, 'user')
     return c.redirect('/')
   }
-  if (!isDevAdmin(user)) {
+  if (!isDevAdmin(user, c.env)) {
     return c.redirect('/')
   }
 
@@ -872,7 +881,15 @@ app.post('/api/avatar/upload', async (c) => {
     } else {
       // Fallback: Store as base64 data URL
       const arrayBuffer = await file.arrayBuffer()
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
+      // Safe base64 conversion using chunked approach to avoid stack overflow
+      const uint8Array = new Uint8Array(arrayBuffer)
+      let binary = ''
+      const chunkSize = 8192
+      for (let i = 0; i < uint8Array.length; i += chunkSize) {
+        const chunk = uint8Array.subarray(i, i + chunkSize)
+        binary += String.fromCharCode(...chunk)
+      }
+      const base64 = btoa(binary)
       const dataUrl = `data:${file.type};base64,${base64}`
 
       return c.json({ success: true, url: dataUrl })
@@ -921,10 +938,8 @@ app.get('/api/announcements', async (c) => {
       if (user) currentUserId = user.user_id
     }
 
-    // Get announcements with reaction counts (safely handle optional columns)
-    let selectExtra = ''
-    try { await c.env.DB.prepare("SELECT image_url FROM announcements LIMIT 0").all(); selectExtra += ', a.image_url' } catch { }
-    try { await c.env.DB.prepare("SELECT poll_data FROM announcements LIMIT 0").all(); selectExtra += ', a.poll_data' } catch { }
+    // Get announcements with reaction counts (always include image_url and poll_data via migration)
+    const selectExtra = ', a.image_url, a.poll_data'
 
     const announcements = await c.env.DB.prepare(`
       SELECT 
@@ -963,14 +978,6 @@ app.post('/api/announcements/post', async (c) => {
       return c.json({ success: false, error: 'Content required' })
     }
 
-    // Ensure image_url and poll_data columns exist
-    try { await c.env.DB.prepare("SELECT image_url FROM announcements LIMIT 0").all() } catch {
-      try { await c.env.DB.prepare("ALTER TABLE announcements ADD COLUMN image_url TEXT").run() } catch { }
-    }
-    try { await c.env.DB.prepare("SELECT poll_data FROM announcements LIMIT 0").all() } catch {
-      try { await c.env.DB.prepare("ALTER TABLE announcements ADD COLUMN poll_data TEXT").run() } catch { }
-    }
-
     const pollData = poll ? JSON.stringify({ ...poll, votes: new Array(poll.options.length).fill(0) }) : null
 
     await c.env.DB.prepare(
@@ -997,7 +1004,7 @@ app.delete('/api/announcements/:id', async (c) => {
       return c.json({ success: false, error: 'Not authenticated' }, 401)
     }
 
-    if (!isDevAdmin(user)) {
+    if (!isDevAdmin(user, c.env)) {
       return c.json({ success: false, error: 'Permission denied' }, 403)
     }
 
@@ -1193,9 +1200,12 @@ app.get('/api/archive/purchased', async (c) => {
     }
 
     const user = safeParseUserCookie(userCookie)
+    if (!user) {
+      return c.json({ success: true, purchased_ids: [] })
+    }
 
-    // Dev user has access to all
-    if (user.user_id === 'dev') {
+    // Only authenticated dev admin has access to all
+    if (isDevAdmin(user, c.env)) {
       return c.json({ success: true, purchased_ids: ['all'] })
     }
 
@@ -1203,7 +1213,10 @@ app.get('/api/archive/purchased', async (c) => {
       SELECT debate_id FROM archive_views WHERE user_id = ?
     `).bind(user.user_id).all()
 
-    const purchasedIds = (views.results || []).map((v: any) => v.debate_id)
+    // Return only valid debate IDs (exclude null, empty, 'undefined')
+    const purchasedIds = (views.results || [])
+      .map((v: any) => String(v.debate_id))
+      .filter((id: string) => id && id !== 'null' && id !== 'undefined' && id.length > 0)
 
     return c.json({ success: true, purchased_ids: purchasedIds })
   } catch (error) {
@@ -1258,7 +1271,7 @@ app.post('/api/debate/:debateId/status', async (c) => {
   try {
     const userCookie = getCookie(c, 'user')
     const user = safeParseUserCookie(userCookie)
-    if (!user || !isDevAdmin(user)) {
+    if (!user || !isDevAdmin(user, c.env)) {
       return c.json({ success: false, error: 'Permission denied' }, 403)
     }
 
@@ -1296,6 +1309,21 @@ app.post('/api/debate/:debateId/status', async (c) => {
           // Check if already archived
           const existingArchive = await c.env.DB.prepare('SELECT id FROM archived_debates WHERE debate_id = ?').bind(debateId).first()
           if (!existingArchive) {
+            const agreeCount = Number(agreeVotes?.count || 0)
+            const disagreeCount = Number(disagreeVotes?.count || 0)
+
+            // Winner determination: vote majority wins. Ties are broken by passed winner (AI judge result).
+            // NO draws - one side always wins.
+            let finalWinner: string
+            if (agreeCount > disagreeCount) {
+              finalWinner = 'agree'
+            } else if (disagreeCount > agreeCount) {
+              finalWinner = 'disagree'
+            } else {
+              // Tie: use AI judge result passed from frontend, fallback to 'agree'
+              finalWinner = (winner === 'agree' || winner === 'disagree') ? winner : 'agree'
+            }
+
             await c.env.DB.prepare(`
               INSERT INTO archived_debates (debate_id, title, topic, agree_position, disagree_position, agree_votes, disagree_votes, winner, messages, created_at, archived_at)
               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
@@ -1305,13 +1333,13 @@ app.post('/api/debate/:debateId/status', async (c) => {
               debate.topic || 'Unknown Topic',
               debate.agree_position || 'Agree',
               debate.disagree_position || 'Disagree',
-              agreeVotes?.count || 0,
-              disagreeVotes?.count || 0,
-              winner || debate.winner || null,
+              agreeCount,
+              disagreeCount,
+              finalWinner,
               messagesJson,
               debate.created_at || 'datetime("now")'
             ).run()
-            console.log(`Auto-archived debate ${debateId}`)
+            console.log(`Auto-archived debate ${debateId}, winner: ${finalWinner} (agree:${agreeCount} disagree:${disagreeCount})`)
           }
         }
       } catch (archiveError) {
@@ -1325,7 +1353,7 @@ app.post('/api/debate/:debateId/status', async (c) => {
   }
 })
 
-// API: Execute command (ONLY from Commands panel in nav menu)
+// API: Execute command (ONLY for authenticated dev admins)
 app.post('/api/commands/execute', async (c) => {
   try {
     const userCookie = getCookie(c, 'user')
@@ -1334,20 +1362,16 @@ app.post('/api/commands/execute', async (c) => {
       return c.json({ success: false, error: 'Not authenticated' }, 401)
     }
 
-    // SECURITY: Only dev admin can execute commands
-    if (!isDevAdmin(user)) {
+    // SECURITY: Only authenticated dev admin can execute commands
+    // source field from client is informational only - NOT used for auth
+    if (!isDevAdmin(user, c.env)) {
       return c.json({ success: false, error: 'Permission denied' }, 403)
     }
 
-    const { command, debateId, source } = await c.req.json()
+    const { command, debateId } = await c.req.json()
 
-    // SECURITY: Commands can ONLY be executed from the command panel
     if (!command) {
       return c.json({ success: false, error: 'コマンドが空です' }, 400)
-    }
-
-    if (source !== 'cmd-panel') {
-      return c.json({ success: false, error: 'コマンドはメニューの「コマンド」パネルからのみ実行できます' }, 403)
     }
 
     const cmd = command.trim()
@@ -1634,7 +1658,7 @@ app.post('/api/archive/purchase', async (c) => {
     const { debate_id } = await c.req.json()
 
     // Dev user bypasses credit check
-    const isDevUser = user.user_id === 'dev' && DEV_ADMIN_EMAILS.includes(user.email)
+    const isDevUser = user.user_id === 'dev' && getDevAdminEmails(c.env).includes((user.email||'').toLowerCase())
 
     // Check if already purchased
     const existingView = await c.env.DB.prepare(
@@ -1697,19 +1721,31 @@ app.post('/api/archive/save', async (c) => {
     const user = safeParseUserCookie(userCookie)
 
     // Only dev can save to archive
-    if (!(user.user_id === 'dev' && DEV_ADMIN_EMAILS.includes(user.email))) {
+    if (!(user.user_id === 'dev' && getDevAdminEmails(c.env).includes((user.email||'').toLowerCase()))) {
       return c.json({ success: false, error: 'Permission denied' }, 403)
     }
 
     const { debate_id, title, topic, agree_position, disagree_position, agree_votes, disagree_votes, winner, messages } = await c.req.json()
 
+    // Winner determination: votes majority wins, tie → use passed winner (AI judge), no draws
+    const agreeCount = Number(agree_votes || 0)
+    const disagreeCount = Number(disagree_votes || 0)
+    let finalWinner: string
+    if (agreeCount > disagreeCount) {
+      finalWinner = 'agree'
+    } else if (disagreeCount > agreeCount) {
+      finalWinner = 'disagree'
+    } else {
+      finalWinner = (winner === 'agree' || winner === 'disagree') ? winner : 'agree'
+    }
+
     // Insert into archived_debates table
     await c.env.DB.prepare(`
       INSERT INTO archived_debates (debate_id, title, topic, agree_position, disagree_position, agree_votes, disagree_votes, winner, messages, created_at, archived_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-    `).bind(debate_id, title, topic, agree_position, disagree_position, agree_votes, disagree_votes, winner, messages).run()
+    `).bind(debate_id, title, topic, agree_position, disagree_position, agreeCount, disagreeCount, finalWinner, messages).run()
 
-    console.log('Debate archived:', { debate_id, title, winner })
+    console.log('Debate archived:', { debate_id, title, winner: finalWinner })
 
     return c.json({ success: true })
   } catch (error) {
@@ -1995,6 +2031,12 @@ app.post('/api/debate/generate', async (c) => {
 // API: AI評価（JSON形式を強制）
 app.post('/api/debate/evaluate', async (c) => {
   try {
+    // SECURITY: Require authentication to prevent API cost abuse
+    const userCookie = getCookie(c, 'user')
+    const user = safeParseUserCookie(userCookie)
+    if (!user) {
+      return c.json({ error: 'Not authenticated' }, 401)
+    }
     const { prompt } = await c.req.json()
     const apiKey = c.env.OPENAI_API_KEY
 
@@ -2149,17 +2191,19 @@ app.post('/api/comment', async (c) => {
   }
 })
 
-// API: コメントを取得
+// API: コメントを取得（ユーザーアバター情報含む）
 app.get('/api/comments/:debateId', async (c) => {
   try {
     const debateId = c.req.param('debateId')
     const { DB } = c.env
 
+    // JOIN users table to include avatar info
     const result = await DB.prepare(`
-      SELECT *
-      FROM debate_comments
-      WHERE debate_id = ?
-      ORDER BY created_at ASC
+      SELECT dc.*, u.avatar_type, u.avatar_value, u.avatar_url
+      FROM debate_comments dc
+      LEFT JOIN users u ON dc.user_id = u.user_id
+      WHERE dc.debate_id = ?
+      ORDER BY dc.created_at ASC
       LIMIT 50
     `).bind(debateId).all()
 
@@ -2175,7 +2219,7 @@ app.delete('/api/comments/:debateId', async (c) => {
   try {
     const userCookie = getCookie(c, 'user')
     const user = safeParseUserCookie(userCookie)
-    if (!user || !isDevAdmin(user)) {
+    if (!user || !isDevAdmin(user, c.env)) {
       return c.json({ error: 'Permission denied' }, 403)
     }
 
@@ -2219,7 +2263,7 @@ app.delete('/api/debate/:debateId/messages', async (c) => {
   try {
     const userCookie = getCookie(c, 'user')
     const user = safeParseUserCookie(userCookie)
-    if (!user || !isDevAdmin(user)) {
+    if (!user || !isDevAdmin(user, c.env)) {
       return c.json({ error: 'Permission denied' }, 403)
     }
 
@@ -2241,6 +2285,12 @@ app.delete('/api/debate/:debateId/messages', async (c) => {
 // API: ディベートメッセージを保存
 app.post('/api/debate/message', async (c) => {
   try {
+    // SECURITY: Require authentication to save debate messages
+    const userCookie = getCookie(c, 'user')
+    const user = safeParseUserCookie(userCookie)
+    if (!user) {
+      return c.json({ error: 'Not authenticated' }, 401)
+    }
     const { debateId, side, model, content } = await c.req.json()
     const { DB } = c.env
 
@@ -2620,7 +2670,7 @@ app.post('/api/theme-votes/propose', async (c) => {
     }
 
     const user = safeParseUserCookie(userCookie)
-    const isDevUser = user.user_id === 'dev' && DEV_ADMIN_EMAILS.includes(user.email)
+    const isDevUser = user.user_id === 'dev' && getDevAdminEmails(c.env).includes((user.email||'').toLowerCase())
 
     // Always get fresh user data from DB
     const freshUserData = await c.env.DB.prepare(
@@ -2739,7 +2789,7 @@ app.post('/api/theme-votes/:id/adopt', async (c) => {
     }
 
     const user = safeParseUserCookie(userCookie)
-    if (!isDevAdmin(user)) {
+    if (!isDevAdmin(user, c.env)) {
       return c.json({ success: false, error: 'Permission denied' }, 403)
     }
 
@@ -2772,7 +2822,7 @@ app.post('/api/theme-votes/:id/delete', async (c) => {
     }
 
     const user = safeParseUserCookie(userCookie)
-    if (!isDevAdmin(user)) {
+    if (!isDevAdmin(user, c.env)) {
       return c.json({ success: false, error: 'Permission denied' }, 403)
     }
 
@@ -2828,7 +2878,7 @@ app.get('/api/admin/tickets', async (c) => {
     }
 
     const user = safeParseUserCookie(userCookie)
-    if (!isDevAdmin(user)) {
+    if (!isDevAdmin(user, c.env)) {
       return c.json({ success: false, error: 'Permission denied' }, 403)
     }
 
@@ -2914,7 +2964,7 @@ app.get('/api/tickets/:id/messages', async (c) => {
       return c.json({ success: false, error: 'Ticket not found' }, 404)
     }
 
-    if (ticket.user_id !== user.user_id && !(user.user_id === 'dev' && DEV_ADMIN_EMAILS.includes(user.email))) {
+    if (ticket.user_id !== user.user_id && !(user.user_id === 'dev' && getDevAdminEmails(c.env).includes((user.email||'').toLowerCase()))) {
       return c.json({ success: false, error: 'Permission denied' }, 403)
     }
 
@@ -2958,7 +3008,7 @@ app.post('/api/tickets/:id/reply', async (c) => {
       return c.json({ success: false, error: 'Ticket not found' }, 404)
     }
 
-    if (ticket.user_id !== user.user_id && !(user.user_id === 'dev' && DEV_ADMIN_EMAILS.includes(user.email))) {
+    if (ticket.user_id !== user.user_id && !(user.user_id === 'dev' && getDevAdminEmails(c.env).includes((user.email||'').toLowerCase()))) {
       return c.json({ success: false, error: 'Permission denied' }, 403)
     }
 
@@ -2968,7 +3018,7 @@ app.post('/api/tickets/:id/reply', async (c) => {
     }
 
     const messageId = crypto.randomUUID()
-    const isStaffReply = (user.user_id === 'dev' && DEV_ADMIN_EMAILS.includes(user.email)) ? 1 : 0
+    const isStaffReply = (user.user_id === 'dev' && getDevAdminEmails(c.env).includes((user.email||'').toLowerCase())) ? 1 : 0
 
     // Add message
     await c.env.DB.prepare(`
@@ -3049,7 +3099,7 @@ app.post('/api/admin/tickets/:id/status', async (c) => {
     }
 
     const user = safeParseUserCookie(userCookie)
-    if (!isDevAdmin(user)) {
+    if (!isDevAdmin(user, c.env)) {
       return c.json({ success: false, error: 'Permission denied' }, 403)
     }
 

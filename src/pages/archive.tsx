@@ -113,9 +113,9 @@ export const archivePage = (userData: any) => `<!DOCTYPE html>
         }
         
         function isPurchased(debateId) {
-            if (currentUser.user_id === 'dev') return true;
+            // 'all' is only returned by server for authenticated dev admins
             if (purchasedDebateIds.includes('all')) return true;
-            return purchasedDebateIds.includes(debateId) || purchasedDebateIds.includes(String(debateId));
+            return purchasedDebateIds.includes(String(debateId)) || purchasedDebateIds.includes(debateId);
         }
         
         async function loadDebates() {
@@ -162,7 +162,7 @@ export const archivePage = (userData: any) => `<!DOCTYPE html>
 
                         <div class="flex justify-between text-sm text-gray-400 mb-3">
                             <span><i class="fas fa-thumbs-up text-green-400 mr-1"></i>\${debate.agree_votes || 0}票</span>
-                            <span class="text-yellow-400 font-bold">\${debate.winner === 'agree' ? '意見A勝利' : debate.winner === 'disagree' ? '意見B勝利' : '引き分け'}</span>
+                            <span class="text-yellow-400 font-bold">\${debate.winner === 'agree' ? '意見A勝利' : '意見B勝利'}</span>
                             <span><i class="fas fa-thumbs-down text-red-400 mr-1"></i>\${debate.disagree_votes || 0}票</span>
                         </div>
 
@@ -244,7 +244,7 @@ export const archivePage = (userData: any) => `<!DOCTYPE html>
                 document.getElementById('viewer-agree-votes').textContent = detail.agree_votes || 0;
                 document.getElementById('viewer-disagree-votes').textContent = detail.disagree_votes || 0;
                 
-                const winnerText = detail.winner === 'agree' ? '勝者: 意見A' : detail.winner === 'disagree' ? '勝者: 意見B' : '引き分け';
+                const winnerText = detail.winner === 'agree' ? '勝者: 意見A (Aether)' : '勝者: 意見B (Nova)';
                 document.getElementById('viewer-winner').innerHTML = '<i class="fas fa-trophy mr-1"></i>' + winnerText;
                 
                 // Parse and display messages

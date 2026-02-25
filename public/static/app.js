@@ -25,16 +25,21 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     });
 });
 
-// Social icon links (except Instagram)
+// Social icon links (except real links)
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.social-icon').forEach(icon => {
+        // Skip real anchor links (href starting with http or /)
         const href = icon.getAttribute('href');
-        if (href === '#') {
-            icon.addEventListener('click', (e) => {
-                e.preventDefault();
-                showNotification('✨ 機能は近日公開予定です！', 'info');
-            });
+        if (href && href !== '#' && (href.startsWith('http') || href.startsWith('/'))) {
+            return; // Real link - do not intercept
         }
+        if (icon.tagName.toLowerCase() === 'a' && href && href !== '#') {
+            return; // Real link - do not intercept
+        }
+        icon.addEventListener('click', (e) => {
+            e.preventDefault();
+            showNotification('✨ 機能は近日公開予定です！', 'info');
+        });
     });
 });
 

@@ -68,9 +68,9 @@ export const UserProfile: FC<UserProfileProps> = ({ profileUser, currentUser, st
                 background: linear-gradient(135deg, #0a0a0a 0%, #1a0a1f 100%);
                 color: #fff;
                 min-height: 100vh;
-                padding: 20px;
+                padding: 80px 20px 20px; /* top: 80px to account for fixed global nav */
             }
-            .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
+            .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
             .profile-header {
                 background: linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(255, 0, 255, 0.1));
                 border: 2px solid cyan;
@@ -202,7 +202,11 @@ export const UserProfile: FC<UserProfileProps> = ({ profileUser, currentUser, st
         `}</style>
       </head>
       <body>
-        <a href="/main" class="back-button">←</a>
+        {/* Simple fixed header for user profile page */}
+        <div id="mini-nav-header">
+          <a href="/main" class="mini-nav-logo"><i class="fas fa-robot" style="margin-right:8px;"></i>AI DEBATE</a>
+          <a href="/main" class="mini-nav-back"><i class="fas fa-arrow-left" style="margin-right:6px;"></i>メインへ戻る</a>
+        </div>
 
         <div class="container">
           <div class="profile-header">

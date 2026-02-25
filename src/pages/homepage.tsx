@@ -520,7 +520,7 @@ export const homepage = (user: any) => `
                             <span class="social-icon opacity-40 cursor-not-allowed" title="Coming Soon">
                                 <i class="fab fa-github"></i>
                             </span>
-                            <a href="https://www.instagram.com/not_rare.tar" target="_blank" rel="noopener noreferrer" class="social-icon">
+                            <a href="https://www.instagram.com/not_rare.tar" target="_blank" rel="noopener noreferrer" class="social-icon" style="cursor:pointer; text-decoration:none; display:flex; pointer-events:auto; z-index:1; position:relative;">
                                 <i class="fab fa-instagram"></i>
                             </a>
                         </div>

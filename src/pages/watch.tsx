@@ -387,6 +387,10 @@ export const watchPage = (user: any, debateId: string) => `
              data-debate-id="${debateId}" 
              data-user-id="${user.user_id}" 
              data-user-credits="${user.credits || 0}"
+             data-avatar-type="${user.avatar_type || ''}"
+             data-avatar-value="${user.avatar_value || ''}"
+             data-avatar-url="${user.avatar_url || ''}"
+             data-username="${user.username || user.user_id}"
              style="display:none;"></div>
         
         <script src="/static/watch.js"></script>

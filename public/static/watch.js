@@ -10,7 +10,11 @@ if (!appData) {
 const DEBATE_ID = appData.dataset.debateId;
 const currentUser = {
     user_id: appData.dataset.userId,
-    credits: parseInt(appData.dataset.userCredits)
+    credits: parseInt(appData.dataset.userCredits),
+    avatar_type: appData.dataset.avatarType || '',
+    avatar_value: appData.dataset.avatarValue || '',
+    avatar_url: appData.dataset.avatarUrl || '',
+    username: appData.dataset.username || appData.dataset.userId
 };
 
 // These will be loaded from DB
@@ -294,10 +298,27 @@ async function postComment() {
     const stanceIcon = userVote === 'agree' ? 'thumbs-up' : 'thumbs-down';
     const stanceText = userVote === 'agree' ? 'Aether支持' : 'Nova支持';
     const avatarGradient = userVote === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500';
-    const initial = currentUser.user_id.charAt(0).toUpperCase();
+    const borderColor = userVote === 'agree' ? '#22c55e' : '#ef4444';
+    const isDevSelf = currentUser.user_id === 'dev';
+    const selfFrameStyle = isDevSelf
+        ? 'border:3px solid transparent;background-image:linear-gradient(#111,#111),conic-gradient(from 0deg,#ffd700,#ff00ff,#00ffff,#22c55e,#ffd700);background-origin:border-box;background-clip:padding-box,border-box;box-shadow:0 0 15px rgba(255,215,0,0.4);'
+        : 'border:2px solid ' + borderColor + ';';
 
-    commentDiv.className = 'comment-item ' + stanceClass + ' bg-gray-900/50 p-3 rounded border border-cyan-500/30';
-    commentDiv.innerHTML = '<div class="flex items-center mb-2"><div class="w-8 h-8 rounded-full bg-gradient-to-br ' + avatarGradient + ' flex items-center justify-center text-xs font-bold mr-2">' + initial + '</div><div class="flex-1"><a href="/user/' + currentUser.user_id + '" class="text-sm font-bold hover:text-cyan-400 transition-colors">@' + (currentUser.nickname || currentUser.username || currentUser.user_id) + '</a><p class="text-xs text-' + stanceColor + '-400"><i class="fas fa-' + stanceIcon + ' mr-1"></i>' + stanceText + '</p></div></div><p class="text-sm text-gray-200">' + escapeHtml(text) + '</p>';
+    let selfAvatarHtml;
+    if (currentUser.avatar_url) {
+        selfAvatarHtml = '<img src="' + escapeHtml(currentUser.avatar_url) + '" alt="avatar" style="width:32px;height:32px;border-radius:50%;object-fit:cover;' + selfFrameStyle + '">';
+    } else if (currentUser.avatar_type && currentUser.avatar_type !== 'upload') {
+        const seed = currentUser.avatar_value || currentUser.user_id;
+        const dicebearUrl = 'https://api.dicebear.com/7.x/' + encodeURIComponent(currentUser.avatar_type) + '/svg?seed=' + encodeURIComponent(seed);
+        selfAvatarHtml = '<img src="' + dicebearUrl + '" alt="avatar" style="width:32px;height:32px;border-radius:50%;object-fit:cover;' + selfFrameStyle + '">';
+    } else {
+        const initial = currentUser.user_id.charAt(0).toUpperCase();
+        selfAvatarHtml = '<div class="bg-gradient-to-br ' + avatarGradient + ' flex items-center justify-center text-xs font-bold" style="width:32px;height:32px;border-radius:50%;flex-shrink:0;' + selfFrameStyle + '">' + initial + '</div>';
+    }
+
+    commentDiv.className = 'comment-item ' + stanceClass + ' bg-gray-900/50 p-3 rounded';
+    commentDiv.style.borderLeft = '3px solid ' + borderColor;
+    commentDiv.innerHTML = '<div class="flex items-center mb-2"><div style="flex-shrink:0;margin-right:8px;">' + selfAvatarHtml + '</div><div class="flex-1 min-w-0"><a href="/user/' + currentUser.user_id + '" class="text-sm font-bold hover:text-cyan-400 transition-colors">@' + escapeHtml(currentUser.username || currentUser.user_id) + '</a>' + (isDevSelf ? '<span style="margin-left:4px;background:linear-gradient(135deg,#ffd700,#ff8c00);color:#000;font-size:9px;font-weight:900;padding:1px 6px;border-radius:8px;">DEV</span>' : '') + '<p class="text-xs text-' + stanceColor + '-400"><i class="fas fa-' + stanceIcon + ' mr-1"></i>' + stanceText + '</p></div></div><p class="text-sm text-gray-200">' + escapeHtml(text) + '</p>';
 
     commentsList.appendChild(commentDiv);
     if (wasAtBottom) requestAnimationFrame(() => { commentsList.scrollTop = commentsList.scrollHeight; });
@@ -652,15 +673,46 @@ async function showFinalResults() {
     document.getElementById('disagreeBar').style.background = '';
     updateVoteDisplay();
 
-    if (!aiJudgeStances.judge1 && conversationHistory.length >= 2) {
+    // AI judging is ALWAYS performed (used as tiebreaker)
+    if (conversationHistory.length >= 2) {
         showToast('AIによる最終評価を実施中...');
         await performAIJudging();
     }
 
-    const agreePercent = Math.round((voteData.agree / voteData.total) * 100);
+    const total = voteData.total || 1;
+    const agreePercent = total > 0 ? Math.round((voteData.agree / total) * 100) : 50;
     const disagreePercent = 100 - agreePercent;
-    const winner = voteData.agree > voteData.disagree ? 'Aether' : 'Nova';
-    const winnerColor = voteData.agree > voteData.disagree ? 'text-green-400' : 'text-red-400';
+
+    // === Winner determination ===
+    // 1. Vote majority wins
+    // 2. If tied, AI judge majority (3 judges) decides
+    // 3. No draws - one side always wins
+    let winnerSide; // 'agree' | 'disagree'
+    let winnerReason = '';
+
+    if (voteData.agree > voteData.disagree) {
+        winnerSide = 'agree';
+        winnerReason = '投票多数';
+    } else if (voteData.disagree > voteData.agree) {
+        winnerSide = 'disagree';
+        winnerReason = '投票多数';
+    } else {
+        // Tie: use AI judges
+        const judgeVotes = { agree: 0, disagree: 0 };
+        ['judge1', 'judge2', 'judge3'].forEach(key => {
+            if (aiJudgeStances[key] === 'agree') judgeVotes.agree++;
+            else if (aiJudgeStances[key] === 'disagree') judgeVotes.disagree++;
+        });
+        if (judgeVotes.agree >= judgeVotes.disagree) {
+            winnerSide = 'agree';
+        } else {
+            winnerSide = 'disagree';
+        }
+        winnerReason = 'AI審査員判定（投票同数）';
+    }
+
+    const winner = winnerSide === 'agree' ? 'Aether' : 'Nova';
+    const winnerColor = winnerSide === 'agree' ? 'text-green-400' : 'text-red-400';
 
     let judgeHTML = '';
     ['judge1', 'judge2', 'judge3'].forEach((key, i) => {
@@ -670,11 +722,13 @@ async function showFinalResults() {
         judgeHTML += '<div class="mb-2"><span class="text-cyan-400 font-bold">AI-Judge-' + (i + 1) + ':</span> <span class="' + judgeColor + '">' + judgeWinner + '</span></div>';
     });
 
+    const reasonHtml = winnerReason ? '<p class="text-sm text-gray-400 mt-2">決定理由: ' + winnerReason + '</p>' : '';
+
     const resultModal = document.createElement('div');
     resultModal.className = 'fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center z-50';
     resultModal.innerHTML = '<div class="cyber-card max-w-3xl w-full mx-4">' +
         '<h2 class="text-4xl font-bold text-center mb-8"><i class="fas fa-trophy mr-3 text-yellow-400"></i>最終結果</h2>' +
-        '<div class="text-center mb-8"><p class="text-2xl mb-4">勝者</p><p class="text-5xl font-bold ' + winnerColor + ' mb-4">' + winner + '</p></div>' +
+        '<div class="text-center mb-8"><p class="text-2xl mb-4">勝者</p><p class="text-5xl font-bold ' + winnerColor + ' mb-4">' + winner + '</p>' + reasonHtml + '</div>' +
         '<div class="grid grid-cols-2 gap-6 mb-8">' +
         '<div class="text-center p-6 bg-green-500/20 rounded"><p class="text-xl mb-2"><i class="fas fa-brain mr-1"></i>Aether (賛成)</p><p class="text-4xl font-bold text-green-400">' + agreePercent + '%</p><p class="text-sm text-gray-400 mt-2">' + voteData.agree + ' 票</p></div>' +
         '<div class="text-center p-6 bg-red-500/20 rounded"><p class="text-xl mb-2"><i class="fas fa-fire mr-1"></i>Nova (反対)</p><p class="text-4xl font-bold text-red-400">' + disagreePercent + '%</p><p class="text-sm text-gray-400 mt-2">' + voteData.disagree + ' 票</p></div>' +
@@ -689,12 +743,12 @@ async function showFinalResults() {
 
     document.body.appendChild(resultModal);
 
-    // Mark debate as completed in DB
+    // Mark debate as completed in DB (pass winnerSide for tie-break logic)
     try {
         await fetch('/api/debate/' + DEBATE_ID + '/status', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: 'completed', winner: winner === 'Aether' ? 'agree' : 'disagree' })
+            body: JSON.stringify({ status: 'completed', winner: winnerSide })
         });
     } catch (e) { }
 
@@ -885,11 +939,30 @@ async function loadCommentsFromD1() {
                 const stanceIcon = c.vote === 'agree' ? 'thumbs-up' : 'thumbs-down';
                 const stanceText = c.vote === 'agree' ? 'Aether支持' : 'Nova支持';
                 const avatarGradient = c.vote === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500';
-                const initial = c.username ? c.username.charAt(0).toUpperCase() : '?';
+                const borderColor = c.vote === 'agree' ? '#22c55e' : '#ef4444';
+
+                // Build avatar HTML: prefer real avatar, fallback to initial
+                let avatarHtml;
+                const isDevCommentUser = c.user_id === 'dev';
+                const frameStyle = isDevCommentUser
+                    ? 'border:3px solid transparent;background-image:linear-gradient(#111,#111),conic-gradient(from 0deg,#ffd700,#ff00ff,#00ffff,#22c55e,#ffd700);background-origin:border-box;background-clip:padding-box,border-box;box-shadow:0 0 15px rgba(255,215,0,0.4);'
+                    : 'border:2px solid ' + borderColor + ';';
+
+                if (c.avatar_url) {
+                    avatarHtml = '<img src="' + escapeHtml(c.avatar_url) + '" alt="avatar" style="width:32px;height:32px;border-radius:50%;object-fit:cover;' + frameStyle + '">';
+                } else if (c.avatar_type && c.avatar_type !== 'upload') {
+                    const seed = c.avatar_value || c.user_id;
+                    const dicebearUrl = 'https://api.dicebear.com/7.x/' + encodeURIComponent(c.avatar_type) + '/svg?seed=' + encodeURIComponent(seed);
+                    avatarHtml = '<img src="' + dicebearUrl + '" alt="avatar" style="width:32px;height:32px;border-radius:50%;object-fit:cover;' + frameStyle + '">';
+                } else {
+                    const initial = c.username ? c.username.charAt(0).toUpperCase() : '?';
+                    avatarHtml = '<div class="bg-gradient-to-br ' + avatarGradient + ' flex items-center justify-center text-xs font-bold" style="width:32px;height:32px;border-radius:50%;flex-shrink:0;' + frameStyle + '">' + initial + '</div>';
+                }
 
                 const div = document.createElement('div');
-                div.className = 'comment-item ' + stanceClass + ' bg-gray-900/50 p-3 rounded border border-cyan-500/30';
-                div.innerHTML = '<div class="flex items-center mb-2"><div class="w-8 h-8 rounded-full bg-gradient-to-br ' + avatarGradient + ' flex items-center justify-center text-xs font-bold mr-2">' + initial + '</div><div class="flex-1"><a href="/user/' + c.user_id + '" class="text-sm font-bold hover:text-cyan-400 transition-colors">@' + escapeHtml(c.username || 'unknown') + '</a><p class="text-xs text-' + stanceColor + '-400"><i class="fas fa-' + stanceIcon + ' mr-1"></i>' + stanceText + '</p></div></div><p class="text-sm text-gray-200" style="word-break: break-all; white-space: pre-wrap;">' + escapeHtml(c.content) + '</p>';
+                div.className = 'comment-item ' + stanceClass + ' bg-gray-900/50 p-3 rounded';
+                div.style.borderLeft = '3px solid ' + borderColor;
+                div.innerHTML = '<div class="flex items-center mb-2"><div style="flex-shrink:0;margin-right:8px;">' + avatarHtml + '</div><div class="flex-1 min-w-0"><a href="/user/' + c.user_id + '" class="text-sm font-bold hover:text-cyan-400 transition-colors">@' + escapeHtml(c.username || 'unknown') + '</a>' + (isDevCommentUser ? '<span style="margin-left:4px;background:linear-gradient(135deg,#ffd700,#ff8c00);color:#000;font-size:9px;font-weight:900;padding:1px 6px;border-radius:8px;">DEV</span>' : '') + '<p class="text-xs text-' + stanceColor + '-400"><i class="fas fa-' + stanceIcon + ' mr-1"></i>' + stanceText + '</p></div></div><p class="text-sm text-gray-200" style="word-break:break-all;white-space:pre-wrap;">' + escapeHtml(c.content) + '</p>';
                 commentsList.appendChild(div);
             }
 
