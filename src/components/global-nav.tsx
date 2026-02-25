@@ -16,12 +16,12 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
     <style>
       #nav-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); backdrop-filter: blur(10px); z-index: 9998; display: none; animation: fadeIn 0.3s ease; }
       #nav-overlay.active { display: block; }
-      #nav-toggle { position: fixed; top: 20px; right: 20px; width: 70px; height: 70px; background: linear-gradient(135deg, rgba(0,255,255,0.3), rgba(255,0,255,0.3)); border: 3px solid #00ffff; border-radius: 50%; cursor: pointer; z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; transition: all 0.3s ease; box-shadow: 0 0 30px rgba(0,255,255,0.6); }
-      #nav-toggle:hover { transform: scale(1.15) rotate(90deg); box-shadow: 0 0 40px rgba(0,255,255,1); background: linear-gradient(135deg, rgba(0,255,255,0.5), rgba(255,0,255,0.5)); }
-      #nav-toggle span { width: 35px; height: 4px; background: #00ffff; border-radius: 3px; transition: all 0.3s ease; box-shadow: 0 0 15px rgba(0,255,255,0.8); pointer-events: none; }
-      #nav-toggle.active span:nth-child(1) { transform: rotate(45deg) translate(8px, 8px); }
+      #nav-toggle { background: transparent; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; z-index: 10000; padding: 10px; transition: all 0.3s ease; }
+      #nav-toggle:hover span { background: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.8); }
+      #nav-toggle span { width: 30px; height: 3px; background: #00ffff; border-radius: 3px; transition: all 0.3s ease; pointer-events: none; }
+      #nav-toggle.active span:nth-child(1) { transform: rotate(45deg) translate(6px, 6px); background: #ff0080; }
       #nav-toggle.active span:nth-child(2) { opacity: 0; }
-      #nav-toggle.active span:nth-child(3) { transform: rotate(-45deg) translate(8px, -8px); }
+      #nav-toggle.active span:nth-child(3) { transform: rotate(-45deg) translate(6px, -6px); background: #ff0080; }
       #nav-menu { position: fixed; top: 0; right: -100%; width: 400px; max-width: 90%; height: 100vh; background: linear-gradient(135deg, rgba(0,20,40,0.95), rgba(20,0,40,0.95)); border-left: 2px solid #00ffff; z-index: 9999; transition: right 0.5s cubic-bezier(0.68,-0.55,0.265,1.55); overflow-y: auto; box-shadow: -10px 0 50px rgba(0,255,255,0.3); }
       #nav-menu.active { right: 0; }
       .nav-profile { padding: 40px 30px 30px; border-bottom: 2px solid rgba(0,255,255,0.3); background: linear-gradient(135deg, rgba(0,255,255,0.1), rgba(255,0,255,0.1)); }
@@ -43,8 +43,6 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
       .nav-logout:hover { background: linear-gradient(135deg, rgba(255,0,0,0.4), rgba(255,0,255,0.4)); transform: translateY(-2px); box-shadow: 0 5px 25px rgba(255,0,128,0.5); }
       @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
       @media (max-width: 768px) {
-        #nav-toggle { width: 50px; height: 50px; top: 15px; right: 15px; }
-        #nav-toggle span { width: 25px; }
         #nav-menu { width: 320px; }
         .nav-profile { padding: 30px 20px 20px; }
         .nav-avatar { width: 60px; height: 60px; }
@@ -52,9 +50,16 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
       }
     </style>
 
-    <button id="nav-toggle" aria-label="Menu Toggle">
-      <span></span><span></span><span></span>
-    </button>
+    <!-- Fixed Top Header -->
+    <header style="position: fixed; top: 0; left: 0; width: 100%; height: 60px; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(0,255,255,0.3); display: flex; justify-content: space-between; align-items: center; padding: 0 20px; z-index: 9997;">
+      <a href="/main" style="text-decoration: none; color: #00ffff; font-family: 'Orbitron', sans-serif; font-size: 1.2rem; font-weight: 900; letter-spacing: 2px; text-shadow: 0 0 10px rgba(0,255,255,0.5);">
+        <i class="fas fa-robot" style="margin-right: 8px;"></i>AI DEBATE
+      </a>
+      <button id="nav-toggle" aria-label="Menu Toggle">
+        <span></span><span></span><span></span>
+      </button>
+    </header>
+
     <div id="nav-overlay"></div>
 
     <nav id="nav-menu">

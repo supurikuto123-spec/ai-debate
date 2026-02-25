@@ -1,5 +1,4 @@
 ﻿import type { FC } from 'hono/jsx'
-import { i18nScript } from '../components/i18n'
 
 
 interface UserProfileProps {
@@ -356,7 +355,6 @@ export const UserProfile: FC<UserProfileProps> = ({ profileUser, currentUser, st
             } catch(e) { console.error('Failed to save privacy:', e); }
           }
         ` }} />
-        <div dangerouslySetInnerHTML={{ __html: i18nScript() }} />
       </body>
     </html>
   )

@@ -46,7 +46,8 @@ function safeParseUserCookie(cookieValue: string | undefined): any | null {
 
 // Check if user is dev admin
 function isDevAdmin(user: any): boolean {
-  return !!user && user.user_id === 'dev' && !!user.email && DEV_ADMIN_EMAILS.includes(user.email)
+  return !!user && user.user_id === 'dev' && !!user.email &&
+    DEV_ADMIN_EMAILS.some(email => email.toLowerCase() === user.email.toLowerCase());
 }
 
 // Minimal user data for cookie (prevents 502 Bad Gateway from large cookies)
@@ -1392,6 +1393,9 @@ app.post('/api/commands/execute', async (c) => {
           randomTheme = defaultThemes[Math.floor(Math.random() * defaultThemes.length)]
         }
         try {
+          // Clear existing active debates if user wants a clean slate
+          await c.env.DB.prepare("UPDATE debates SET status = 'completed' WHERE status IN ('live', 'upcoming', 'pending')").run()
+
           await c.env.DB.prepare(`
             INSERT INTO debates (id, title, topic, agree_position, disagree_position, status, created_at)
             VALUES (?, ?, ?, ?, ?, 'pending', datetime('now'))
@@ -2735,11 +2739,7 @@ app.post('/api/theme-votes/:id/adopt', async (c) => {
     }
 
     const user = safeParseUserCookie(userCookie)
-    // SECURE DEV CHECK
-    const DEV_ADMIN_EMAILS = ['tomy63470@gmail.com', 'dev@example.com']
-    const isDevUser = user.user_id === 'dev' && DEV_ADMIN_EMAILS.includes(user.email)
-
-    if (!isDevUser) {
+    if (!isDevAdmin(user)) {
       return c.json({ success: false, error: 'Permission denied' }, 403)
     }
 
@@ -2772,11 +2772,7 @@ app.post('/api/theme-votes/:id/delete', async (c) => {
     }
 
     const user = safeParseUserCookie(userCookie)
-    // SECURE DEV CHECK
-    const DEV_ADMIN_EMAILS = ['tomy63470@gmail.com', 'dev@example.com']
-    const isDevUser = user.user_id === 'dev' && DEV_ADMIN_EMAILS.includes(user.email)
-
-    if (!isDevUser) {
+    if (!isDevAdmin(user)) {
       return c.json({ success: false, error: 'Permission denied' }, 403)
     }
 
@@ -2832,11 +2828,7 @@ app.get('/api/admin/tickets', async (c) => {
     }
 
     const user = safeParseUserCookie(userCookie)
-    // SECURE DEV CHECK
-    const DEV_ADMIN_EMAILS = ['tomy63470@gmail.com', 'dev@example.com']
-    const isDevUser = user.user_id === 'dev' && DEV_ADMIN_EMAILS.includes(user.email)
-
-    if (!isDevUser) {
+    if (!isDevAdmin(user)) {
       return c.json({ success: false, error: 'Permission denied' }, 403)
     }
 
@@ -3057,11 +3049,7 @@ app.post('/api/admin/tickets/:id/status', async (c) => {
     }
 
     const user = safeParseUserCookie(userCookie)
-    // SECURE DEV CHECK
-    const DEV_ADMIN_EMAILS = ['tomy63470@gmail.com', 'dev@example.com']
-    const isDevUser = user.user_id === 'dev' && DEV_ADMIN_EMAILS.includes(user.email)
-
-    if (!isDevUser) {
+    if (!isDevAdmin(user)) {
       return c.json({ success: false, error: 'Permission denied' }, 403)
     }
 

@@ -21,7 +21,7 @@ let OPINION_B = '';
 // Vote state - starts at 5:5, no random changes, no AI votes
 let userVote = null;
 let hasVoted = false;
-let voteData = { agree: 5, disagree: 5, total: 10 };
+let voteData = { agree: 0, disagree: 0, total: 0 };
 
 // Fog mode & AI judges
 let fogMode = false;
@@ -297,7 +297,7 @@ async function postComment() {
     const initial = currentUser.user_id.charAt(0).toUpperCase();
 
     commentDiv.className = 'comment-item ' + stanceClass + ' bg-gray-900/50 p-3 rounded border border-cyan-500/30';
-    commentDiv.innerHTML = '<div class="flex items-center mb-2"><div class="w-8 h-8 rounded-full bg-gradient-to-br ' + avatarGradient + ' flex items-center justify-center text-xs font-bold mr-2">' + initial + '</div><div class="flex-1"><a href="/user/' + currentUser.user_id + '" class="text-sm font-bold hover:text-cyan-400 transition-colors">@' + currentUser.user_id + '</a><p class="text-xs text-' + stanceColor + '-400"><i class="fas fa-' + stanceIcon + ' mr-1"></i>' + stanceText + '</p></div></div><p class="text-sm text-gray-200">' + escapeHtml(text) + '</p>';
+    commentDiv.innerHTML = '<div class="flex items-center mb-2"><div class="w-8 h-8 rounded-full bg-gradient-to-br ' + avatarGradient + ' flex items-center justify-center text-xs font-bold mr-2">' + initial + '</div><div class="flex-1"><a href="/user/' + currentUser.user_id + '" class="text-sm font-bold hover:text-cyan-400 transition-colors">@' + (currentUser.nickname || currentUser.username || currentUser.user_id) + '</a><p class="text-xs text-' + stanceColor + '-400"><i class="fas fa-' + stanceIcon + ' mr-1"></i>' + stanceText + '</p></div></div><p class="text-sm text-gray-200">' + escapeHtml(text) + '</p>';
 
     commentsList.appendChild(commentDiv);
     if (wasAtBottom) requestAnimationFrame(() => { commentsList.scrollTop = commentsList.scrollHeight; });
@@ -505,9 +505,11 @@ async function startDebate() {
             }));
             updateDebateTimer();
             // Continue generating from where it left off
-            const lastSide = existingData.messages[existingData.messages.length - 1].side;
-            const nextSide = lastSide === 'agree' ? 'disagree' : 'agree';
-            setTimeout(() => generateAIResponse(nextSide), 3000);
+            if (currentUser.user_id === 'dev') {
+                const lastSide = existingData.messages[existingData.messages.length - 1].side;
+                const nextSide = lastSide === 'agree' ? 'disagree' : 'agree';
+                setTimeout(() => generateAIResponse(nextSide), 3000);
+            }
             return;
         }
     } catch (e) {
@@ -528,16 +530,21 @@ async function startDebate() {
     document.getElementById('debateMessages').innerHTML = '<div class="text-center text-cyan-300 p-4"><i class="fas fa-spinner fa-spin mr-2"></i>ディベート開始...</div>';
 
     // Mark debate as active in DB
-    try {
-        await fetch('/api/debate/' + DEBATE_ID + '/status', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: 'active' })
-        });
-    } catch (e) { }
+    if (currentUser.user_id === 'dev') {
+        try {
+            await fetch('/api/debate/' + DEBATE_ID + '/status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'active' })
+            });
+        } catch (e) { }
+    }
 
     updateDebateTimer();
-    await generateAIResponse('agree');
+
+    if (currentUser.user_id === 'dev') {
+        await generateAIResponse('agree');
+    }
 }
 window.startDebate = startDebate;
 
@@ -882,7 +889,7 @@ async function loadCommentsFromD1() {
 
                 const div = document.createElement('div');
                 div.className = 'comment-item ' + stanceClass + ' bg-gray-900/50 p-3 rounded border border-cyan-500/30';
-                div.innerHTML = '<div class="flex items-center mb-2"><div class="w-8 h-8 rounded-full bg-gradient-to-br ' + avatarGradient + ' flex items-center justify-center text-xs font-bold mr-2">' + initial + '</div><div class="flex-1"><a href="/user/' + c.username + '" class="text-sm font-bold hover:text-cyan-400 transition-colors">@' + c.username + '</a><p class="text-xs text-' + stanceColor + '-400"><i class="fas fa-' + stanceIcon + ' mr-1"></i>' + stanceText + '</p></div></div><p class="text-sm text-gray-200">' + c.content + '</p>';
+                div.innerHTML = '<div class="flex items-center mb-2"><div class="w-8 h-8 rounded-full bg-gradient-to-br ' + avatarGradient + ' flex items-center justify-center text-xs font-bold mr-2">' + initial + '</div><div class="flex-1"><a href="/user/' + c.user_id + '" class="text-sm font-bold hover:text-cyan-400 transition-colors">@' + c.username + '</a><p class="text-xs text-' + stanceColor + '-400"><i class="fas fa-' + stanceIcon + ' mr-1"></i>' + stanceText + '</p></div></div><p class="text-sm text-gray-200">' + c.content + '</p>';
                 commentsList.appendChild(div);
             }
 
@@ -970,9 +977,21 @@ window.addEventListener('DOMContentLoaded', async () => {
     syncCredits();
 
     // Realtime sync every 2 seconds
-    setInterval(() => {
+    setInterval(async () => {
         loadDebateMessagesFromD1();
         loadCommentsFromD1();
+
+        if (!debateActive && !finalVotingMode) {
+            try {
+                const res = await fetch('/api/debate/' + DEBATE_ID + '/theme');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.status === 'live' || (data.status === 'upcoming' && data.scheduled_at && new Date(data.scheduled_at) <= new Date())) {
+                        startDebate();
+                    }
+                }
+            } catch (e) { }
+        }
     }, 2000);
     setInterval(updateViewerCount, 2000);
 
