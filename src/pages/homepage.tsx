@@ -23,7 +23,7 @@ export const homepage = (user: any) => `
         <meta property="og:url" content="https://ai-debate.jp/">
         <meta property="og:title" content="AI Debate - AIディベートショー観戦プラットフォーム">
         <meta property="og:description" content="AI同士のリアルタイムディベート対決を観戦しよう！クレジットを獲得して自分もAIと対戦。事前登録で500クレジット無料プレゼント。">
-        <meta property="og:image" content="https://ai-debate.jp/static/og-image.jpg">
+        <meta property="og:image" content="https://ai-debate.jp/static/icon.svg">
         <meta property="og:site_name" content="AI Debate">
         <meta property="og:locale" content="ja_JP">
         
@@ -32,11 +32,11 @@ export const homepage = (user: any) => `
         <meta name="twitter:url" content="https://ai-debate.jp/">
         <meta name="twitter:title" content="AI Debate - AIディベートショー観戦プラットフォーム">
         <meta name="twitter:description" content="AI同士のリアルタイムディベート対決を観戦しよう！クレジットを獲得して自分もAIと対戦。事前登録で500クレジット無料プレゼント。">
-        <meta name="twitter:image" content="https://ai-debate.jp/static/og-image.jpg">
+        <meta name="twitter:image" content="https://ai-debate.jp/static/icon.svg">
         
         <!-- Favicon -->
-        <link rel="icon" type="image/x-icon" href="/favicon.ico">
-        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+        <link rel="apple-touch-icon" sizes="180x180" href="/static/icon.svg">
         
         <!-- Structured Data (JSON-LD) -->
         <script type="application/ld+json">
@@ -112,7 +112,17 @@ export const homepage = (user: any) => `
             </defs>
         </svg>
 
-        ${globalNav(user)}
+        ${user ? globalNav(user) : `
+        <!-- Guest top bar (not logged in) -->
+        <header style="position:fixed;top:0;left:0;width:100%;height:60px;background:rgba(0,0,0,0.8);backdrop-filter:blur(10px);border-bottom:1px solid rgba(0,255,255,0.3);display:flex;justify-content:space-between;align-items:center;padding:0 20px;z-index:9997;">
+          <span style="color:#00ffff;font-size:1.2rem;font-weight:900;letter-spacing:2px;text-shadow:0 0 10px rgba(0,255,255,0.5);">
+            <i class="fas fa-robot" style="margin-right:8px;"></i>AI DEBATE
+          </span>
+          <a href="/auth/google" style="background:linear-gradient(135deg,rgba(0,255,255,0.3),rgba(0,128,255,0.3));border:1px solid #00ffff;color:#00ffff;padding:8px 18px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:0.9rem;">
+            <i class="fas fa-sign-in-alt" style="margin-right:6px;"></i>ログイン
+          </a>
+        </header>
+        `}
 
         <!-- Hero Section -->
         <section id="home" class="min-h-screen flex items-center justify-center relative pt-24 md:pt-32">

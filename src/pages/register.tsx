@@ -5,6 +5,7 @@ export const registerPage = (data: { email: string; name: string }) => `
     <html lang="ja">
     <head>
         <meta charset="UTF-8">
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg">
         <meta name="viewport" content="width=1280, initial-scale=0.5, maximum-scale=1.0, user-scalable=yes">
         <title>事前登録 - AI Debate | 500クレジット無料プレゼント</title>
         <meta name="description" content="AI Debateの事前登録ページ。ユーザーIDとユーザー名を設定して、500クレジット無料でゲット！AI同士のディベート対決を楽しもう。">

@@ -1,4 +1,4 @@
-﻿import { globalNav } from '../components/global-nav';
+import { globalNav } from '../components/global-nav';
 
 
 export const myPage = (userData: any, stats?: any) => {
@@ -10,6 +10,7 @@ export const myPage = (userData: any, stats?: any) => {
     <html lang="ja">
     <head>
         <meta charset="UTF-8">
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>マイページ - AI Debate Arena</title>
         <script src="https://cdn.tailwindcss.com"></script>
@@ -26,19 +27,16 @@ export const myPage = (userData: any, stats?: any) => {
                 background: rgba(0, 20, 40, 0.8);
                 object-fit: cover;
             }
-            
             .avatar-preset:hover {
                 border-color: #00ffff;
                 box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
                 transform: scale(1.1);
             }
-            
             .avatar-preset.selected {
                 border-color: #00ffff;
                 box-shadow: 0 0 30px rgba(0, 255, 255, 0.8);
                 transform: scale(1.15);
             }
-
             .profile-card {
                 background: linear-gradient(135deg, rgba(0, 20, 40, 0.9), rgba(20, 0, 40, 0.9));
                 border: 2px solid rgba(0, 255, 255, 0.3);
@@ -46,7 +44,6 @@ export const myPage = (userData: any, stats?: any) => {
                 padding: 30px;
                 box-shadow: 0 10px 50px rgba(0, 255, 255, 0.2);
             }
-
             .current-avatar {
                 width: 120px;
                 height: 120px;
@@ -56,14 +53,12 @@ export const myPage = (userData: any, stats?: any) => {
                 background: rgba(0, 20, 40, 0.8);
                 object-fit: cover;
             }
-
             .form-label {
                 color: #00ffff;
                 font-weight: 700;
                 margin-bottom: 8px;
                 display: block;
             }
-
             .form-input {
                 background: rgba(0, 0, 0, 0.5);
                 border: 2px solid rgba(0, 255, 255, 0.3);
@@ -73,13 +68,11 @@ export const myPage = (userData: any, stats?: any) => {
                 width: 100%;
                 transition: all 0.3s ease;
             }
-
             .form-input:focus {
                 outline: none;
                 border-color: #00ffff;
                 box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
             }
-
             .save-btn {
                 background: linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(255, 0, 255, 0.3));
                 border: 2px solid #00ffff;
@@ -91,13 +84,11 @@ export const myPage = (userData: any, stats?: any) => {
                 transition: all 0.3s ease;
                 box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
             }
-
             .save-btn:hover {
                 background: linear-gradient(135deg, rgba(0, 255, 255, 0.5), rgba(255, 0, 255, 0.5));
                 box-shadow: 0 0 30px rgba(0, 255, 255, 0.6);
                 transform: translateY(-2px);
             }
-
             .style-tab {
                 padding: 6px 14px;
                 border-radius: 6px;
@@ -108,13 +99,92 @@ export const myPage = (userData: any, stats?: any) => {
                 border: 1px solid rgba(6, 182, 212, 0.3);
                 color: #06b6d4;
             }
-            .style-tab:hover {
-                background: rgba(6, 182, 212, 0.2);
-            }
+            .style-tab:hover { background: rgba(6, 182, 212, 0.2); }
             .style-tab.active {
                 background: rgba(6, 182, 212, 0.3);
                 border-color: #06b6d4;
                 color: #fff;
+            }
+
+            /* ON/OFF Toggle Switch */
+            .toggle-row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 14px 16px;
+                background: rgba(0, 0, 0, 0.3);
+                border: 1px solid rgba(0, 255, 255, 0.15);
+                border-radius: 12px;
+                transition: background 0.2s;
+            }
+            .toggle-row:hover { background: rgba(0, 255, 255, 0.05); }
+            .toggle-label {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                font-size: 0.95rem;
+                color: #e2e8f0;
+            }
+            .toggle-label i { color: #00ffff; width: 18px; text-align: center; }
+            .toggle-switch {
+                position: relative;
+                display: inline-block;
+                width: 54px;
+                height: 28px;
+                flex-shrink: 0;
+            }
+            .toggle-switch input { opacity: 0; width: 0; height: 0; }
+            .toggle-slider {
+                position: absolute;
+                cursor: pointer;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(255,255,255,0.15);
+                border: 2px solid rgba(255,255,255,0.2);
+                border-radius: 28px;
+                transition: all 0.3s ease;
+            }
+            .toggle-slider:before {
+                content: '';
+                position: absolute;
+                height: 20px;
+                width: 20px;
+                left: 2px;
+                bottom: 2px;
+                background: #aaa;
+                border-radius: 50%;
+                transition: all 0.3s ease;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            }
+            .toggle-switch input:checked + .toggle-slider {
+                background: linear-gradient(135deg, rgba(0,255,255,0.3), rgba(0,200,255,0.4));
+                border-color: #00ffff;
+                box-shadow: 0 0 12px rgba(0,255,255,0.4);
+            }
+            .toggle-switch input:checked + .toggle-slider:before {
+                transform: translateX(26px);
+                background: #00ffff;
+                box-shadow: 0 0 8px rgba(0,255,255,0.6);
+            }
+            .toggle-status {
+                font-size: 0.75rem;
+                font-weight: 700;
+                margin-left: 8px;
+                min-width: 30px;
+            }
+            .toggle-status.on { color: #00ffff; }
+            .toggle-status.off { color: #666; }
+
+            /* Watched debates */
+            .watched-card {
+                background: rgba(0, 0, 0, 0.4);
+                border: 1px solid rgba(100, 100, 255, 0.25);
+                border-radius: 12px;
+                padding: 14px;
+                transition: all 0.2s;
+            }
+            .watched-card:hover {
+                border-color: rgba(100, 100, 255, 0.5);
+                background: rgba(50, 0, 100, 0.3);
             }
         </style>
     </head>
@@ -252,15 +322,16 @@ export const myPage = (userData: any, stats?: any) => {
                     </div>
                 </div>
 
-                <!-- Statistics Section -->
+                <!-- Statistics Section (Battle only) -->
                 <div class="profile-card mt-8">
-                    <h2 class="text-2xl font-bold text-cyan-400 mb-6 flex items-center">
-                        <i class="fas fa-chart-bar mr-3"></i>統計情報
+                    <h2 class="text-2xl font-bold text-cyan-400 mb-2 flex items-center">
+                        <i class="fas fa-trophy mr-3"></i>対戦統計
                     </h2>
+                    <p class="text-gray-400 text-sm mb-6"><i class="fas fa-info-circle mr-1"></i>対戦時の成績のみ（観戦は含まれません）</p>
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-4" id="stats-grid">
                         <div class="text-center p-4 bg-black/40 rounded-lg border border-cyan-500/20">
                             <div class="text-3xl font-bold text-cyan-400" id="stat-total-debates">-</div>
-                            <div class="text-sm text-gray-400 mt-1">総ディベート数</div>
+                            <div class="text-sm text-gray-400 mt-1">対戦数</div>
                         </div>
                         <div class="text-center p-4 bg-black/40 rounded-lg border border-green-500/20">
                             <div class="text-3xl font-bold text-green-400" id="stat-wins">-</div>
@@ -293,6 +364,108 @@ export const myPage = (userData: any, stats?: any) => {
                     </div>
                 </div>
 
+                <!-- Watched Debates Section -->
+                <div class="profile-card mt-8">
+                    <h2 class="text-2xl font-bold text-purple-400 mb-2 flex items-center">
+                        <i class="fas fa-eye mr-3"></i>閲覧ディベート
+                    </h2>
+                    <p class="text-gray-400 text-sm mb-6">
+                        <i class="fas fa-film mr-1"></i>購入して閲覧したアーカイブ
+                        <span class="ml-3 px-2 py-0.5 bg-purple-500/20 border border-purple-500/40 rounded text-purple-300 text-xs font-bold" id="watched-count">0本</span>
+                    </p>
+                    <div id="watched-list" class="space-y-3">
+                        <div class="text-center text-gray-500 py-6">
+                            <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                            <div class="text-sm">読み込み中...</div>
+                        </div>
+                    </div>
+                    <div class="mt-4 text-center">
+                        <a href="/archive" class="text-purple-400 hover:text-purple-300 text-sm transition-colors">
+                            <i class="fas fa-archive mr-1"></i>アーカイブを見る
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Privacy Settings Section -->
+                <div class="profile-card mt-8">
+                    <h2 class="text-2xl font-bold text-cyan-400 mb-2 flex items-center">
+                        <i class="fas fa-lock mr-3"></i>プロフィール公開設定
+                    </h2>
+                    <p class="text-gray-400 text-sm mb-6">
+                        <i class="fas fa-info-circle mr-1"></i>公開プロフィールページで表示する情報を選択
+                    </p>
+                    <div class="space-y-3" id="privacy-toggles">
+                        <div class="toggle-row">
+                            <label class="toggle-label" for="priv-debates">
+                                <i class="fas fa-gamepad"></i>
+                                <span>対戦数</span>
+                            </label>
+                            <div class="flex items-center">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="priv-debates" checked onchange="updatePrivacy()">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <span class="toggle-status on" id="status-debates">ON</span>
+                            </div>
+                        </div>
+                        <div class="toggle-row">
+                            <label class="toggle-label" for="priv-wins">
+                                <i class="fas fa-trophy"></i>
+                                <span>勝利数・敗北数</span>
+                            </label>
+                            <div class="flex items-center">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="priv-wins" checked onchange="updatePrivacy()">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <span class="toggle-status on" id="status-wins">ON</span>
+                            </div>
+                        </div>
+                        <div class="toggle-row">
+                            <label class="toggle-label" for="priv-winrate">
+                                <i class="fas fa-percentage"></i>
+                                <span>勝率</span>
+                            </label>
+                            <div class="flex items-center">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="priv-winrate" checked onchange="updatePrivacy()">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <span class="toggle-status on" id="status-winrate">ON</span>
+                            </div>
+                        </div>
+                        <div class="toggle-row">
+                            <label class="toggle-label" for="priv-posts">
+                                <i class="fas fa-edit"></i>
+                                <span>コミュニティ投稿数</span>
+                            </label>
+                            <div class="flex items-center">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="priv-posts" onchange="updatePrivacy()">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <span class="toggle-status off" id="status-posts">OFF</span>
+                            </div>
+                        </div>
+                        <div class="toggle-row">
+                            <label class="toggle-label" for="priv-credits">
+                                <i class="fas fa-coins"></i>
+                                <span>クレジット残高</span>
+                            </label>
+                            <div class="flex items-center">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="priv-credits" onchange="updatePrivacy()">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <span class="toggle-status off" id="status-credits">OFF</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="privacy-save-msg" class="hidden mt-4 text-center text-green-400 text-sm">
+                        <i class="fas fa-check-circle mr-1"></i>設定を保存しました
+                    </div>
+                </div>
+
                 <!-- Footer -->
                 <footer class="border-t border-cyan-500/20 mt-12 pt-8 pb-4">
                     <div class="flex flex-wrap justify-center gap-4 md:gap-6 text-sm text-gray-400">
@@ -304,7 +477,7 @@ export const myPage = (userData: any, stats?: any) => {
                         <a href="/legal" class="hover:text-cyan-400 transition-colors">特定商取引法</a>
                         <a href="/tickets" class="hover:text-cyan-400 transition-colors">サポート</a>
                     </div>
-                    <p class="text-center text-gray-600 text-xs mt-4">&copy; 2025 AI Debate Arena. All rights reserved.</p>
+                    <p class="text-center text-gray-600 text-xs mt-4">&copy; 2026 AI Debate Arena. All rights reserved.</p>
                 </footer>
             </div>
         </div>
@@ -314,8 +487,9 @@ export const myPage = (userData: any, stats?: any) => {
             let selectedAvatarType = '${userData.avatar_type || avatarType}';
             let selectedAvatarValue = '${userData.avatar_value || '1'}';
             let uploadedFile = null;
+            let privacySaveTimer = null;
 
-            // Load stats from user profile API
+            // ===== STATS =====
             (async function loadStats() {
                 try {
                     const res = await fetch('/api/user/stats');
@@ -334,13 +508,130 @@ export const myPage = (userData: any, stats?: any) => {
                 } catch(e) { console.error('Stats load error:', e); }
             })();
 
+            // ===== WATCHED DEBATES =====
+            (async function loadWatched() {
+                try {
+                    const res = await fetch('/api/archive/watched');
+                    const data = await res.json();
+                    const list = document.getElementById('watched-list');
+                    const countEl = document.getElementById('watched-count');
+                    if (!data.success || !data.debates || data.debates.length === 0) {
+                        list.innerHTML = '<div class="text-center text-gray-500 py-6"><i class="fas fa-film text-3xl mb-2 opacity-30"></i><div class="text-sm">まだ閲覧したディベートはありません</div><div class="text-xs mt-1 text-gray-600"><a href="/archive" class="text-purple-400 hover:underline">アーカイブを見る →</a></div></div>';
+                        countEl.textContent = '0本';
+                        return;
+                    }
+                    countEl.textContent = data.debates.length + '本';
+                    list.innerHTML = data.debates.map(d => {
+                        const winner = d.winner === 'agree' ? '<span class="text-green-400 font-bold"><i class="fas fa-crown mr-1"></i>意見A勝利</span>' :
+                                       d.winner === 'disagree' ? '<span class="text-red-400 font-bold"><i class="fas fa-crown mr-1"></i>意見B勝利</span>' :
+                                       '<span class="text-gray-400">-</span>';
+                        const date = d.watched_at ? new Date(d.watched_at).toLocaleDateString('ja-JP') : '';
+                        return '<div class="watched-card">' +
+                            '<div class="flex justify-between items-start gap-2">' +
+                            '<div class="flex-1 min-w-0">' +
+                            '<div class="text-sm font-bold text-purple-300 truncate">' + (d.theme || '（テーマ不明）') + '</div>' +
+                            '<div class="flex gap-3 mt-1 text-xs text-gray-400">' +
+                            '<span class="text-green-400/70"><i class="fas fa-thumbs-up mr-1"></i>' + (d.agree_votes || 0) + '票</span>' +
+                            '<span>' + winner + '</span>' +
+                            '<span class="text-red-400/70"><i class="fas fa-thumbs-down mr-1"></i>' + (d.disagree_votes || 0) + '票</span>' +
+                            '</div>' +
+                            '</div>' +
+                            '<div class="text-xs text-gray-500 whitespace-nowrap">' + date + '</div>' +
+                            '</div>' +
+                            '</div>';
+                    }).join('');
+                } catch(e) {
+                    document.getElementById('watched-list').innerHTML = '<div class="text-center text-gray-500 py-4 text-sm">読み込み失敗</div>';
+                }
+            })();
+
+            // ===== PRIVACY TOGGLES =====
+            const privacyMap = {
+                'priv-debates': 'show_total_debates',
+                'priv-wins':    'show_wins',
+                'priv-winrate': 'show_win_rate',
+                'priv-posts':   'show_posts',
+                'priv-credits': 'show_credits'
+            };
+            const statusMap = {
+                'priv-debates': 'status-debates',
+                'priv-wins':    'status-wins',
+                'priv-winrate': 'status-winrate',
+                'priv-posts':   'status-posts',
+                'priv-credits': 'status-credits'
+            };
+
+            // Load privacy settings
+            (async function loadPrivacy() {
+                try {
+                    const res = await fetch('/api/user/privacy');
+                    const data = await res.json();
+                    if (data.success && data.settings) {
+                        const s = data.settings;
+                        setToggle('priv-debates', s.show_total_debates !== false);
+                        setToggle('priv-wins',    s.show_wins !== false);
+                        setToggle('priv-winrate', s.show_win_rate !== false);
+                        setToggle('priv-posts',   s.show_posts === true);
+                        setToggle('priv-credits', s.show_credits === true);
+                    }
+                } catch(e) {}
+            })();
+
+            function setToggle(id, val) {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.checked = val;
+                updateStatusLabel(id, val);
+            }
+
+            function updateStatusLabel(id, checked) {
+                const statusId = statusMap[id];
+                if (!statusId) return;
+                const el = document.getElementById(statusId);
+                if (!el) return;
+                el.textContent = checked ? 'ON' : 'OFF';
+                el.className = 'toggle-status ' + (checked ? 'on' : 'off');
+            }
+
+            function updatePrivacy() {
+                // Update status labels immediately
+                Object.keys(privacyMap).forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) updateStatusLabel(id, el.checked);
+                });
+                // Debounce save
+                clearTimeout(privacySaveTimer);
+                privacySaveTimer = setTimeout(savePrivacy, 600);
+            }
+
+            async function savePrivacy() {
+                const settings = {};
+                Object.entries(privacyMap).forEach(([id, key]) => {
+                    const el = document.getElementById(id);
+                    settings[key] = el ? el.checked : true;
+                });
+                // Also save show_losses and show_draws (linked to show_wins for simplicity)
+                settings['show_losses'] = settings['show_wins'];
+                settings['show_draws'] = settings['show_wins'];
+                try {
+                    const res = await fetch('/api/user/privacy', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(settings)
+                    });
+                    if (res.ok) {
+                        const msg = document.getElementById('privacy-save-msg');
+                        msg.classList.remove('hidden');
+                        setTimeout(() => msg.classList.add('hidden'), 2000);
+                    }
+                } catch(e) {}
+            }
+
+            // ===== AVATAR GRID =====
             function renderAvatarGrid(style) {
                 const grid = document.getElementById('avatar-grid');
                 const seeds = [];
-                for (let i = 1; i <= 24; i++) {
-                    seeds.push(i);
-                }
-                
+                for (let i = 1; i <= 24; i++) seeds.push(i);
                 grid.innerHTML = seeds.map(seed => {
                     const isSelected = (selectedAvatarType === style) && selectedAvatarValue === seed.toString();
                     return '<img ' +
@@ -367,23 +658,12 @@ export const myPage = (userData: any, stats?: any) => {
             function selectAvatar(type, value) {
                 selectedAvatarType = type;
                 selectedAvatarValue = value;
-                
                 document.getElementById('avatar_type').value = type;
                 document.getElementById('avatar_value').value = value;
-                
-                document.querySelectorAll('.avatar-preset').forEach(img => {
-                    img.classList.remove('selected');
-                });
-                
+                document.querySelectorAll('.avatar-preset').forEach(img => img.classList.remove('selected'));
                 const selectedImg = document.querySelector('img[data-style="' + type + '"][data-seed="' + value + '"]');
-                if (selectedImg) {
-                    selectedImg.classList.add('selected');
-                }
-                
-                document.getElementById('current-avatar').src = 
-                    'https://api.dicebear.com/7.x/' + type + '/svg?seed=' + value;
-                
-                // Hide upload preview
+                if (selectedImg) selectedImg.classList.add('selected');
+                document.getElementById('current-avatar').src = 'https://api.dicebear.com/7.x/' + type + '/svg?seed=' + value;
                 document.getElementById('upload-preview').classList.add('hidden');
                 uploadedFile = null;
             }
@@ -391,57 +671,32 @@ export const myPage = (userData: any, stats?: any) => {
             async function handleAvatarUpload(event) {
                 const file = event.target.files[0];
                 if (!file) return;
-                
-                if (file.size > 2 * 1024 * 1024) {
-                    alert('ファイルサイズは2MB以下にしてください');
-                    return;
-                }
-                
-                if (!file.type.startsWith('image/')) {
-                    alert('画像ファイルを選択してください');
-                    return;
-                }
-                
+                if (file.size > 2 * 1024 * 1024) { alert('ファイルサイズは2MB以下にしてください'); return; }
+                if (!file.type.startsWith('image/')) { alert('画像ファイルを選択してください'); return; }
                 uploadedFile = file;
-                
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     document.getElementById('upload-preview-img').src = e.target.result;
                     document.getElementById('upload-preview').classList.remove('hidden');
                     document.getElementById('current-avatar').src = e.target.result;
-                    
-                    document.querySelectorAll('.avatar-preset').forEach(img => {
-                        img.classList.remove('selected');
-                    });
-                    
-                    selectedAvatarType = 'upload';
-                    selectedAvatarValue = '';
+                    document.querySelectorAll('.avatar-preset').forEach(img => img.classList.remove('selected'));
                 };
                 reader.readAsDataURL(file);
             }
 
+            // ===== PROFILE FORM SUBMIT =====
             document.getElementById('profile-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                
+                let avatarUrl = '${userData.avatar_url || ''}';
                 let avatarValue = selectedAvatarValue;
-                let avatarUrl = null;
-                
+
                 if (uploadedFile) {
                     try {
                         const uploadFormData = new FormData();
                         uploadFormData.append('avatar', uploadedFile);
-                        
-                        const uploadResponse = await fetch('/api/avatar/upload', {
-                            method: 'POST',
-                            body: uploadFormData
-                        });
-                        
+                        const uploadResponse = await fetch('/api/avatar/upload', { method: 'POST', body: uploadFormData });
                         const uploadResult = await uploadResponse.json();
-                        if (!uploadResult.success) {
-                            alert('画像のアップロードに失敗しました');
-                            return;
-                        }
-                        
+                        if (!uploadResult.success) { alert('画像のアップロードに失敗しました'); return; }
                         avatarUrl = uploadResult.url;
                         avatarValue = uploadResult.url;
                         selectedAvatarType = 'upload';
@@ -466,16 +721,11 @@ export const myPage = (userData: any, stats?: any) => {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(formData)
                     });
-
                     const result = await response.json();
-
                     if (result.success) {
                         document.getElementById('success-message').classList.remove('hidden');
                         document.getElementById('error-message').classList.add('hidden');
-                        
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 2000);
+                        setTimeout(() => window.location.reload(), 2000);
                     } else {
                         document.getElementById('error-message').classList.remove('hidden');
                         document.getElementById('error-text').textContent = result.error || 'エラーが発生しました';
@@ -501,7 +751,7 @@ export const myPage = (userData: any, stats?: any) => {
                         const creditsEl = document.getElementById('credits-value');
                         if (creditsEl && userData.credits !== undefined) {
                             creditsEl.textContent = Number(userData.credits).toLocaleString();
-                        if (window.updateCreditsDisplay) window.updateCreditsDisplay(userData.credits);
+                            if (window.updateCreditsDisplay) window.updateCreditsDisplay(userData.credits);
                         }
                     }
                 } catch (e) {

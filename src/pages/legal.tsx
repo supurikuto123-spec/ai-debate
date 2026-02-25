@@ -6,6 +6,7 @@ export const legalPage = (user: any) => `
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>特定商取引法に基づく表記 - AI Debate Arena</title>
     <meta name="description" content="AI Debate Arenaの特定商取引法に基づく表記。運営者情報、販売条件等を掲載しています。">

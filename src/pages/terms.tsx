@@ -6,6 +6,7 @@ export const termsPage = (user: any) => `
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>利用規約 - AI Debate Arena</title>
     <meta name="description" content="AI Debate Arenaの利用規約。サービスの利用条件、禁止事項、免責事項等を定めています。">

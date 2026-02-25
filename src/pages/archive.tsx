@@ -5,6 +5,7 @@ export const archivePage = (userData: any) => `<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>アーカイブ - AI Debate Arena</title>
     <script src="https://cdn.tailwindcss.com"></script>

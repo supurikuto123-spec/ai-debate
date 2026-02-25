@@ -1,5 +1,19 @@
 ﻿// Global Navigation Component - Cyberpunk Hamburger Menu
-export const globalNav = (user: { credits: number; user_id: string; avatar_type?: string; avatar_value?: string; avatar_url?: string }) => {
+export const globalNav = (user: { credits: number; user_id: string; avatar_type?: string; avatar_value?: string; avatar_url?: string } | null) => {
+  if (!user) {
+    // Guest navigation (not logged in)
+    return `
+    <style>
+      #guest-nav { position: fixed; top: 0; left: 0; width: 100%; z-index: 9999; background: linear-gradient(135deg, rgba(0,10,30,0.97), rgba(10,0,30,0.97)); border-bottom: 2px solid rgba(0,255,255,0.3); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; height: 60px; box-shadow: 0 4px 30px rgba(0,255,255,0.15); }
+      .guest-logo { font-size: 1.2rem; font-weight: 900; background: linear-gradient(135deg, #00ffff, #ff00ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 2px; text-decoration: none; }
+      .guest-nav-btn { background: linear-gradient(135deg, rgba(0,255,255,0.15), rgba(255,0,255,0.15)); border: 1.5px solid rgba(0,255,255,0.5); color: #00ffff; padding: 8px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 0.9rem; transition: all 0.3s; }
+      .guest-nav-btn:hover { background: rgba(0,255,255,0.3); box-shadow: 0 0 15px rgba(0,255,255,0.4); }
+    </style>
+    <nav id="guest-nav">
+      <a href="/" class="guest-logo">⚡ AI Debate</a>
+      <a href="/" class="guest-nav-btn"><i class="fas fa-sign-in-alt mr-2"></i>ログイン</a>
+    </nav>`;
+  }
   const isDevUser = user.user_id === 'dev';
   // Avatar display logic with proper priority
   const getAvatarUrl = () => {
@@ -52,8 +66,9 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
 
     <!-- Fixed Top Header -->
     <header style="position: fixed; top: 0; left: 0; width: 100%; height: 60px; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(0,255,255,0.3); display: flex; justify-content: space-between; align-items: center; padding: 0 20px; z-index: 9997;">
-      <a href="/main" style="text-decoration: none; color: #00ffff; font-family: 'Orbitron', sans-serif; font-size: 1.2rem; font-weight: 900; letter-spacing: 2px; text-shadow: 0 0 10px rgba(0,255,255,0.5);">
-        <i class="fas fa-robot" style="margin-right: 8px;"></i>AI DEBATE
+      <a href="/main" style="text-decoration: none; display: flex; align-items: center; gap: 10px;">
+        <img src="/favicon.svg" alt="AI Debate" style="width:32px;height:32px;border-radius:8px;">
+        <span style="color: #00ffff; font-family: 'Orbitron', sans-serif; font-size: 1.1rem; font-weight: 900; letter-spacing: 2px; text-shadow: 0 0 10px rgba(0,255,255,0.5); background: linear-gradient(135deg,#00ffff,#ff00ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">AI DEBATE</span>
       </a>
       <button id="nav-toggle" aria-label="Menu Toggle">
         <span></span><span></span><span></span>
@@ -197,6 +212,14 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
             <i class="fas fa-play" style="margin-right:8px;"></i>実行
           </button>
         </div>
+
+        <!-- Admin Quick Actions -->
+        <div style="border-top:1px solid rgba(255,0,128,0.3);padding-top:16px;margin-bottom:16px;">
+          <p style="font-size:12px;color:#ff0080;font-weight:bold;margin-bottom:10px;"><i class="fas fa-shield-alt" style="margin-right:4px;"></i>管理者クイックアクション</p>
+          <button onclick="adminDeleteAllArchives()" style="width:100%;padding:10px;background:rgba(239,68,68,0.2);border:1px solid #ef4444;border-radius:8px;color:#ef4444;font-weight:bold;font-size:14px;cursor:pointer;margin-bottom:8px;">
+            <i class="fas fa-trash-alt" style="margin-right:6px;"></i>アーカイブ全削除
+          </button>
+        </div>
         
         <div id="cmd-result" style="margin-bottom:20px;padding:15px;background:#0a0a0a;border:1px solid #333;border-radius:8px;font-family:monospace;font-size:14px;color:#9ca3af;min-height:40px;display:none;">
         </div>
@@ -318,6 +341,29 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
         input.value = '';
       }
       window.executeCmd = executeCmd;
+
+      async function adminDeleteAllArchives() {
+        const resultEl = document.getElementById('cmd-result');
+        resultEl.style.display = 'block';
+        if (!await window.customConfirm('⚠️ 本当にアーカイブをすべて削除しますか？\\nこの操作は取り消せません。')) return;
+        resultEl.style.color = '#9ca3af';
+        resultEl.textContent = '削除中...';
+        try {
+          const res = await fetch('/api/archive/all', { method: 'DELETE', headers: { 'Content-Type': 'application/json' } });
+          const data = await res.json();
+          if (data.success) {
+            resultEl.style.color = '#22c55e';
+            resultEl.textContent = '✅ ' + (data.message || 'アーカイブを全削除しました');
+          } else {
+            resultEl.style.color = '#ef4444';
+            resultEl.textContent = '❌ ' + (data.error || '削除失敗');
+          }
+        } catch(e) {
+          resultEl.style.color = '#ef4444';
+          resultEl.textContent = '❌ エラー: ' + e.message;
+        }
+      }
+      window.adminDeleteAllArchives = adminDeleteAllArchives;
     </script>
 
     <!-- Custom Animated Popups -->

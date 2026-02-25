@@ -90,6 +90,10 @@ app.get('/favicon.ico', (c) => {
   return new Response(null, { status: 204 })
 })
 
+// Serve SVG favicon and icon
+app.get('/favicon.svg', serveStatic({ path: './public/favicon.svg' }))
+app.get('/static/icon.svg', serveStatic({ path: './public/static/icon.svg' }))
+
 // SEO: Serve robots.txt
 app.get('/robots.txt', serveStatic({ path: './public/robots.txt' }))
 
@@ -149,6 +153,18 @@ app.get('/', async (c) => {
 
   // Track visit in database
   try {
+    // Ensure visits table exists (idempotent)
+    await c.env.DB.prepare(`
+      CREATE TABLE IF NOT EXISTS visits (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        ip_address TEXT,
+        user_agent TEXT,
+        page_path TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `).run()
+
     const visitId = crypto.randomUUID()
     const sessionId = getCookie(c, 'session_id') || crypto.randomUUID()
 
@@ -1607,15 +1623,22 @@ app.get('/api/user/stats', async (c) => {
       totalPosts = (postCount?.total as number) || 0
     } catch (e) { }
 
-    // Get debate statistics from archived/completed debates
+    // Get debate statistics from archived/completed debates (BATTLE only - exclude spectators)
+    // Spectators are those who only purchased archive_views but did NOT cast a vote during live debate
+    // We treat debate_votes as "battle" participation (user voted during the live debate, not as spectator)
+    // archive_views = purchased archives (spectators) - exclude these debate_ids from stats
     let totalDebates = 0, wins = 0, losses = 0, draws = 0
     try {
-      // Count archived debates where user participated (voted)
+      // Count only debates where user voted LIVE (debate_votes) 
+      // AND exclude debates where user is only a spectator (archive_views)
       const debateVotes = await c.env.DB.prepare(`
         SELECT dv.vote, d.winner FROM debate_votes dv 
         JOIN debates d ON dv.debate_id = d.id 
         WHERE dv.user_id = ? AND d.status = 'completed'
-      `).bind(user.user_id).all()
+        AND d.id NOT IN (
+          SELECT av.debate_id FROM archive_views av WHERE av.user_id = ?
+        )
+      `).bind(user.user_id, user.user_id).all()
 
       if (debateVotes.results) {
         totalDebates = debateVotes.results.length
@@ -1625,6 +1648,30 @@ app.get('/api/user/stats', async (c) => {
           else losses++
         })
       }
+    } catch (e) {
+      // Fallback: just count all votes if archive_views join fails
+      try {
+        const debateVotes2 = await c.env.DB.prepare(`
+          SELECT dv.vote, d.winner FROM debate_votes dv 
+          JOIN debates d ON dv.debate_id = d.id 
+          WHERE dv.user_id = ? AND d.status = 'completed'
+        `).bind(user.user_id).all()
+        if (debateVotes2.results) {
+          totalDebates = debateVotes2.results.length
+          debateVotes2.results.forEach((v: any) => {
+            if (!v.winner) draws++
+            else if (v.vote === v.winner) wins++
+            else losses++
+          })
+        }
+      } catch (e2) { }
+    }
+
+    // Get archive/spectated debates count
+    let watchedDebates = 0
+    try {
+      const watchedCount = await c.env.DB.prepare('SELECT COUNT(*) as total FROM archive_views WHERE user_id = ?').bind(user.user_id).first()
+      watchedDebates = (watchedCount?.total as number) || 0
     } catch (e) { }
 
     const winRate = totalDebates > 0 ? Math.round((wins / totalDebates) * 100) : 0
@@ -1637,12 +1684,39 @@ app.get('/api/user/stats', async (c) => {
         losses,
         draws,
         win_rate: winRate,
-        total_posts: totalPosts
+        total_posts: totalPosts,
+        watched_debates: watchedDebates
       }
     })
   } catch (error) {
     console.error('Get user stats error:', error)
-    return c.json({ success: true, stats: { total_debates: 0, wins: 0, losses: 0, draws: 0, win_rate: 0, total_posts: 0 } })
+    return c.json({ success: true, stats: { total_debates: 0, wins: 0, losses: 0, draws: 0, win_rate: 0, total_posts: 0, watched_debates: 0 } })
+  }
+})
+
+// API: Get user's watched/purchased debates list
+app.get('/api/archive/watched', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    if (!userCookie) return c.json({ success: false, error: 'Not authenticated' }, 401)
+    const user = safeParseUserCookie(userCookie)
+    if (!user) return c.json({ success: false, error: 'Not authenticated' }, 401)
+
+    // Get all debates the user has purchased/watched from archive_views
+    const watched = await c.env.DB.prepare(`
+      SELECT av.debate_id, av.created_at as watched_at,
+             ad.theme, ad.opinion_a, ad.opinion_b, ad.agree_votes, ad.disagree_votes, ad.winner, ad.id as archive_id
+      FROM archive_views av
+      LEFT JOIN archived_debates ad ON av.debate_id = ad.debate_id
+      WHERE av.user_id = ?
+      ORDER BY av.created_at DESC
+      LIMIT 50
+    `).bind(user.user_id).all()
+
+    return c.json({ success: true, debates: watched.results || [] })
+  } catch (error) {
+    console.error('Get watched debates error:', error)
+    return c.json({ success: false, debates: [] })
   }
 })
 
@@ -1754,7 +1828,27 @@ app.post('/api/archive/save', async (c) => {
   }
 })
 
-// API: Get Community Posts
+// API: Delete all archives (DEV ADMIN ONLY)
+app.delete('/api/archive/all', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    const user = safeParseUserCookie(userCookie)
+    if (!user || !isDevAdmin(user, c.env)) {
+      return c.json({ success: false, error: 'Permission denied' }, 403)
+    }
+
+    // Delete all archived debates
+    await c.env.DB.prepare('DELETE FROM archived_debates').run()
+    // Also delete archive_views (purchased records)
+    await c.env.DB.prepare('DELETE FROM archive_views').run()
+
+    console.log('[Admin] All archives deleted by', user.user_id)
+    return c.json({ success: true, message: 'すべてのアーカイブを削除しました' })
+  } catch (error) {
+    console.error('Archive delete all error:', error)
+    return c.json({ success: false, error: 'Failed to delete archives' }, 500)
+  }
+})
 app.get('/api/community/posts', async (c) => {
   try {
     const lang = c.req.query('language') || 'ja'
@@ -2536,6 +2630,7 @@ app.get('/api/stats/online', async (c) => {
 // API: Get total visitor count (from database)
 app.get('/api/stats/visitors', async (c) => {
   try {
+    await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS visits (id TEXT PRIMARY KEY, session_id TEXT NOT NULL, ip_address TEXT, user_agent TEXT, page_path TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`).run()
     const result = await c.env.DB.prepare(
       'SELECT COUNT(*) as count FROM visits'
     ).first()

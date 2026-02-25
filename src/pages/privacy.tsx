@@ -6,6 +6,7 @@ export const privacyPage = (user: any) => `
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>プライバシーポリシー - AI Debate Arena</title>
     <meta name="description" content="AI Debate Arenaのプライバシーポリシー。個人情報の取扱い、Cookie利用、第三者提供等について説明しています。">

@@ -6,6 +6,7 @@ export const themeVotePage = (user: any) => `
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>テーマ投票 - AI Debate Arena</title>
     <meta name="description" content="次回のディベートテーマに投票しよう！みんなで議論したいテーマを提案・投票できます。">
