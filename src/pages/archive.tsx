@@ -186,9 +186,11 @@ export const archivePage = (userData: any) => `<!DOCTYPE html>
                     alert('クレジットが不足しています（必要: 50クレジット）');
                     return;
                 }
-                if (!confirm('50クレジットを消費してこのディベートを視聴しますか？')) {
-                    return;
-                }
+                try {
+                    if (!(await window.customConfirm('50クレジットを消費してこのディベートを視聴しますか？'))) {
+                        return;
+                    }
+                } catch(e) { return; }
             }
             
             try {

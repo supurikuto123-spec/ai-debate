@@ -228,7 +228,9 @@ export const announcementsPage = (userData: any) => `<!DOCTYPE html>
         // Delete announcement (Dev only)
         async function deleteAnnouncement(announcementId) {
             if (!isDev) return;
-            if (!confirm('このお知らせを削除しますか？')) return;
+            try {
+                if (!(await window.customConfirm('このお知らせを削除しますか？'))) return;
+            } catch(e) { return; }
             
             try {
                 const response = await fetch(\`/api/announcements/\${announcementId}\`, {

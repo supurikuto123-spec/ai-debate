@@ -139,29 +139,7 @@ export const watchPage = (user: any, debateId: string) => `
             </div>
         </div>
 
-        <!-- Navigation -->
-        <nav class="fixed top-0 w-full z-50 bg-black/80 backdrop-blur-md border-b-2 border-cyan-500">
-            <div class="container mx-auto px-6 py-4 flex justify-between items-center">
-                <div class="flex items-center space-x-3">
-                    <div class="cyber-logo w-10 h-10 flex items-center justify-center">
-                        <i class="fas fa-brain text-cyan-400 text-2xl"></i>
-                    </div>
-                    <span class="text-2xl font-bold cyber-text">AI Debate</span>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <div class="credit-display">
-                        <i class="fas fa-coins text-yellow-400"></i>
-                        <span class="text-sm font-bold" id="navCredits">${(user.credits || 0).toLocaleString()}</span>
-                    </div>
-                    <div class="text-sm text-gray-400">@${user.user_id}</div>
-                    <a href="/main" class="btn-secondary text-sm px-4 py-2">
-                        <i class="fas fa-arrow-left mr-1"></i>マッチ一覧
-                    </a>
-                </div>
-            </div>
-        </nav>
-
-        <!-- Main Content -->
+        <!-- Main Content (Added pt-16 margin for global nav) -->
         <div class="pt-24 pb-12">
             <div class="cyber-grid"></div>
             

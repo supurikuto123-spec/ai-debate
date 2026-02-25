@@ -477,7 +477,9 @@ export const themeVotePage = (user: any) => `
         // Delete theme (dev only)
         async function deleteTheme(themeId) {
             if (!isDev) return;
-            if (!confirm('このテーマを削除しますか？')) return;
+            try {
+                if (!(await window.customConfirm('このテーマを削除しますか？'))) return;
+            } catch (e) { return; }
             
             try {
                 const response = await fetch(\`/api/theme-votes/\${themeId}/delete\`, {

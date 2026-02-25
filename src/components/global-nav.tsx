@@ -319,5 +319,90 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
       }
       window.executeCmd = executeCmd;
     </script>
+
+    <!-- Custom Animated Popups -->
+    <div id="ai-debate-popup-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);z-index:100000;opacity:0;transition:opacity 0.3s ease;align-items:center;justify-content:center;">
+        <div id="ai-debate-popup-box" style="background:linear-gradient(135deg, rgba(0,20,40,0.95), rgba(20,0,40,0.95));border:2px solid #00ffff;box-shadow:0 0 30px rgba(0,255,255,0.4);border-radius:12px;padding:30px;max-width:90%;width:400px;text-align:center;transform:scale(0.8);opacity:0;transition:all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+            <div id="ai-debate-popup-icon" style="font-size:3rem;margin-bottom:15px;"></div>
+            <div id="ai-debate-popup-message" style="color:#fff;font-size:1.1rem;margin-bottom:25px;line-height:1.5;"></div>
+            <div id="ai-debate-popup-buttons" style="display:flex;gap:15px;justify-content:center;">
+                <!-- Generated dynamically -->
+            </div>
+        </div>
+    </div>
+    <script>
+      (function(){
+        const overlay = document.getElementById('ai-debate-popup-overlay');
+        const box = document.getElementById('ai-debate-popup-box');
+        const iconEl = document.getElementById('ai-debate-popup-icon');
+        const msgEl = document.getElementById('ai-debate-popup-message');
+        const btnContainer = document.getElementById('ai-debate-popup-buttons');
+        
+        window.customAlert = function(msg) {
+          return new Promise(resolve => {
+            overlay.style.display = 'flex';
+            void overlay.offsetWidth;
+            overlay.style.opacity = '1';
+            box.style.transform = 'scale(1)';
+            box.style.opacity = '1';
+            
+            msgEl.innerHTML = (msg||'').toString().replace(/\\n/g, '<br>');
+            iconEl.innerHTML = '<i class="fas fa-exclamation-circle" style="color:#00ffff;text-shadow:0 0 10px rgba(0,255,255,0.6);"></i>';
+            
+            btnContainer.innerHTML = '';
+            const btn = document.createElement('button');
+            btn.textContent = 'OK';
+            btn.style.cssText = 'padding:10px 25px;background:linear-gradient(90deg, #00ffff, #0080ff);color:#000;font-weight:bold;border:none;border-radius:6px;cursor:pointer;font-family:"Orbitron", sans-serif;';
+            btn.onclick = () => { closePopup(); resolve(); };
+            btnContainer.appendChild(btn);
+          });
+        };
+        
+        window.customConfirm = function(msg) {
+          return new Promise(resolve => {
+            overlay.style.display = 'flex';
+            void overlay.offsetWidth;
+            overlay.style.opacity = '1';
+            box.style.transform = 'scale(1)';
+            box.style.opacity = '1';
+            
+            msgEl.innerHTML = (msg||'').toString().replace(/\\n/g, '<br>');
+            iconEl.innerHTML = '<i class="fas fa-question-circle" style="color:#ff0080;text-shadow:0 0 10px rgba(255,0,128,0.6);"></i>';
+            
+            btnContainer.innerHTML = '';
+            const btnCancel = document.createElement('button');
+            btnCancel.textContent = 'キャンセル';
+            btnCancel.style.cssText = 'padding:10px 20px;background:transparent;border:2px solid #ff0080;color:#ff0080;font-weight:bold;border-radius:6px;cursor:pointer;';
+            btnCancel.onclick = () => { closePopup(); resolve(false); };
+            
+            const btnOk = document.createElement('button');
+            btnOk.textContent = 'OK';
+            btnOk.style.cssText = 'padding:10px 25px;background:linear-gradient(90deg, #ff0080, #ff00ff);color:#fff;font-weight:bold;border:none;border-radius:6px;cursor:pointer;';
+            btnOk.onclick = () => { closePopup(); resolve(true); };
+            
+            btnContainer.appendChild(btnCancel);
+            btnContainer.appendChild(btnOk);
+          });
+        };
+        
+        function closePopup() {
+          overlay.style.opacity = '0';
+          box.style.transform = 'scale(0.8)';
+          box.style.opacity = '0';
+          setTimeout(() => { overlay.style.display = 'none'; }, 300);
+        }
+
+        // Override default alert
+        window.alert = function(msg) { window.customAlert(msg); };
+
+        // Mobile Warning Check
+        document.addEventListener('DOMContentLoaded', () => {
+          if (/Mobi|Android|iPhone/i.test(navigator.userAgent) && !localStorage.getItem('mobile_warned')) {
+            localStorage.setItem('mobile_warned', 'true');
+            window.customAlert('AI Debateへようこそ！\\n\\nPCデバイスでの閲覧を強く推奨しています。モバイルでは一部のUIが最適化されていない場合があります。');
+          }
+        });
+      })();
+    </script>
   `;
 };

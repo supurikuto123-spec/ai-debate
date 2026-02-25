@@ -885,11 +885,11 @@ async function loadCommentsFromD1() {
                 const stanceIcon = c.vote === 'agree' ? 'thumbs-up' : 'thumbs-down';
                 const stanceText = c.vote === 'agree' ? 'Aether支持' : 'Nova支持';
                 const avatarGradient = c.vote === 'agree' ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500';
-                const initial = c.username.charAt(0).toUpperCase();
+                const initial = c.username ? c.username.charAt(0).toUpperCase() : '?';
 
                 const div = document.createElement('div');
                 div.className = 'comment-item ' + stanceClass + ' bg-gray-900/50 p-3 rounded border border-cyan-500/30';
-                div.innerHTML = '<div class="flex items-center mb-2"><div class="w-8 h-8 rounded-full bg-gradient-to-br ' + avatarGradient + ' flex items-center justify-center text-xs font-bold mr-2">' + initial + '</div><div class="flex-1"><a href="/user/' + c.user_id + '" class="text-sm font-bold hover:text-cyan-400 transition-colors">@' + c.username + '</a><p class="text-xs text-' + stanceColor + '-400"><i class="fas fa-' + stanceIcon + ' mr-1"></i>' + stanceText + '</p></div></div><p class="text-sm text-gray-200">' + c.content + '</p>';
+                div.innerHTML = '<div class="flex items-center mb-2"><div class="w-8 h-8 rounded-full bg-gradient-to-br ' + avatarGradient + ' flex items-center justify-center text-xs font-bold mr-2">' + initial + '</div><div class="flex-1"><a href="/user/' + c.user_id + '" class="text-sm font-bold hover:text-cyan-400 transition-colors">@' + escapeHtml(c.username || 'unknown') + '</a><p class="text-xs text-' + stanceColor + '-400"><i class="fas fa-' + stanceIcon + ' mr-1"></i>' + stanceText + '</p></div></div><p class="text-sm text-gray-200" style="word-break: break-all; white-space: pre-wrap;">' + escapeHtml(c.content) + '</p>';
                 commentsList.appendChild(div);
             }
 
@@ -992,6 +992,21 @@ window.addEventListener('DOMContentLoaded', async () => {
                 }
             } catch (e) { }
         }
+
+        try {
+            const vRes = await fetch('/api/votes/' + DEBATE_ID);
+            if (vRes.ok) {
+                const vData = await vRes.json();
+                if (vData && typeof vData.total === 'number') {
+                    if (voteData.agree !== vData.agree || voteData.disagree !== vData.disagree || voteData.total !== vData.total) {
+                        voteData.agree = vData.agree;
+                        voteData.disagree = vData.disagree;
+                        voteData.total = vData.total;
+                        updateVoteDisplay();
+                    }
+                }
+            }
+        } catch (e) { }
     }, 2000);
     setInterval(updateViewerCount, 2000);
 

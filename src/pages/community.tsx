@@ -297,7 +297,9 @@ export const communityPage = (userData: any) => `<!DOCTYPE html>
         
         // Delete post
         async function deletePost(postId) {
-            if (!confirm('この投稿を削除しますか？')) return;
+            try {
+                if (!(await window.customConfirm('この投稿を削除しますか？'))) return;
+            } catch(e) { return; }
             
             try {
                 const response = await fetch(\`/api/community/post/\${postId}\`, {

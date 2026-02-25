@@ -404,7 +404,9 @@ export const ticketsPage = (user: any) => `
             
             async function resolveTicket() {
                 if (!currentTicketId) return;
-                if (!confirm('このチケットを解決済みにしますか？解決済みにすると返信できなくなります。')) return;
+            try {
+                if (!(await window.customConfirm('このチケットを解決済みにしますか？解決済みにすると返信できなくなります。'))) return;
+            } catch (e) { return; }
                 
                 try {
                     const response = await fetch('/api/tickets/' + currentTicketId + '/resolve', {

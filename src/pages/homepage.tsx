@@ -1,5 +1,7 @@
 ﻿
 
+import { globalNav } from '../components/global-nav';
+
 export const homepage = (user: any) => `
     <!DOCTYPE html>
     <html lang="ja">
@@ -110,40 +112,10 @@ export const homepage = (user: any) => `
             </defs>
         </svg>
 
-        <!-- Navigation -->
-        <nav class="fixed top-0 w-full z-50 bg-black/80 backdrop-blur-md border-b-2 border-cyan-500">
-            <div class="container mx-auto px-4 md:px-6 py-3 md:py-4 flex justify-between items-center">
-                <div class="flex items-center space-x-2 md:space-x-3">
-                    <div class="cyber-logo w-8 h-8 md:w-10 md:h-10 flex items-center justify-center">
-                        <svg class="w-6 h-6 md:w-8 md:h-8 text-cyan-400"><use href="#icon-brain"/></svg>
-                    </div>
-                    <span class="text-lg md:text-2xl font-bold cyber-text">AI Debate</span>
-                </div>
-                <div class="hidden lg:flex space-x-8">
-                    <a href="#home" class="nav-link">ホーム</a>
-                    <a href="#how" class="nav-link">仕組み</a>
-                    <a href="#categories" class="nav-link">カテゴリー</a>
-                    <a href="#features" class="nav-link">機能</a>
-                </div>
-                <div class="flex items-center space-x-2 md:space-x-4">
-                    ${user ? `
-                        <div class="credit-display">
-                            <svg class="w-4 h-4 md:w-5 md:h-5 text-yellow-400"><use href="#icon-credit"/></svg>
-                            <span class="text-xs md:text-sm font-bold">${(user.credits || 0).toLocaleString()}</span>
-                        </div>
-                        <div class="text-xs md:text-sm text-gray-300 hidden sm:block">@${user.user_id}</div>
-                        <a href="/logout" class="btn-secondary text-xs md:text-sm px-3 md:px-4 py-1.5 md:py-2">ログアウト</a>
-                    ` : `
-                        <a href="/auth/google" class="btn-primary text-xs md:text-sm px-3 md:px-4 py-1.5 md:py-2">
-                            <i class="fab fa-google mr-1"></i>始める
-                        </a>
-                    `}
-                </div>
-            </div>
-        </nav>
+        ${globalNav(user)}
 
         <!-- Hero Section -->
-        <section id="home" class="min-h-screen flex items-center justify-center relative pt-16 md:pt-20">
+        <section id="home" class="min-h-screen flex items-center justify-center relative pt-24 md:pt-32">
             <div class="cyber-grid"></div>
             <div class="container mx-auto px-4 md:px-6 text-center relative z-10">
                 <div class="glitch-wrapper">

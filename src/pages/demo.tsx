@@ -1,4 +1,4 @@
-﻿
+﻿import { globalNav } from '../components/global-nav';
 
 export const demoPage = (user: any) => `
     <!DOCTYPE html>
@@ -16,27 +16,7 @@ export const demoPage = (user: any) => `
         
     </head>
     <body class="bg-black text-white overflow-x-hidden">
-        <!-- Navigation -->
-        <nav class="fixed top-0 w-full z-50 bg-black/80 backdrop-blur-md border-b-2 border-cyan-500">
-            <div class="container mx-auto px-6 py-4 flex justify-between items-center">
-                <div class="flex items-center space-x-3">
-                    <div class="cyber-logo w-10 h-10 flex items-center justify-center">
-                        <svg class="w-8 h-8 text-cyan-400">
-                            <use href="#icon-brain"/>
-                        </svg>
-                    </div>
-                    <span class="text-2xl font-bold cyber-text">AI Debate</span>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <div class="credit-display">
-                        <svg class="w-5 h-5 text-yellow-400"><use href="#icon-credit"/></svg>
-                        <span class="text-sm font-bold">${(user.credits || 0).toLocaleString()}</span>
-                    </div>
-                    <div class="text-sm text-gray-400">@${user.user_id}</div>
-                    <a href="/logout" class="btn-secondary text-sm px-4 py-2">ログアウト</a>
-                </div>
-            </div>
-        </nav>
+        ${globalNav(user)}
 
         <!-- SVG Icons Definition -->
         <svg style="display: none;">
