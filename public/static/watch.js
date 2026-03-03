@@ -382,17 +382,34 @@ async function getAIEvaluations(message, side) {
 
 async function getAIEvaluation(message, side) {
     try {
-        const fullDebate = conversationHistory.map(msg => {
-            return '[' + (msg.side === 'agree' ? '意見A' : '意見B') + ']: ' + msg.content;
+        const myLabel = side === 'agree' ? 'Aether(賛成)' : 'Nova(反対)';
+        const myOpinion = side === 'agree' ? OPINION_A : OPINION_B;
+        const opponentOpinion = side === 'agree' ? OPINION_B : OPINION_A;
+
+        const recentDebate = conversationHistory.slice(-6).map(msg => {
+            return '[' + (msg.side === 'agree' ? 'Aether(賛成)' : 'Nova(反対)') + ']: ' + msg.content;
         }).join('\n');
 
         const prompt = [
-            '直近3発言：', fullDebate.split('\n').slice(-3).join('\n'), '',
-            '最新「' + message + '」を評価：',
-            '1. 立場を守っているか', '2. 相手を認めていないか', '3. 具体的に反論しているか', '',
-            '評価基準：!! = 決定的 / ! = 優勢 / ? = 劣勢 / ?? = 致命的', '',
-            '【重要】必ずJSON形式で返してください。',
-            '出力形式: {"symbol": "!!" or "!" or "?" or "??", "comment": "15字以内"}'
+            'ディベートテーマ: ' + DEBATE_THEME,
+            myLabel + 'の立場: ' + myOpinion,
+            '相手の立場: ' + opponentOpinion,
+            '',
+            '直近の発言:',
+            recentDebate,
+            '',
+            '今回評価する発言 (' + myLabel + '):',
+            '「' + message + '」',
+            '',
+            '評価基準（この発言が' + myLabel + 'の立場として効果的か）:',
+            '1. 自分の立場「' + myOpinion + '」を明確に支持しているか',
+            '2. 相手の立場「' + opponentOpinion + '」を具体的に反論しているか',
+            '3. 新しい根拠・切り口を使っているか（前の発言と差別化）',
+            '',
+            '記号の意味: !! = 非常に効果的 / ! = 効果的 / ? = やや弱い / ?? = 立場が不明瞭',
+            '',
+            '必ずJSON形式で返してください:',
+            '{"symbol": "!!" or "!" or "?" or "??", "comment": "15字以内の評価"}'
         ].join('\n');
 
         const response = await fetch('/api/debate/evaluate', {
@@ -793,28 +810,82 @@ async function saveToArchive(winner, agreePercent, disagreePercent) {
 async function generateAIResponse(side) {
     if (!debateActive) return;
 
-    const systemPrompt = 'あなたはディベートの参加者です。以下のルールを厳守してください：\n\n【厳守事項】\n1. 自分の立場を一貫して主張する\n2. 相手の立場の論点を認めない\n3. 相手の発言の矛盾・弱点を指摘する\n4. 具体的な根拠を示す\n5. 180文字以内、句点（。）で終える\n\n【禁止事項】\n- 相手の論点を認める表現（「確かに」「一方で」など）\n- 抽象的で曖昧な表現';
+    const myOpinion = side === 'agree' ? OPINION_A : OPINION_B;
+    const opponentOpinion = side === 'agree' ? OPINION_B : OPINION_A;
+    const myName = side === 'agree' ? 'Aether' : 'Nova';
 
-    let conversationToSend = conversationHistory;
+    // Build last 3 messages as context (avoid too-long history → repetition)
+    const recentHistory = conversationHistory.slice(-6);
+    const lastMessages = recentHistory.map(m =>
+        '[' + (m.side === 'agree' ? 'Aether' : 'Nova') + ']: ' + m.content
+    ).join('\n');
+
+    // Strong system prompt to prevent repetition
+    const systemPrompt =
+        'あなたは「' + myName + '」というAIディベーターです。\n' +
+        '【テーマ】' + DEBATE_THEME + '\n' +
+        '【あなたの立場】' + myOpinion + '\n' +
+        '【相手の立場】' + opponentOpinion + '\n\n' +
+        '【厳守ルール】\n' +
+        '1. 自分の立場「' + myOpinion + '」を一貫して主張せよ\n' +
+        '2. 前のメッセージと異なる切り口・新しい根拠を使え（同じ表現・言い回しの繰り返し禁止）\n' +
+        '3. 相手の直前の発言の弱点を具体的に突け\n' +
+        '4. 180文字以内で句点（。）で終える\n' +
+        '5. 自分が相手の立場に同意する表現を一切使うな\n\n' +
+        '【直前のやりとり】\n' + (lastMessages || '（なし）');
+
+    // Build messages: use alternating roles based on side
+    let messagesToSend;
     if (conversationHistory.length === 0) {
-        const initialContext = side === 'agree'
-            ? '【テーマ】' + DEBATE_THEME + '\n【あなたの立場】' + OPINION_A
-            : '【テーマ】' + DEBATE_THEME + '\n【あなたの立場】' + OPINION_B;
-
-        conversationToSend = [{ side: side, content: initialContext, role: 'user' }];
+        messagesToSend = [{
+            role: 'user',
+            content: '【テーマ】' + DEBATE_THEME + '\nあなたの立場「' + myOpinion + '」で最初の主張を述べてください。'
+        }];
+    } else {
+        // Send last 6 turns max, with correct role mapping for this side
+        messagesToSend = recentHistory.map(m => ({
+            role: m.side === side ? 'assistant' : 'user',
+            content: m.content
+        }));
+        // Add instruction to generate next response
+        messagesToSend.push({
+            role: 'user',
+            content: '続きのあなたの発言を生成してください。必ず新しい根拠・切り口を使い、前のあなたの発言と異なる表現にしてください。'
+        });
     }
 
     try {
         const response = await fetch('/api/debate/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ systemPrompt, conversationHistory: conversationToSend, maxTokens: 220, temperature: 0.7 })
+            body: JSON.stringify({
+                systemPrompt,
+                conversationHistory: messagesToSend,
+                maxTokens: 220,
+                temperature: 0.85
+            })
         });
 
         if (!response.ok) throw new Error('API request failed');
         const data = await response.json();
 
         if (data.message && debateActive) {
+            // Deduplicate: skip if same as last message from same side
+            const lastSameSide = [...conversationHistory].reverse().find(m => m.side === side);
+            if (lastSameSide && lastSameSide.content === data.message) {
+                // Retry once with higher temperature
+                console.warn('[Debate] Duplicate detected, retrying...');
+                const retry = await fetch('/api/debate/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ systemPrompt, conversationHistory: messagesToSend, maxTokens: 220, temperature: 1.0 })
+                });
+                const retryData = await retry.json();
+                if (retryData.message && retryData.message !== data.message) {
+                    data.message = retryData.message;
+                }
+            }
+
             conversationHistory.push({
                 role: side === 'agree' ? 'assistant' : 'user',
                 content: data.message, side: side

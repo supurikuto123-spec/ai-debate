@@ -356,6 +356,10 @@ export const myPage = (userData: any, stats?: any) => {
                             <div class="text-3xl font-bold text-blue-400" id="stat-posts">-</div>
                             <div class="text-sm text-gray-400 mt-1">コミュニティ投稿</div>
                         </div>
+                        <div class="text-center p-4 bg-black/40 rounded-lg border border-indigo-500/20">
+                            <div class="text-3xl font-bold text-indigo-400" id="stat-watched">-</div>
+                            <div class="text-sm text-gray-400 mt-1">閲覧ディベート数</div>
+                        </div>
                     </div>
                     <div class="mt-4 text-center">
                         <a href="/user/${userData.user_id}" class="text-cyan-400 hover:text-cyan-300 text-sm transition-colors">
@@ -389,10 +393,10 @@ export const myPage = (userData: any, stats?: any) => {
                 <!-- Privacy Settings Section -->
                 <div class="profile-card mt-8">
                     <h2 class="text-2xl font-bold text-cyan-400 mb-2 flex items-center">
-                        <i class="fas fa-lock mr-3"></i>プロフィール公開設定
+                        <i class="fas fa-shield-alt mr-3"></i>プロフィール公開設定
                     </h2>
                     <p class="text-gray-400 text-sm mb-6">
-                        <i class="fas fa-info-circle mr-1"></i>公開プロフィールページで表示する情報を選択
+                        <i class="fas fa-info-circle mr-1"></i>公開プロフィールページで表示する情報を選択（マイページでのみ操作できます）
                     </p>
                     <div class="space-y-3" id="privacy-toggles">
                         <div class="toggle-row">
@@ -423,7 +427,7 @@ export const myPage = (userData: any, stats?: any) => {
                         </div>
                         <div class="toggle-row">
                             <label class="toggle-label" for="priv-winrate">
-                                <i class="fas fa-percentage"></i>
+                                <i class="fas fa-chart-line"></i>
                                 <span>勝率</span>
                             </label>
                             <div class="flex items-center">
@@ -432,6 +436,19 @@ export const myPage = (userData: any, stats?: any) => {
                                     <span class="toggle-slider"></span>
                                 </label>
                                 <span class="toggle-status on" id="status-winrate">ON</span>
+                            </div>
+                        </div>
+                        <div class="toggle-row">
+                            <label class="toggle-label" for="priv-watched">
+                                <i class="fas fa-eye"></i>
+                                <span>閲覧ディベート数</span>
+                            </label>
+                            <div class="flex items-center">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="priv-watched" onchange="updatePrivacy()">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <span class="toggle-status off" id="status-watched">OFF</span>
                             </div>
                         </div>
                         <div class="toggle-row">
@@ -503,6 +520,8 @@ export const myPage = (userData: any, stats?: any) => {
                             document.getElementById('stat-win-rate').textContent = data.stats.win_rate + '%';
                             document.getElementById('stat-win-bar').style.width = data.stats.win_rate + '%';
                             document.getElementById('stat-posts').textContent = data.stats.total_posts;
+                            const watchedEl = document.getElementById('stat-watched');
+                            if (watchedEl) watchedEl.textContent = data.stats.watched_debates || 0;
                         }
                     }
                 } catch(e) { console.error('Stats load error:', e); }

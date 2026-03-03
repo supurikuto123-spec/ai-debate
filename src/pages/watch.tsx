@@ -54,9 +54,10 @@ export const watchPage = (user: any, debateId: string) => `
                 bottom: 0;
                 background: rgba(0, 0, 0, 0.98);
                 backdrop-filter: blur(10px);
-                z-index: 9999;
+                z-index: 8000;
                 align-items: center;
                 justify-content: center;
+                padding-top: 60px;
             }
             .modal.hidden {
                 display: none;
@@ -64,7 +65,7 @@ export const watchPage = (user: any, debateId: string) => `
             .vote-btn {
                 cursor: pointer;
                 position: relative;
-                z-index: 10000;
+                z-index: 8001;
             }
             .vote-btn:hover {
                 transform: scale(1.05);

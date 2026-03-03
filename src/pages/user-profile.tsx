@@ -1,5 +1,5 @@
 ﻿import type { FC } from 'hono/jsx'
-
+import { globalNav } from '../components/global-nav'
 
 interface UserProfileProps {
   profileUser: {
@@ -53,7 +53,13 @@ export const UserProfile: FC<UserProfileProps> = ({ profileUser, currentUser, st
     return `https://api.dicebear.com/7.x/bottts/svg?seed=${user.user_id}`
   }
 
-  const hiddenHtml = '<span style="color:#555;font-size:14px;">🔒 非公開</span>'
+  const hiddenHtml = '<span style="color:#555;font-size:14px;"><i class="fas fa-lock" style="margin-right:4px;"></i>非公開</span>'
+  const navHtml = globalNav(currentUser ? {
+    user_id: currentUser.user_id,
+    credits: currentUser.credits,
+    avatar_url: currentUser.avatar_url,
+    avatar_type: currentUser.avatar_type,
+  } : null)
 
   return (
     <html lang="ja">
@@ -61,6 +67,8 @@ export const UserProfile: FC<UserProfileProps> = ({ profileUser, currentUser, st
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
         <title>{profileUser.username} - プロフィール | AI Debate</title>
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet" />
         <style>{`
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body {
@@ -142,16 +150,8 @@ export const UserProfile: FC<UserProfileProps> = ({ profileUser, currentUser, st
             }
             .stat-subtitle { font-size: 12px; color: #666; margin-top: 5px; }
             .back-button {
-                position: fixed; top: 30px; left: 30px;
-                width: 60px; height: 60px;
-                background: linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(255, 0, 255, 0.3));
-                border: 2px solid cyan; border-radius: 50%;
-                display: flex; align-items: center; justify-content: center;
-                text-decoration: none; color: cyan; font-size: 24px; font-weight: bold;
-                box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
-                transition: all 0.3s ease; z-index: 1000;
+                display: none;
             }
-            .back-button:hover { transform: scale(1.1); box-shadow: 0 0 30px rgba(0, 255, 255, 0.8); }
             .member-since { font-size: 14px; color: #888; margin-top: 15px; }
             .progress-bar {
                 width: 100%; height: 8px; background: rgba(255, 255, 255, 0.1);
@@ -202,11 +202,8 @@ export const UserProfile: FC<UserProfileProps> = ({ profileUser, currentUser, st
         `}</style>
       </head>
       <body>
-        {/* Simple fixed header for user profile page */}
-        <div id="mini-nav-header">
-          <a href="/main" class="mini-nav-logo"><i class="fas fa-robot" style="margin-right:8px;"></i>AI DEBATE</a>
-          <a href="/main" class="mini-nav-back"><i class="fas fa-arrow-left" style="margin-right:6px;"></i>メインへ戻る</a>
-        </div>
+        {/* Global Navigation (hamburger menu) */}
+        <div dangerouslySetInnerHTML={{ __html: navHtml }} />
 
         <div class="container">
           <div class="profile-header">
@@ -221,16 +218,16 @@ export const UserProfile: FC<UserProfileProps> = ({ profileUser, currentUser, st
 
               <div class="profile-badges">
                 <div class="badge badge-rank">
-                  <span>🏆</span>
+                  <i class="fas fa-trophy" style="margin-right:6px;"></i>
                   <span>{profileUser.rank}</span>
                 </div>
                 <div class="badge badge-rating">
-                  <span>⭐</span>
+                  <i class="fas fa-star" style="margin-right:6px;"></i>
                   <span>Rating: {profileUser.rating}</span>
                 </div>
                 {(isOwnProfile || p.show_credits) && (
                   <div class="badge badge-credits">
-                    <span>💰</span>
+                    <i class="fas fa-coins" style="margin-right:6px;"></i>
                     <span>{profileUser.credits.toLocaleString()} Credits</span>
                   </div>
                 )}
@@ -245,7 +242,7 @@ export const UserProfile: FC<UserProfileProps> = ({ profileUser, currentUser, st
           {isOwnProfile && (
             <div class="privacy-section" id="privacySection">
               <div class="privacy-title">
-                <span>🔒</span> プライバシー設定
+                <i class="fas fa-lock" style="font-size:18px;"></i> プライバシー設定
               </div>
               <div class="privacy-toggle">
                 <span>総ディベート数を公開</span>

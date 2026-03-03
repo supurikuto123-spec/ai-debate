@@ -20,6 +20,7 @@ import { themeVotePage } from './pages/theme-vote'
 import { ticketsPage } from './pages/tickets'
 import { adminTicketsPage } from './pages/admin-tickets'
 import { battlePage } from './pages/battle'
+import { adminDashboardPage } from './pages/admin-dashboard'
 
 type Bindings = {
   DB: D1Database
@@ -52,11 +53,29 @@ function safeParseUserCookie(cookieValue: string | undefined): any | null {
   }
 }
 
-// Check if user is dev admin
+// Check if user is dev admin (sync: hardcoded fallback for legacy use)
 function isDevAdmin(user: any, env?: any): boolean {
+  if (!user) return false
+  // Original dev user check
   const emails = env ? getDevAdminEmails(env) : DEV_ADMIN_EMAILS.map(e => e.toLowerCase())
-  return !!user && user.user_id === 'dev' && !!user.email &&
-    emails.some(email => email === user.email.toLowerCase());
+  if (user.user_id === 'dev' && !!user.email && emails.some((email: string) => email === user.email.toLowerCase())) return true
+  // Cookie-based is_dev flag (set at login from DB)
+  if (user.is_dev === 1 || user.is_dev === true) return true
+  return false
+}
+
+// Check if user is dev admin via DB (async, most accurate)
+async function isDevAdminDB(user: any, env: any): Promise<boolean> {
+  if (!user) return false
+  // Original dev user check (no DB needed)
+  const emails = getDevAdminEmails(env)
+  if (user.user_id === 'dev' && !!user.email && emails.some((email: string) => email === user.email.toLowerCase())) return true
+  // DB check for granted dev users
+  try {
+    const row = await env.DB.prepare('SELECT is_dev FROM users WHERE user_id = ?').bind(user.user_id).first()
+    if (row && (row.is_dev === 1 || row.is_dev === true)) return true
+  } catch (e) {}
+  return false
 }
 
 // Minimal user data for cookie (prevents 502 Bad Gateway from large cookies)
@@ -72,7 +91,8 @@ function getMinimalUser(user: any): any {
     avatar_type: user.avatar_type,
     avatar_value: user.avatar_value,
     rating: user.rating,
-    rank: user.rank
+    rank: user.rank,
+    is_dev: user.is_dev || 0,
   };
 }
 
@@ -90,12 +110,65 @@ app.get('/favicon.ico', (c) => {
   return new Response(null, { status: 204 })
 })
 
-// Serve SVG favicon and icon
-app.get('/favicon.svg', serveStatic({ path: './public/favicon.svg' }))
-app.get('/static/icon.svg', serveStatic({ path: './public/static/icon.svg' }))
+// Serve SVG favicon inline (no serveStatic needed - works in all environments)
+const FAVICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#03050f"/><stop offset="100%" stop-color="#080018"/>
+    </linearGradient>
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00e5ff"/><stop offset="100%" stop-color="#0090ff"/>
+    </linearGradient>
+    <linearGradient id="magentaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff00cc"/><stop offset="100%" stop-color="#aa00ff"/>
+    </linearGradient>
+    <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00e5ff"/><stop offset="50%" stop-color="#8800ff"/><stop offset="100%" stop-color="#ff00cc"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
+  <circle cx="20" cy="20" r="18" fill="#00e5ff" opacity="0.04"/>
+  <circle cx="44" cy="44" r="18" fill="#ff00cc" opacity="0.04"/>
+  <line x1="32" y1="6" x2="32" y2="58" stroke="#00e5ff" stroke-width="0.25" opacity="0.12"/>
+  <line x1="6" y1="32" x2="58" y2="32" stroke="#ff00cc" stroke-width="0.25" opacity="0.12"/>
+  <path d="M 32 9 A 23 23 0 0 0 32 55" fill="none" stroke="url(#cyanGrad)" stroke-width="2.5" stroke-linecap="round" opacity="0.9"/>
+  <path d="M 32 9 A 23 23 0 0 1 32 55" fill="none" stroke="url(#magentaGrad)" stroke-width="2.5" stroke-linecap="round" opacity="0.9"/>
+  <circle cx="32" cy="32" r="15" fill="none" stroke="#ffffff" stroke-width="0.4" opacity="0.08"/>
+  <path d="M 22 22 L 16 22 L 16 42 L 22 42" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>
+  <path d="M 42 22 L 48 22 L 48 42 L 42 42" fill="none" stroke="#ff00cc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>
+  <text x="32" y="37" text-anchor="middle" font-size="16" font-weight="900" font-family="Arial Black,Arial,sans-serif" fill="url(#logoGrad)" filter="url(#glow)" letter-spacing="-0.5">AI</text>
+  <circle cx="10" cy="10" r="2" fill="#00e5ff" opacity="0.7"/>
+  <circle cx="54" cy="10" r="2" fill="#ff00cc" opacity="0.7"/>
+  <circle cx="10" cy="54" r="2" fill="#00e5ff" opacity="0.35"/>
+  <circle cx="54" cy="54" r="2" fill="#ff00cc" opacity="0.35"/>
+  <line x1="32" y1="6" x2="32" y2="10" stroke="#00e5ff" stroke-width="1.5" stroke-linecap="round" opacity="0.8"/>
+  <line x1="58" y1="32" x2="54" y2="32" stroke="#ff00cc" stroke-width="1.5" stroke-linecap="round" opacity="0.8"/>
+  <line x1="32" y1="58" x2="32" y2="54" stroke="#00e5ff" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+  <line x1="6" y1="32" x2="10" y2="32" stroke="#ff00cc" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+</svg>`
 
-// SEO: Serve robots.txt
-app.get('/robots.txt', serveStatic({ path: './public/robots.txt' }))
+app.get('/favicon.svg', (c) => {
+  return new Response(FAVICON_SVG, {
+    headers: { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=86400' }
+  })
+})
+
+app.get('/static/icon.svg', (c) => {
+  return new Response(FAVICON_SVG, {
+    headers: { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=86400' }
+  })
+})
+
+// SEO: Serve robots.txt inline
+app.get('/robots.txt', (c) => {
+  return new Response('User-agent: *\nAllow: /\nDisallow: /admin/\nSitemap: https://ai-debate.jp/sitemap.xml\n', {
+    headers: { 'Content-Type': 'text/plain', 'Cache-Control': 'public, max-age=3600' }
+  })
+})
 
 // SEO: Serve sitemap.xml dynamically (overrides static file)
 // This URL can be submitted directly to Google Search Console
@@ -350,6 +423,7 @@ app.get('/demo', async (c) => {
 
   if (freshUserData) {
     user.credits = freshUserData.credits
+    user.is_dev = (freshUserData as any).is_dev || 0
   }
 
   const userInfo = await c.env.DB.prepare(`
@@ -390,10 +464,11 @@ app.get('/main', async (c) => {
 
     // Get fresh credits from DB
     const freshUser = await c.env.DB.prepare(
-      'SELECT credits FROM users WHERE user_id = ?'
+      'SELECT credits, is_dev FROM users WHERE user_id = ?'
     ).bind(user.user_id).first()
     if (freshUser) {
       user.credits = freshUser.credits
+      user.is_dev = (freshUser as any).is_dev || 0
     }
 
     if (!isDevUser) {
@@ -785,6 +860,19 @@ app.get('/tickets', async (c) => {
 })
 
 // Admin tickets page (dev only)
+// Admin Dashboard (dev only)
+app.get('/admin/dashboard', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  const user = safeParseUserCookie(userCookie)
+  if (!user) return c.redirect('/')
+  const isDev = await isDevAdminDB(user, c.env)
+  if (!isDev) return c.redirect('/')
+  // Refresh credits
+  const freshUser = await c.env.DB.prepare('SELECT credits, is_dev FROM users WHERE user_id = ?').bind(user.user_id).first()
+  if (freshUser) { user.credits = freshUser.credits; user.is_dev = (freshUser as any).is_dev || 0 }
+  return c.html(adminDashboardPage(user))
+})
+
 app.get('/admin/tickets', async (c) => {
   const userCookie = getCookie(c, 'user')
   const user = safeParseUserCookie(userCookie)
@@ -2964,18 +3052,133 @@ app.get('/api/tickets', async (c) => {
   }
 })
 
+// ====================== ADMIN DASHBOARD APIs ======================
+
+// API: Admin - system stats
+app.get('/api/admin/stats', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    const user = safeParseUserCookie(userCookie)
+    if (!user || !(await isDevAdminDB(user, c.env))) return c.json({ success: false, error: 'Permission denied' }, 403)
+    const [u, d, p, a] = await Promise.all([
+      c.env.DB.prepare('SELECT COUNT(*) as cnt FROM users').first(),
+      c.env.DB.prepare('SELECT COUNT(*) as cnt FROM debates').first(),
+      c.env.DB.prepare('SELECT COUNT(*) as cnt FROM community_posts').first(),
+      c.env.DB.prepare('SELECT COUNT(*) as cnt FROM archived_debates').first(),
+    ])
+    return c.json({ success: true, stats: { total_users: (u as any)?.cnt||0, total_debates: (d as any)?.cnt||0, total_posts: (p as any)?.cnt||0, total_archives: (a as any)?.cnt||0 } })
+  } catch(e) { return c.json({ success: false, error: String(e) }, 500) }
+})
+
+// API: Admin - user list
+app.get('/api/admin/users', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    const user = safeParseUserCookie(userCookie)
+    if (!user || !(await isDevAdminDB(user, c.env))) return c.json({ success: false, error: 'Permission denied' }, 403)
+    const result = await c.env.DB.prepare(
+      'SELECT user_id, username, email, credits, is_dev, created_at FROM users ORDER BY created_at DESC LIMIT 200'
+    ).all()
+    return c.json({ success: true, users: result.results || [] })
+  } catch(e) { return c.json({ success: false, error: String(e) }, 500) }
+})
+
+// API: Admin - dev users list
+app.get('/api/admin/dev-users', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    const user = safeParseUserCookie(userCookie)
+    if (!user || !(await isDevAdminDB(user, c.env))) return c.json({ success: false, error: 'Permission denied' }, 403)
+    const result = await c.env.DB.prepare(
+      `SELECT u.user_id, u.username, u.email, u.is_dev, di.inviter_user_id as granted_by
+       FROM users u
+       LEFT JOIN dev_invitations di ON di.invitee_user_id = u.user_id
+       WHERE u.is_dev = 1
+       ORDER BY u.created_at ASC`
+    ).all()
+    return c.json({ success: true, users: result.results || [] })
+  } catch(e) { return c.json({ success: false, error: String(e) }, 500) }
+})
+
+// API: Admin - grant/revoke dev role
+app.post('/api/admin/dev-role', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    const user = safeParseUserCookie(userCookie)
+    if (!user || !(await isDevAdminDB(user, c.env))) return c.json({ success: false, error: 'Permission denied' }, 403)
+    const { target_user_id, action } = await c.req.json()
+    if (!target_user_id || !['grant', 'revoke'].includes(action)) return c.json({ success: false, error: 'Invalid params' }, 400)
+    // Prevent revoking the original dev
+    if (action === 'revoke' && target_user_id === 'dev') return c.json({ success: false, error: 'オリジナルdevの権限は剥奪できません' }, 403)
+    // Check target user exists
+    const targetUser = await c.env.DB.prepare('SELECT user_id FROM users WHERE user_id = ?').bind(target_user_id).first()
+    if (!targetUser) return c.json({ success: false, error: 'ユーザーが見つかりません' }, 404)
+    if (action === 'grant') {
+      await c.env.DB.prepare('UPDATE users SET is_dev = 1 WHERE user_id = ?').bind(target_user_id).run()
+      // Record invitation
+      try {
+        await c.env.DB.prepare(
+          'INSERT OR IGNORE INTO dev_invitations (id, inviter_user_id, invitee_user_id) VALUES (?, ?, ?)'
+        ).bind(crypto.randomUUID(), user.user_id, target_user_id).run()
+      } catch(e) {}
+    } else {
+      await c.env.DB.prepare('UPDATE users SET is_dev = 0 WHERE user_id = ?').bind(target_user_id).run()
+      try { await c.env.DB.prepare('DELETE FROM dev_invitations WHERE invitee_user_id = ?').bind(target_user_id).run() } catch(e) {}
+    }
+    return c.json({ success: true })
+  } catch(e) { return c.json({ success: false, error: String(e) }, 500) }
+})
+
+// API: Admin - grant credits
+app.post('/api/admin/credits', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    const user = safeParseUserCookie(userCookie)
+    if (!user || !(await isDevAdminDB(user, c.env))) return c.json({ success: false, error: 'Permission denied' }, 403)
+    const { target_user_id, amount, reason } = await c.req.json()
+    if (!target_user_id || !amount || amount <= 0) return c.json({ success: false, error: 'Invalid params' }, 400)
+    const targetUser = await c.env.DB.prepare('SELECT user_id, credits FROM users WHERE user_id = ?').bind(target_user_id).first()
+    if (!targetUser) return c.json({ success: false, error: 'ユーザーが見つかりません' }, 404)
+    await c.env.DB.prepare('UPDATE users SET credits = credits + ? WHERE user_id = ?').bind(amount, target_user_id).run()
+    await c.env.DB.prepare(
+      'INSERT INTO credit_transactions (id, user_id, amount, type, reason, created_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)'
+    ).bind(crypto.randomUUID(), target_user_id, amount, 'earn', reason || 'admin_grant').run()
+    return c.json({ success: true })
+  } catch(e) { return c.json({ success: false, error: String(e) }, 500) }
+})
+
+// API: Admin - recent transactions
+app.get('/api/admin/transactions', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    const user = safeParseUserCookie(userCookie)
+    if (!user || !(await isDevAdminDB(user, c.env))) return c.json({ success: false, error: 'Permission denied' }, 403)
+    const result = await c.env.DB.prepare(
+      'SELECT user_id, amount, type, reason, created_at FROM credit_transactions ORDER BY created_at DESC LIMIT 50'
+    ).all()
+    return c.json({ success: true, transactions: result.results || [] })
+  } catch(e) { return c.json({ success: false, error: String(e) }, 500) }
+})
+
+// API: Admin - debates list
+app.get('/api/admin/debates', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    const user = safeParseUserCookie(userCookie)
+    if (!user || !(await isDevAdminDB(user, c.env))) return c.json({ success: false, error: 'Permission denied' }, 403)
+    const result = await c.env.DB.prepare(
+      'SELECT id, theme, status, created_at FROM debates ORDER BY created_at DESC LIMIT 100'
+    ).all()
+    return c.json({ success: true, debates: result.results || [] })
+  } catch(e) { return c.json({ success: false, error: String(e) }, 500) }
+})
+
 // API: Get all tickets (dev only)
 app.get('/api/admin/tickets', async (c) => {
   try {
     const userCookie = getCookie(c, 'user')
-    if (!userCookie) {
-      return c.json({ success: false, error: 'Not authenticated' }, 401)
-    }
-
     const user = safeParseUserCookie(userCookie)
-    if (!isDevAdmin(user, c.env)) {
-      return c.json({ success: false, error: 'Permission denied' }, 403)
-    }
+    if (!user || !isDevAdmin(user, c.env)) return c.json({ success: false, error: 'Permission denied' }, 403)
 
     const tickets = await c.env.DB.prepare(`
       SELECT t.id, t.user_id, t.subject, t.status, t.created_at, t.updated_at,

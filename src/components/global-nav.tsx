@@ -1,5 +1,5 @@
 ﻿// Global Navigation Component - Cyberpunk Hamburger Menu
-export const globalNav = (user: { credits: number; user_id: string; avatar_type?: string; avatar_value?: string; avatar_url?: string } | null) => {
+export const globalNav = (user: { credits: number; user_id: string; avatar_type?: string; avatar_value?: string; avatar_url?: string; is_dev?: number | boolean; email?: string } | null) => {
   if (!user) {
     // Guest navigation (not logged in)
     return `
@@ -14,7 +14,7 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
       <a href="/" class="guest-nav-btn"><i class="fas fa-sign-in-alt mr-2"></i>ログイン</a>
     </nav>`;
   }
-  const isDevUser = user.user_id === 'dev';
+  const isDevUser = user.user_id === 'dev' || user.is_dev === 1 || user.is_dev === true;
   // Avatar display logic with proper priority
   const getAvatarUrl = () => {
     if (user.avatar_url) return user.avatar_url;
@@ -65,10 +65,24 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
     </style>
 
     <!-- Fixed Top Header -->
-    <header style="position: fixed; top: 0; left: 0; width: 100%; height: 60px; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(0,255,255,0.3); display: flex; justify-content: space-between; align-items: center; padding: 0 20px; z-index: 9997;">
+    <header style="position: fixed; top: 0; left: 0; width: 100%; height: 60px; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(0,255,255,0.3); display: flex; justify-content: space-between; align-items: center; padding: 0 20px; z-index: 9997;">
       <a href="/main" style="text-decoration: none; display: flex; align-items: center; gap: 10px;">
-        <img src="/favicon.svg" alt="AI Debate" style="width:32px;height:32px;border-radius:8px;">
-        <span style="color: #00ffff; font-family: 'Orbitron', sans-serif; font-size: 1.1rem; font-weight: 900; letter-spacing: 2px; text-shadow: 0 0 10px rgba(0,255,255,0.5); background: linear-gradient(135deg,#00ffff,#ff00ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">AI DEBATE</span>
+        <!-- Inline SVG icon - no external request needed -->
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" style="width:34px;height:34px;flex-shrink:0;">
+          <defs>
+            <linearGradient id="nav-bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#03050f"/><stop offset="100%" stop-color="#080018"/></linearGradient>
+            <linearGradient id="nav-logo" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00e5ff"/><stop offset="50%" stop-color="#8800ff"/><stop offset="100%" stop-color="#ff00cc"/></linearGradient>
+          </defs>
+          <rect width="64" height="64" rx="14" fill="url(#nav-bg)"/>
+          <path d="M 32 8 A 24 24 0 0 0 32 56" fill="none" stroke="#00e5ff" stroke-width="2.5" stroke-linecap="round" opacity="0.9"/>
+          <path d="M 32 8 A 24 24 0 0 1 32 56" fill="none" stroke="#ff00cc" stroke-width="2.5" stroke-linecap="round" opacity="0.9"/>
+          <path d="M 20 22 L 14 22 L 14 42 L 20 42" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>
+          <path d="M 44 22 L 50 22 L 50 42 L 44 42" fill="none" stroke="#ff00cc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>
+          <text x="32" y="37" text-anchor="middle" font-size="16" font-weight="900" font-family="Arial Black,Arial,sans-serif" fill="url(#nav-logo)" letter-spacing="-0.5">AI</text>
+          <circle cx="10" cy="10" r="2" fill="#00e5ff" opacity="0.5"/>
+          <circle cx="54" cy="10" r="2" fill="#ff00cc" opacity="0.5"/>
+        </svg>
+        <span style="font-family:'Orbitron',sans-serif;font-size:1.05rem;font-weight:900;letter-spacing:2px;background:linear-gradient(135deg,#00e5ff,#8800ff,#ff00cc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">AI DEBATE</span>
       </a>
       <button id="nav-toggle" aria-label="Menu Toggle">
         <span></span><span></span><span></span>
@@ -114,6 +128,9 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
         ${isDevUser ? `
         <a href="#" class="nav-link" onclick="event.preventDefault();openCommandPanel();">
           <i class="fas fa-terminal" style="color: #22c55e;"></i><span style="color: #22c55e;">コマンド</span>
+        </a>
+        <a href="/admin/dashboard" class="nav-link" style="border-top: 1px solid rgba(255,215,0,0.3);">
+          <i class="fas fa-crown" style="color: #ffd700;"></i><span style="color: #ffd700;">開発者ダッシュボード</span>
         </a>
         ` : ''}
         ${isDevUser ? `
