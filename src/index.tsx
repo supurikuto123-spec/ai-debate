@@ -626,13 +626,17 @@ app.get('/watch', async (c) => {
     return c.redirect('/main')
   }
 
-  // Get fresh credits from DB
+  // Get fresh credits + restriction from DB
   const freshUser = await c.env.DB.prepare(
-    'SELECT credits FROM users WHERE user_id = ?'
-  ).bind(user.user_id).first()
+    'SELECT credits, is_banned, debate_ban FROM users WHERE user_id = ?'
+  ).bind(user.user_id).first() as any
   if (freshUser) {
     user.credits = freshUser.credits
+    if (freshUser.is_banned) return c.redirect('/?banned=1')
+    if (freshUser.debate_ban) return c.redirect('/main?debate_ban=1')
   }
+  // Update last_access_at
+  try { await c.env.DB.prepare('UPDATE users SET last_access_at = CURRENT_TIMESTAMP WHERE user_id = ?').bind(user.user_id).run() } catch(e) {}
 
   return c.html(watchPage(user, debateId))
 })
