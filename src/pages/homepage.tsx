@@ -136,7 +136,7 @@ export const homepage = (user: any) => `
                 <p class="text-base sm:text-lg md:text-2xl mb-4 md:mb-8 text-cyan-300 max-w-3xl mx-auto neon-text">
                     AI vs AI ディベートショーを観戦しよう
                 </p>
-                <p class="text-sm md:text-lg mb-8 md:mb-12 text-gray-300 max-w-2xl mx-auto leading-relaxed">
+                <p class="text-sm md:text-lg mb-4 md:mb-8 text-gray-300 max-w-2xl mx-auto leading-relaxed">
                     最先端のAI同士が繰り広げる白熱したディベートを楽しむ<br>
                     観戦でクレジット獲得、自分でもAIと対決可能
                 </p>
@@ -161,7 +161,7 @@ export const homepage = (user: any) => `
                 </div>
 
                 <!-- Release Countdown & Stats -->
-                <div class="mt-16">
+                <div class="mt-8">
                     <!-- Real-time Stats Meters -->
                     <div class="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto mb-12">
                         <!-- Real-time Online Users -->
@@ -226,7 +226,7 @@ export const homepage = (user: any) => `
         <!-- How It Works -->
         <section id="how" class="py-20 relative bg-gradient-to-b from-black to-purple-900/20">
             <div class="container mx-auto px-4 md:px-6">
-                <h2 class="text-3xl md:text-5xl font-bold text-center mb-8 md:mb-16 cyber-text">仕組み</h2>
+                <h2 class="text-3xl md:text-5xl font-bold text-center mb-6 md:mb-10 cyber-text">仕組み</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-12">
                     <!-- Step 1 -->
                     <div class="text-center">
@@ -306,9 +306,9 @@ export const homepage = (user: any) => `
         </section>
 
         <!-- Categories Section -->
-        <section id="categories" class="py-20 relative">
+        <section id="categories" class="py-12 relative">
             <div class="container mx-auto px-4 md:px-6">
-                <h2 class="text-3xl md:text-5xl font-bold text-center mb-8 md:mb-16 cyber-text">カテゴリー</h2>
+                <h2 class="text-3xl md:text-5xl font-bold text-center mb-6 md:mb-10 cyber-text">カテゴリー</h2>
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6">
                     <!-- Category 1 -->
                     <div class="category-card">
@@ -403,7 +403,7 @@ export const homepage = (user: any) => `
         <!-- Features Section -->
         <section id="features" class="py-20 relative bg-gradient-to-b from-black to-cyan-900/10">
             <div class="container mx-auto px-4 md:px-6">
-                <h2 class="text-3xl md:text-5xl font-bold text-center mb-8 md:mb-16 cyber-text">主な機能</h2>
+                <h2 class="text-3xl md:text-5xl font-bold text-center mb-6 md:mb-10 cyber-text">主な機能</h2>
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-8">
                     <!-- Feature 1 -->
                     <div class="feature-card">
@@ -475,7 +475,7 @@ export const homepage = (user: any) => `
         </section>
 
         <!-- CTA Section -->
-        <section class="py-20 relative">
+        <section class="py-12 relative">
             <div class="container mx-auto px-6 text-center">
                 <div class="cta-box">
                     <h2 class="text-3xl md:text-5xl font-bold mb-4 md:mb-6 cyber-text">
@@ -543,6 +543,37 @@ export const homepage = (user: any) => `
         </footer>
 
         <script src="/static/app.js"></script>
+        <script>
+        // Load live stats for homepage meters
+        (function() {
+          async function loadStats() {
+            try {
+              const [onlineRes, visitorRes, userRes] = await Promise.all([
+                fetch('/api/stats/online').catch(()=>null),
+                fetch('/api/stats/visitors').catch(()=>null),
+                fetch('/api/stats/users').catch(()=>null)
+              ]);
+              if (onlineRes && onlineRes.ok) {
+                const d = await onlineRes.json();
+                const el = document.getElementById('online-count');
+                if (el) el.textContent = Number(d.count || 0).toLocaleString();
+              }
+              if (visitorRes && visitorRes.ok) {
+                const d = await visitorRes.json();
+                const el = document.getElementById('visitor-count');
+                if (el) el.textContent = Number(d.count || 0).toLocaleString();
+              }
+              if (userRes && userRes.ok) {
+                const d = await userRes.json();
+                const el = document.getElementById('user-count');
+                if (el) el.textContent = Number(d.count || 0).toLocaleString();
+              }
+            } catch(e) {}
+          }
+          loadStats();
+          setInterval(loadStats, 30000);
+        })();
+        </script>
     
     </body>
     </html>

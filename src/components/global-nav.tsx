@@ -11,8 +11,22 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
     </style>
     <nav id="guest-nav">
       <a href="/" class="guest-logo">⚡ AI Debate</a>
-      <a href="/" class="guest-nav-btn"><i class="fas fa-sign-in-alt mr-2"></i>ログイン</a>
-    </nav>`;
+      <div style="display:flex;align-items:center;gap:12px;">
+        <img id="guest-avatar" src="" alt="" style="display:none;width:36px;height:36px;border-radius:50%;border:2px solid rgba(0,255,255,0.5);object-fit:cover;">
+        <a href="/" class="guest-nav-btn"><i class="fas fa-sign-in-alt mr-2"></i>ログイン</a>
+      </div>
+    </nav>
+    <script>
+      (function() {
+        try {
+          const savedAvatar = localStorage.getItem('lastAvatarUrl');
+          if (savedAvatar) {
+            const avatarEl = document.getElementById('guest-avatar');
+            if (avatarEl) { avatarEl.src = savedAvatar; avatarEl.style.display = 'block'; }
+          }
+        } catch(e) {}
+      })();
+    </script>`;
   }
   const isDevUser = user.user_id === 'dev' || user.is_dev === 1 || user.is_dev === true;
   // Avatar display logic with proper priority
@@ -125,6 +139,10 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
         <a href="/mypage" class="nav-link">
           <i class="fas fa-user"></i><span>マイページ</span>
         </a>
+        <a href="/notifications" class="nav-link" id="nav-notif-link">
+          <i class="fas fa-bell" style="position:relative;"></i>
+          <span>通知 <span id="nav-notif-badge" style="display:none;background:#ef4444;color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;margin-left:4px;font-weight:700;"></span></span>
+        </a>
         ${isDevUser ? `
         <a href="#" class="nav-link" onclick="event.preventDefault();openCommandPanel();">
           <i class="fas fa-terminal" style="color: #22c55e;"></i><span style="color: #22c55e;">コマンド</span>
@@ -145,11 +163,35 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
         `}
       </div>
 
-      <a href="/logout" class="nav-logout">
+      <a href="/logout" class="nav-logout" onclick="saveAvatarBeforeLogout(this)">
         <i class="fas fa-sign-out-alt"></i> ログアウト
       </a>
       
       <div style="padding: 20px 30px; border-top: 1px solid rgba(0,255,255,0.2);">
+        <!-- AIO Debate Statistics -->
+        <div style="background:rgba(0,255,255,0.05);border:1px solid rgba(0,255,255,0.2);border-radius:10px;padding:14px;margin-bottom:16px;">
+          <div style="font-size:11px;font-weight:700;color:#00ffff;letter-spacing:1px;margin-bottom:10px;text-transform:uppercase;">
+            <i class="fas fa-chart-bar" style="margin-right:6px;"></i>AIO Debate 統計
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div style="text-align:center;">
+              <div id="aio-debates" style="font-size:18px;font-weight:900;color:#00ffff;">-</div>
+              <div style="font-size:10px;color:#6b7280;">総ディベート</div>
+            </div>
+            <div style="text-align:center;">
+              <div id="aio-users" style="font-size:18px;font-weight:900;color:#ff00ff;">-</div>
+              <div style="font-size:10px;color:#6b7280;">登録ユーザー</div>
+            </div>
+            <div style="text-align:center;">
+              <div id="aio-votes" style="font-size:18px;font-weight:900;color:#ffd700;">-</div>
+              <div style="font-size:10px;color:#6b7280;">総投票数</div>
+            </div>
+            <div style="text-align:center;">
+              <div id="aio-posts" style="font-size:18px;font-weight:900;color:#22c55e;">-</div>
+              <div style="font-size:10px;color:#6b7280;">投稿数</div>
+            </div>
+          </div>
+        </div>
         <a href="/terms" style="display: block; color: #888; font-size: 0.85rem; padding: 8px 0; text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='#00ffff'" onmouseout="this.style.color='#888'">
           <i class="fas fa-file-contract" style="margin-right: 8px;"></i>利用規約
         </a>
@@ -191,6 +233,53 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
         setInterval(refreshNavCredits, 10000);
         // Also refresh on page visibility change
         document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshNavCredits(); });
+
+        // Load unread notification count
+        async function refreshNotifBadge() {
+          try {
+            const res = await fetch('/api/notifications/unread-count');
+            if (res.ok) {
+              const data = await res.json();
+              const badge = document.getElementById('nav-notif-badge');
+              if (badge) {
+                if (data.count > 0) {
+                  badge.textContent = data.count > 99 ? '99+' : String(data.count);
+                  badge.style.display = 'inline';
+                } else {
+                  badge.style.display = 'none';
+                }
+              }
+            }
+          } catch(e) {}
+        }
+        refreshNotifBadge();
+        setInterval(refreshNotifBadge, 30000);
+
+        // Load AIO Debate statistics
+        async function loadAioStats() {
+          try {
+            const res = await fetch('/api/stats/aio');
+            if (res.ok) {
+              const d = await res.json();
+              const debates = document.getElementById('aio-debates');
+              const users = document.getElementById('aio-users');
+              const votes = document.getElementById('aio-votes');
+              const posts = document.getElementById('aio-posts');
+              if (debates) debates.textContent = Number(d.total_debates || 0).toLocaleString();
+              if (users) users.textContent = Number(d.total_users || 0).toLocaleString();
+              if (votes) votes.textContent = Number(d.total_votes || 0).toLocaleString();
+              if (posts) posts.textContent = Number(d.total_posts || 0).toLocaleString();
+            }
+          } catch(e) {}
+        }
+        // Load stats when menu opens
+        const menuToggle = document.getElementById('nav-toggle');
+        if (menuToggle) {
+          menuToggle.addEventListener('click', () => {
+            const menu = document.getElementById('nav-menu');
+            if (menu && menu.classList.contains('active')) loadAioStats();
+          });
+        }
       })();
     </script>
 
@@ -381,6 +470,19 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
         }
       }
       window.adminDeleteAllArchives = adminDeleteAllArchives;
+
+      // Save avatar URL before logout so guest nav can show it
+      function saveAvatarBeforeLogout(linkEl) {
+        try {
+          const avatarEl = document.querySelector('.nav-avatar');
+          if (avatarEl && avatarEl.src) {
+            localStorage.setItem('lastAvatarUrl', avatarEl.src);
+          }
+          localStorage.setItem('lastUserId', '${user.user_id}');
+        } catch(e) {}
+        // Allow navigation to proceed
+      }
+      window.saveAvatarBeforeLogout = saveAvatarBeforeLogout;
     </script>
 
     <!-- Custom Animated Popups -->

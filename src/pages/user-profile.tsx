@@ -239,41 +239,7 @@ export const UserProfile: FC<UserProfileProps> = ({ profileUser, currentUser, st
             </div>
           </div>
 
-          {isOwnProfile && (
-            <div class="privacy-section" id="privacySection">
-              <div class="privacy-title">
-                <i class="fas fa-lock" style="font-size:18px;"></i> プライバシー設定
-              </div>
-              <div class="privacy-toggle">
-                <span>総ディベート数を公開</span>
-                <div class={`toggle-switch ${p.show_total_debates ? 'on' : ''}`} data-key="show_total_debates" onclick="togglePrivacy(this)"></div>
-              </div>
-              <div class="privacy-toggle">
-                <span>勝利数を公開</span>
-                <div class={`toggle-switch ${p.show_wins ? 'on' : ''}`} data-key="show_wins" onclick="togglePrivacy(this)"></div>
-              </div>
-              <div class="privacy-toggle">
-                <span>敗北数を公開</span>
-                <div class={`toggle-switch ${p.show_losses ? 'on' : ''}`} data-key="show_losses" onclick="togglePrivacy(this)"></div>
-              </div>
-              <div class="privacy-toggle">
-                <span>引き分けを公開</span>
-                <div class={`toggle-switch ${p.show_draws ? 'on' : ''}`} data-key="show_draws" onclick="togglePrivacy(this)"></div>
-              </div>
-              <div class="privacy-toggle">
-                <span>勝率を公開</span>
-                <div class={`toggle-switch ${p.show_win_rate ? 'on' : ''}`} data-key="show_win_rate" onclick="togglePrivacy(this)"></div>
-              </div>
-              <div class="privacy-toggle">
-                <span>投稿数を公開</span>
-                <div class={`toggle-switch ${p.show_posts ? 'on' : ''}`} data-key="show_posts" onclick="togglePrivacy(this)"></div>
-              </div>
-              <div class="privacy-toggle">
-                <span>クレジットを公開</span>
-                <div class={`toggle-switch ${p.show_credits ? 'on' : ''}`} data-key="show_credits" onclick="togglePrivacy(this)"></div>
-              </div>
-            </div>
-          )}
+          {/* Privacy toggles removed - managed via MyPage only */}
 
           <div class="stats-grid">
             <div class="stat-card">

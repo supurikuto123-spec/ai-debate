@@ -21,6 +21,7 @@ import { ticketsPage } from './pages/tickets'
 import { adminTicketsPage } from './pages/admin-tickets'
 import { battlePage } from './pages/battle'
 import { adminDashboardPage } from './pages/admin-dashboard'
+import { notificationsPage } from './pages/notifications'
 
 type Bindings = {
   DB: D1Database
@@ -873,6 +874,21 @@ app.get('/admin/dashboard', async (c) => {
   return c.html(adminDashboardPage(user))
 })
 
+// Notifications page
+app.get('/notifications', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  const user = safeParseUserCookie(userCookie)
+  if (!user) return c.redirect('/')
+  // Refresh credits
+  try {
+    const freshUser = await c.env.DB.prepare('SELECT credits, is_dev FROM users WHERE user_id = ?').bind(user.user_id).first()
+    if (freshUser) { user.credits = freshUser.credits; user.is_dev = (freshUser as any).is_dev || 0 }
+  } catch(e) {}
+  // Update last_access_at
+  try { await c.env.DB.prepare('UPDATE users SET last_access_at = CURRENT_TIMESTAMP WHERE user_id = ?').bind(user.user_id).run() } catch(e) {}
+  return c.html(notificationsPage(user))
+})
+
 app.get('/admin/tickets', async (c) => {
   const userCookie = getCookie(c, 'user')
   const user = safeParseUserCookie(userCookie)
@@ -1267,7 +1283,30 @@ app.get('/api/archive/debates', async (c) => {
       console.log('Note: Could not fetch completed debates from debates table')
     }
 
-    const allDebates = [...(archived.results || []), ...completedDebates]
+    // 重複除去: archive_idをキーとして使い、archived_debatesを優先
+    const seenIds = new Set<string>()
+    const allDebates: any[] = []
+    for (const d of (archived.results || [])) {
+      const key = String(d.debate_id || d.id)
+      if (!seenIds.has(key)) {
+        seenIds.add(key)
+        // 勝者を投票数で再計算（DBのwinnerが信頼できない場合の保険）
+        const av = Number(d.agree_votes || 0)
+        const dv = Number(d.disagree_votes || 0)
+        if (!d.winner) d.winner = av >= dv ? 'agree' : 'disagree'
+        allDebates.push(d)
+      }
+    }
+    for (const d of completedDebates) {
+      const key = String(d.debate_id || d.id)
+      if (!seenIds.has(key)) {
+        seenIds.add(key)
+        const av = Number(d.agree_votes || 0)
+        const dv = Number(d.disagree_votes || 0)
+        if (!d.winner) d.winner = av >= dv ? 'agree' : 'disagree'
+        allDebates.push(d)
+      }
+    }
     return c.json({ success: true, debates: allDebates })
   } catch (error) {
     console.error('Get archive debates error:', error)
@@ -1661,8 +1700,8 @@ app.post('/api/user/privacy', async (c) => {
 app.get('/api/debate/model-info', async (c) => {
   return c.json({
     success: true,
-    model: 'gpt-4.1-nano',
-    display_name: 'GPT-4.1 Nano'
+    model: 'gpt-5-nano',
+    display_name: 'GPT-5 Nano'
   })
 })
 
@@ -1677,7 +1716,7 @@ app.get('/api/ai-profiles', async (c) => {
         icon: 'fas fa-brain',
         color: '#34d399',
         gradient: 'from-green-500 to-emerald-500',
-        model: 'gpt-4.1-nano',
+        model: 'gpt-5-nano',
         trait: '論理的・データ重視',
         style: '構造的に根拠を積み上げる',
         description: '客観的データと論理的推論を重視し、体系的に議論を構築するAI。根拠の明確さと一貫性が特徴。'
@@ -1688,7 +1727,7 @@ app.get('/api/ai-profiles', async (c) => {
         icon: 'fas fa-fire',
         color: '#f87171',
         gradient: 'from-red-500 to-rose-500',
-        model: 'gpt-4.1-nano',
+        model: 'gpt-5-nano',
         trait: '批判的・反証重視',
         style: '矛盾を鋭く突く',
         description: '相手の論点の弱点を鋭く指摘し、反証を提示するAI。批判的思考と反論力が特徴。'
@@ -1929,6 +1968,10 @@ app.delete('/api/archive/all', async (c) => {
     await c.env.DB.prepare('DELETE FROM archived_debates').run()
     // Also delete archive_views (purchased records)
     await c.env.DB.prepare('DELETE FROM archive_views').run()
+    // Also reset completed debates status so they don't re-appear in archive list
+    try {
+      await c.env.DB.prepare("UPDATE debates SET status = 'archived_deleted' WHERE status = 'completed'").run()
+    } catch(e) {}
 
     console.log('[Admin] All archives deleted by', user.user_id)
     return c.json({ success: true, message: 'すべてのアーカイブを削除しました' })
@@ -2145,9 +2188,9 @@ app.post('/api/debate/generate', async (c) => {
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-nano',  // Prompt Cachingサポート（75%割引）
+        model: 'gpt-5-nano',  // gpt-5-nano: $0.05/$0.005/$0.40
         messages: messages,
-        max_tokens: maxTokens || 220,  // 180文字（日本語） ≈ 220トークン
+        max_tokens: maxTokens || 340,  // 300文字（日本語）≈ 340トークン
         temperature: temperature || 0.7
       })
     })
@@ -2162,10 +2205,10 @@ app.post('/api/debate/generate', async (c) => {
     let message = data.choices[0].message.content.trim()
 
     // 実際に使用されたモデル情報を取得
-    const usedModel = data.model || 'gpt-4.1-nano'
+    const usedModel = data.model || 'gpt-5-nano'
 
     // トークン使用量をログ出力（キャッシュヒット率確認）
-    // gpt-4.1-nanoは90%キャッシュ割引（$0.10 → $0.01/1M cached tokens）
+    // gpt-5-nano: $0.05/$0.005/$0.40
     if (data.usage) {
       const cached = data.usage.prompt_tokens_details?.cached_tokens || 0
       const cacheRate = data.usage.prompt_tokens > 0
@@ -2174,15 +2217,14 @@ app.post('/api/debate/generate', async (c) => {
       console.log(`[Debate] Tokens - Input: ${data.usage.prompt_tokens}, Cached: ${cached} (${cacheRate}%), Output: ${data.usage.completion_tokens}`)
     }
 
-    // [意見A], [意見B], [意見C]などのラベルを削除
+    // [意見A], [意見B]などのラベルを削除
     message = message.replace(/^\[意見[ABC]\]:\s*/g, '')
+    message = message.replace(/^(Aether|Nova):\s*/g, '')
+    message = message.replace(/^【[^】]*】:\s*/g, '')
 
-    // 180文字制限を厳格に実施（必ず句読点で終わるように調整）
-    if (message.length > 180) {
-      // 180文字でカット
-      message = message.substring(0, 180)
-
-      // 最後の句読点（。、！、？）を探す
+    // 300文字制限を厳格に実施（必ず句読点で終わるように調整）
+    if (message.length > 300) {
+      message = message.substring(0, 300)
       const lastPunctuationIndex = Math.max(
         message.lastIndexOf('。'),
         message.lastIndexOf('！'),
@@ -2233,19 +2275,37 @@ app.post('/api/debate/evaluate', async (c) => {
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-nano',
+        model: 'gpt-5-nano',
         messages: [
           {
             role: 'system',
-            content: '公平な審査員。立場の一貫性を最重視。必ずJSON形式で返してください。'
+            content: `あなたは公平・厳格なディベート審査員AI（審査官）です。
+以下の4基準で厳密に評価し、必ずJSON形式 {"winner": "agree" または "disagree"} のみ返してください。
+他のテキストは一切禁止です。
+
+【評価基準（優先度順）】
+1. 立場の一貫性（最重要）: 自分の立場（賛成/反対）を最後まで一貫して守ったか。
+   - NG例: 「確かにそれも一理あります」「相手の意見にも納得できます」などは即座に減点。
+   - 「！！」は強い主張、「！」は普通の主張、「？」は疑問・弱い主張として評価に影響する。
+2. 論拠の強さ: 具体的事実・データ・事例があるか。記号的な表現（！！等）だけでなく実質的な内容か。
+3. 反論の質: 相手の主張の弱点を的確に突けているか。
+4. 論理の一貫性: 矛盾・自己否定がないか。
+
+【立場変更の検出（自動失格）】
+以下のパターンを含む主張は立場変更とみなし、即座に相手方を勝者とする:
+- 「確かに」「おっしゃる通り」「それも正しい」「一理あります」等の譲歩表現
+- 「でも相手の言う通り」等の同調表現
+- 自分の立場と矛盾する主張
+
+必ず {"winner": "agree"} または {"winner": "disagree"} のみ返す。`
           },
           {
             role: 'user',
             content: prompt
           }
         ],
-        max_tokens: 60,
-        temperature: 0.5,
+        max_tokens: 30,
+        temperature: 0.1,
         response_format: { type: 'json_object' }  // JSON形式を強制
       })
     })
@@ -3077,7 +3137,9 @@ app.get('/api/admin/users', async (c) => {
     const user = safeParseUserCookie(userCookie)
     if (!user || !(await isDevAdminDB(user, c.env))) return c.json({ success: false, error: 'Permission denied' }, 403)
     const result = await c.env.DB.prepare(
-      'SELECT user_id, username, email, credits, is_dev, created_at FROM users ORDER BY created_at DESC LIMIT 200'
+      `SELECT user_id, username, email, credits, is_dev, is_banned, ban_reason,
+              last_access_at, created_at
+       FROM users ORDER BY created_at DESC LIMIT 200`
     ).all()
     return c.json({ success: true, users: result.results || [] })
   } catch(e) { return c.json({ success: false, error: String(e) }, 500) }
@@ -3420,6 +3482,220 @@ app.post('/api/admin/tickets/:id/status', async (c) => {
   } catch (error) {
     console.error('Update ticket status error:', error)
     return c.json({ success: false, error: 'Failed to update status' }, 500)
+  }
+})
+
+// ============================================================
+// NOTIFICATIONS API
+// ============================================================
+
+// GET /api/notifications - fetch user notifications
+app.get('/api/notifications', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    const user = safeParseUserCookie(userCookie)
+    if (!user) return c.json({ success: false, error: 'Not authenticated' }, 401)
+    
+    const result = await c.env.DB.prepare(
+      `SELECT id, type, title, body, is_read, link, created_at
+       FROM notifications WHERE user_id = ?
+       ORDER BY created_at DESC LIMIT 50`
+    ).bind(user.user_id).all()
+    
+    return c.json({ success: true, notifications: result.results || [] })
+  } catch(e) {
+    return c.json({ success: false, error: String(e) }, 500)
+  }
+})
+
+// GET /api/notifications/unread-count
+app.get('/api/notifications/unread-count', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    const user = safeParseUserCookie(userCookie)
+    if (!user) return c.json({ count: 0 })
+    
+    const result = await c.env.DB.prepare(
+      `SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0`
+    ).bind(user.user_id).first()
+    
+    return c.json({ count: (result?.count as number) || 0 })
+  } catch(e) {
+    return c.json({ count: 0 })
+  }
+})
+
+// POST /api/notifications/read-all - mark all as read
+app.post('/api/notifications/read-all', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    const user = safeParseUserCookie(userCookie)
+    if (!user) return c.json({ success: false, error: 'Not authenticated' }, 401)
+    
+    await c.env.DB.prepare(
+      `UPDATE notifications SET is_read = 1 WHERE user_id = ?`
+    ).bind(user.user_id).run()
+    
+    return c.json({ success: true })
+  } catch(e) {
+    return c.json({ success: false, error: String(e) }, 500)
+  }
+})
+
+// POST /api/notifications/read/:id - mark single as read
+app.post('/api/notifications/read/:id', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    const user = safeParseUserCookie(userCookie)
+    if (!user) return c.json({ success: false, error: 'Not authenticated' }, 401)
+    const notifId = c.req.param('id')
+    
+    await c.env.DB.prepare(
+      `UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?`
+    ).bind(notifId, user.user_id).run()
+    
+    return c.json({ success: true })
+  } catch(e) {
+    return c.json({ success: false, error: String(e) }, 500)
+  }
+})
+
+// ============================================================
+// USER BAN / RESTRICT API (dev admin only)
+// ============================================================
+
+// POST /api/admin/ban - ban or unban a user
+app.post('/api/admin/ban', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    const user = safeParseUserCookie(userCookie)
+    if (!user || !(await isDevAdminDB(user, c.env))) return c.json({ success: false, error: 'Permission denied' }, 403)
+    
+    const { target_user_id, action, reason } = await c.req.json()
+    if (!target_user_id || !['ban', 'unban'].includes(action)) return c.json({ success: false, error: 'Invalid params' }, 400)
+    if (target_user_id === 'dev') return c.json({ success: false, error: 'devユーザーはBANできません' }, 403)
+    
+    const targetUser = await c.env.DB.prepare('SELECT user_id, username FROM users WHERE user_id = ?').bind(target_user_id).first()
+    if (!targetUser) return c.json({ success: false, error: 'ユーザーが見つかりません' }, 404)
+    
+    if (action === 'ban') {
+      await c.env.DB.prepare(
+        `UPDATE users SET is_banned = 1, ban_reason = ? WHERE user_id = ?`
+      ).bind(reason || 'Admin ban', target_user_id).run()
+      // Create notification for banned user
+      try {
+        await c.env.DB.prepare(
+          `INSERT INTO notifications (id, user_id, type, title, body, created_at) VALUES (?, ?, 'warning', ?, ?, CURRENT_TIMESTAMP)`
+        ).bind(crypto.randomUUID(), target_user_id, 'アカウント制限のお知らせ', reason || 'あなたのアカウントは一時的に制限されました。詳細はサポートにお問い合わせください。').run()
+      } catch(e) {}
+    } else {
+      await c.env.DB.prepare(
+        `UPDATE users SET is_banned = 0, ban_reason = NULL WHERE user_id = ?`
+      ).bind(target_user_id).run()
+      // Notify unban
+      try {
+        await c.env.DB.prepare(
+          `INSERT INTO notifications (id, user_id, type, title, body, created_at) VALUES (?, ?, 'info', ?, ?, CURRENT_TIMESTAMP)`
+        ).bind(crypto.randomUUID(), target_user_id, 'アカウント制限の解除', 'あなたのアカウントの制限が解除されました。').run()
+      } catch(e) {}
+    }
+    
+    console.log(`[Admin BAN] ${action} user ${target_user_id} by ${user.user_id}`)
+    return c.json({ success: true })
+  } catch(e) {
+    return c.json({ success: false, error: String(e) }, 500)
+  }
+})
+
+// POST /api/admin/notify - send notification to user (dev only)
+app.post('/api/admin/notify', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    const user = safeParseUserCookie(userCookie)
+    if (!user || !(await isDevAdminDB(user, c.env))) return c.json({ success: false, error: 'Permission denied' }, 403)
+    
+    const { target_user_id, title, body, type, link } = await c.req.json()
+    if (!target_user_id || !title || !body) return c.json({ success: false, error: 'Invalid params' }, 400)
+    
+    // 'all' sends to all users
+    if (target_user_id === 'all') {
+      const users = await c.env.DB.prepare('SELECT user_id FROM users LIMIT 500').all()
+      const allUsers = users.results || []
+      for (const u of allUsers) {
+        try {
+          await c.env.DB.prepare(
+            `INSERT INTO notifications (id, user_id, type, title, body, link, created_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
+          ).bind(crypto.randomUUID(), (u as any).user_id, type || 'info', title, body, link || null).run()
+        } catch(e) {}
+      }
+      return c.json({ success: true, sent: allUsers.length })
+    }
+    
+    await c.env.DB.prepare(
+      `INSERT INTO notifications (id, user_id, type, title, body, link, created_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
+    ).bind(crypto.randomUUID(), target_user_id, type || 'info', title, body, link || null).run()
+    
+    return c.json({ success: true })
+  } catch(e) {
+    return c.json({ success: false, error: String(e) }, 500)
+  }
+})
+
+// GET /api/admin/users - updated version with last_access_at, is_banned
+app.get('/api/admin/users/full', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    const user = safeParseUserCookie(userCookie)
+    if (!user || !(await isDevAdminDB(user, c.env))) return c.json({ success: false, error: 'Permission denied' }, 403)
+    const result = await c.env.DB.prepare(
+      `SELECT user_id, username, email, credits, is_dev, is_banned, ban_reason,
+              last_access_at, created_at
+       FROM users ORDER BY created_at DESC LIMIT 200`
+    ).all()
+    return c.json({ success: true, users: result.results || [] })
+  } catch(e) { return c.json({ success: false, error: String(e) }, 500) }
+})
+
+// Update last_access_at on main page visits
+app.post('/api/user/heartbeat', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    const user = safeParseUserCookie(userCookie)
+    if (!user) return c.json({ success: false })
+    
+    await c.env.DB.prepare(
+      `UPDATE users SET last_access_at = CURRENT_TIMESTAMP WHERE user_id = ?`
+    ).bind(user.user_id).run()
+    
+    return c.json({ success: true })
+  } catch(e) {
+    return c.json({ success: false })
+  }
+})
+
+// GET /api/stats/aio - AIO Debate overall statistics for nav
+app.get('/api/stats/aio', async (c) => {
+  try {
+    let totalDebates = 0, totalVotes = 0, totalUsers = 0, totalPosts = 0
+    try {
+      const d = await c.env.DB.prepare('SELECT COUNT(*) as c FROM archived_debates').first()
+      totalDebates = (d?.c as number) || 0
+    } catch(e) {}
+    try {
+      const d = await c.env.DB.prepare('SELECT COUNT(*) as c FROM debate_votes').first()
+      totalVotes = (d?.c as number) || 0
+    } catch(e) {}
+    try {
+      const d = await c.env.DB.prepare('SELECT COUNT(*) as c FROM users').first()
+      totalUsers = (d?.c as number) || 0
+    } catch(e) {}
+    try {
+      const d = await c.env.DB.prepare('SELECT COUNT(*) as c FROM community_posts').first()
+      totalPosts = (d?.c as number) || 0
+    } catch(e) {}
+    return c.json({ success: true, total_debates: totalDebates, total_votes: totalVotes, total_users: totalUsers, total_posts: totalPosts })
+  } catch(e) {
+    return c.json({ success: false, total_debates: 0, total_votes: 0, total_users: 0, total_posts: 0 })
   }
 })
 

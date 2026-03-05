@@ -333,27 +333,39 @@ export const adminDashboardPage = (userData: any) => `<!DOCTYPE html>
     function renderUsers(users) {
         const list = document.getElementById('user-list');
         if (!users.length) { list.innerHTML = '<div class="text-gray-400 p-4 text-center">ユーザーが見つかりません</div>'; return; }
-        list.innerHTML = users.map(u => \`
-            <div class="user-row">
+        list.innerHTML = users.map(u => {
+            const lastAccess = u.last_access_at ? formatTime(u.last_access_at) : '未記録';
+            const isBanned = u.is_banned;
+            return \`
+            <div class="user-row \${isBanned ? 'opacity-60 border-red-500/40' : ''}">
                 <div class="flex items-center gap-3 flex-1 min-w-0">
                     <div>
-                        <div class="font-bold text-cyan-300 flex items-center gap-2">
+                        <div class="font-bold text-cyan-300 flex items-center gap-2 flex-wrap">
                             @\${escHtml(u.user_id)}
                             \${u.is_dev ? '<span class=\\"dev-badge-pill\\"><i class=\\"fas fa-crown mr-1\\"></i>DEV</span>' : ''}
+                            \${isBanned ? '<span style=\\"background:rgba(239,68,68,0.2);color:#f87171;border:1px solid #ef4444;border-radius:8px;padding:2px 8px;font-size:11px;font-weight:700;\\">BAN</span>' : ''}
                         </div>
                         <div class="text-xs text-gray-400">\${escHtml(u.email||'')} · \${escHtml(u.username||'')}</div>
                         <div class="text-xs text-gray-500">\${Number(u.credits||0).toLocaleString()} Credits · 登録: \${(u.created_at||'').slice(0,10)}</div>
+                        <div class="text-xs text-gray-600"><i class="fas fa-clock mr-1"></i>最終アクセス: \${lastAccess}</div>
+                        \${isBanned && u.ban_reason ? '<div class="text-xs text-red-400 mt-1"><i class="fas fa-ban mr-1"></i>' + escHtml(u.ban_reason) + '</div>' : ''}
                     </div>
                 </div>
-                <div class="flex gap-2 flex-shrink-0">
+                <div class="flex gap-2 flex-shrink-0 flex-wrap justify-end">
                     \${u.is_dev
                         ? \`<button class="action-btn btn-revoke-dev" onclick="revokeDevRole('\${escHtml(u.user_id)}')"><i class="fas fa-ban mr-1"></i>dev剥奪</button>\`
                         : \`<button class="action-btn btn-grant-dev" onclick="quickGrantDev('\${escHtml(u.user_id)}')"><i class="fas fa-crown mr-1"></i>dev付与</button>\`
                     }
                     <button class="action-btn btn-add-credits" onclick="quickAddCredits('\${escHtml(u.user_id)}')"><i class="fas fa-coins mr-1"></i>付与</button>
+                    \${isBanned
+                        ? \`<button class="action-btn" style="background:rgba(34,197,94,0.15);border-color:#22c55e;color:#22c55e;" onclick="toggleBan('\${escHtml(u.user_id)}', false)"><i class="fas fa-unlock mr-1"></i>BAN解除</button>\`
+                        : \`<button class="action-btn btn-danger" onclick="toggleBan('\${escHtml(u.user_id)}', true)"><i class="fas fa-ban mr-1"></i>BAN</button>\`
+                    }
+                    <button class="action-btn" style="background:rgba(139,92,246,0.15);border-color:#8b5cf6;color:#a78bfa;" onclick="sendNotif('\${escHtml(u.user_id)}')"><i class="fas fa-bell mr-1"></i>通知</button>
                 </div>
             </div>
-        \`).join('');
+            \`;
+        }).join('');
     }
 
     async function loadDevUsers() {
@@ -531,6 +543,54 @@ export const adminDashboardPage = (userData: any) => `<!DOCTYPE html>
 
     function escHtml(s) {
         return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function formatTime(ts) {
+        if (!ts) return '未記録';
+        try {
+            const d = new Date(ts.includes('Z') ? ts : ts + 'Z');
+            const now = new Date();
+            const diff = Math.floor((now - d) / 1000);
+            if (diff < 60) return '今';
+            if (diff < 3600) return Math.floor(diff/60) + '分前';
+            if (diff < 86400) return Math.floor(diff/3600) + '時間前';
+            if (diff < 86400 * 7) return Math.floor(diff/86400) + '日前';
+            return d.toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo', year:'numeric', month:'numeric', day:'numeric' });
+        } catch(e) { return ts.slice(0,16); }
+    }
+
+    async function toggleBan(userId, doBan) {
+        const reason = doBan ? prompt(\`@\${userId} をBANする理由を入力してください:\`) : null;
+        if (doBan && reason === null) return; // cancelled
+        if (!confirm(doBan ? \`@\${userId} をBANしますか？\` : \`@\${userId} のBANを解除しますか？\`)) return;
+        try {
+            const res = await fetch('/api/admin/ban', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ target_user_id: userId, action: doBan ? 'ban' : 'unban', reason: reason || '' })
+            });
+            const data = await res.json();
+            if (data.success) { showNotif(doBan ? \`✅ @\${userId} をBANしました\` : \`✅ @\${userId} のBAN解除しました\`); loadUsers(); }
+            else showNotif(data.error || '失敗', 'error');
+        } catch(e) { showNotif('エラー', 'error'); }
+    }
+
+    async function sendNotif(userId) {
+        const title = prompt('通知タイトル:');
+        if (!title) return;
+        const body = prompt('通知内容:');
+        if (!body) return;
+        const typeOpt = prompt('タイプ (info/warning/success/credit):', 'info') || 'info';
+        try {
+            const res = await fetch('/api/admin/notify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ target_user_id: userId, title, body, type: typeOpt })
+            });
+            const data = await res.json();
+            if (data.success) showNotif(\`✅ @\${userId} に通知を送信しました\`);
+            else showNotif(data.error || '失敗', 'error');
+        } catch(e) { showNotif('エラー', 'error'); }
     }
 
     // Init
