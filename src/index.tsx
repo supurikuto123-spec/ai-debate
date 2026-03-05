@@ -463,13 +463,15 @@ app.get('/main', async (c) => {
     // Dev user (user_id='dev') has infinite credits - no charge
     const isDevUser = user.user_id === 'dev' && getDevAdminEmails(c.env).includes((user.email||'').toLowerCase())
 
-    // Get fresh credits from DB
+    // Get fresh credits + restriction flags from DB
     const freshUser = await c.env.DB.prepare(
-      'SELECT credits, is_dev FROM users WHERE user_id = ?'
-    ).bind(user.user_id).first()
+      'SELECT credits, is_dev, is_banned, credit_freeze FROM users WHERE user_id = ?'
+    ).bind(user.user_id).first() as any
     if (freshUser) {
       user.credits = freshUser.credits
-      user.is_dev = (freshUser as any).is_dev || 0
+      user.is_dev = freshUser.is_dev || 0
+      // Full BAN check
+      if (freshUser.is_banned) return c.redirect('/?banned=1')
     }
 
     if (!isDevUser) {
@@ -481,7 +483,9 @@ app.get('/main', async (c) => {
 
       if (!firstAccess || Number(firstAccess.count) === 0) {
         // First time accessing /main - charge 100 credits
-        if (user.credits < 100) {
+        // Skip charge if credit_freeze is active (allow access but record as free)
+        const isCreditFrozen = freshUser?.credit_freeze === 1
+        if (!isCreditFrozen && user.credits < 100) {
           return c.html(`
           <!DOCTYPE html>
           <html lang="ja">
@@ -504,33 +508,40 @@ app.get('/main', async (c) => {
         `)
         }
 
-        // Deduct 100 credits
-        const newCredits = user.credits - 100
-        await c.env.DB.prepare(`
-          UPDATE users SET credits = ? WHERE user_id = ?
-        `).bind(newCredits, user.user_id).run()
+        // Deduct 100 credits (skip if credit_freeze)
+        if (!isCreditFrozen) {
+          const newCredits = user.credits - 100
+          await c.env.DB.prepare(`
+            UPDATE users SET credits = ? WHERE user_id = ?
+          `).bind(newCredits, user.user_id).run()
 
-        // Record credit transaction
-        await c.env.DB.prepare(`
-          INSERT INTO credit_transactions (id, user_id, amount, type, reason, created_at)
-          VALUES (?, ?, ?, 'spend', 'main_page_access', datetime('now'))
-        `).bind(crypto.randomUUID(), user.user_id, -100).run()
+          // Record credit transaction
+          await c.env.DB.prepare(`
+            INSERT INTO credit_transactions (id, user_id, amount, type, reason, created_at)
+            VALUES (?, ?, ?, 'spend', 'main_page_access', datetime('now'))
+          `).bind(crypto.randomUUID(), user.user_id, -100).run()
 
-        // Update user cookie with new credits (MINIMAL)
-        user.credits = newCredits
-        setCookie(c, 'user', JSON.stringify(getMinimalUser(user)), {
-          httpOnly: true,
-          secure: c.req.url.startsWith('https'),
-          sameSite: 'Lax',
-          maxAge: 60 * 60 * 24 * 30
-        })
+          // Update user cookie with new credits (MINIMAL)
+          user.credits = newCredits
+          setCookie(c, 'user', JSON.stringify(getMinimalUser(user)), {
+            httpOnly: true,
+            secure: c.req.url.startsWith('https'),
+            sameSite: 'Lax',
+            maxAge: 60 * 60 * 24 * 30
+          })
+        } else {
+          // credit_freeze: record as free access but still log the visit
+          await c.env.DB.prepare(`
+            INSERT OR IGNORE INTO credit_transactions (id, user_id, amount, type, reason, created_at)
+            VALUES (?, ?, 0, 'spend', 'main_page_access', datetime('now'))
+          `).bind(crypto.randomUUID(), user.user_id).run()
+        }
       }
       // Second time onwards - free access, no charge
     }
 
-
-
-    // Fetch debates from database - ONLY show live and upcoming (not pending)
+    // Update last_access_at
+    try { await c.env.DB.prepare('UPDATE users SET last_access_at = CURRENT_TIMESTAMP WHERE user_id = ?').bind(user.user_id).run() } catch(e) {}
     // Debates must be started via !s-x command before they appear
     let debatesResult: any = { results: [] }
     try {
@@ -585,13 +596,18 @@ app.get('/watch/:debateId', async (c) => {
   }
   const debateId = c.req.param('debateId')
 
-  // Get fresh credits from DB
+  // Get fresh credits and restriction flags from DB
   const freshUser = await c.env.DB.prepare(
-    'SELECT credits FROM users WHERE user_id = ?'
-  ).bind(user.user_id).first()
+    'SELECT credits, is_banned, debate_ban FROM users WHERE user_id = ?'
+  ).bind(user.user_id).first() as any
   if (freshUser) {
     user.credits = freshUser.credits
+    // BAN/debate_ban check
+    if (freshUser.is_banned) return c.redirect('/?banned=1')
+    if (freshUser.debate_ban) return c.redirect('/main?debate_ban=1')
   }
+  // Update last_access_at
+  try { await c.env.DB.prepare('UPDATE users SET last_access_at = CURRENT_TIMESTAMP WHERE user_id = ?').bind(user.user_id).run() } catch(e) {}
 
   return c.html(watchPage(user, debateId))
 })
@@ -778,6 +794,7 @@ app.get('/community', async (c) => {
     deleteCookie(c, 'user')
     return c.redirect('/')
   }
+  try { await c.env.DB.prepare('UPDATE users SET last_access_at = CURRENT_TIMESTAMP WHERE user_id = ?').bind(user.user_id).run() } catch(e) {}
   return c.html(communityPage(user))
 })
 
@@ -829,6 +846,7 @@ app.get('/battle', async (c) => {
   }
   const freshUser = await c.env.DB.prepare('SELECT credits FROM users WHERE user_id = ?').bind(user.user_id).first()
   if (freshUser) user.credits = freshUser.credits
+  try { await c.env.DB.prepare('UPDATE users SET last_access_at = CURRENT_TIMESTAMP WHERE user_id = ?').bind(user.user_id).run() } catch(e) {}
 
   return c.html(battlePage(user))
 })
@@ -1700,8 +1718,8 @@ app.post('/api/user/privacy', async (c) => {
 app.get('/api/debate/model-info', async (c) => {
   return c.json({
     success: true,
-    model: 'gpt-5-nano',
-    display_name: 'GPT-5 Nano'
+    model: 'gpt-4.1-nano',
+    display_name: 'GPT-4.1 Nano'
   })
 })
 
@@ -1716,7 +1734,7 @@ app.get('/api/ai-profiles', async (c) => {
         icon: 'fas fa-brain',
         color: '#34d399',
         gradient: 'from-green-500 to-emerald-500',
-        model: 'gpt-5-nano',
+        model: 'gpt-4.1-nano',
         trait: '論理的・データ重視',
         style: '構造的に根拠を積み上げる',
         description: '客観的データと論理的推論を重視し、体系的に議論を構築するAI。根拠の明確さと一貫性が特徴。'
@@ -1727,7 +1745,7 @@ app.get('/api/ai-profiles', async (c) => {
         icon: 'fas fa-fire',
         color: '#f87171',
         gradient: 'from-red-500 to-rose-500',
-        model: 'gpt-5-nano',
+        model: 'gpt-4.1-nano',
         trait: '批判的・反証重視',
         style: '矛盾を鋭く突く',
         description: '相手の論点の弱点を鋭く指摘し、反証を提示するAI。批判的思考と反論力が特徴。'
@@ -1873,13 +1891,18 @@ app.post('/api/archive/purchase', async (c) => {
 
     if (!isDevUser) {
       const userData = await c.env.DB.prepare(
-        'SELECT credits FROM users WHERE user_id = ?'
-      ).bind(user.user_id).first()
+        'SELECT credits, credit_freeze FROM users WHERE user_id = ?'
+      ).bind(user.user_id).first() as any
 
       const currentCredits = userData?.credits || 0
+      const isCreditFrozen = userData?.credit_freeze === 1
 
-      if (currentCredits < 50) {
+      if (!isCreditFrozen && currentCredits < 50) {
         return c.json({ success: false, error: 'クレジットが不足しています（必要: 50クレジット）' })
+      }
+
+      if (isCreditFrozen) {
+        return c.json({ success: false, error: 'クレジットが凍結されています。サポートにお問い合わせください。' }, 403)
       }
 
       // Deduct 50 credits
@@ -2030,6 +2053,11 @@ app.post('/api/community/post', async (c) => {
       return c.json({ success: false, error: 'Content and language required' })
     }
 
+    // Check post_ban restriction
+    const userRecord = await c.env.DB.prepare('SELECT post_ban, is_banned FROM users WHERE user_id = ?').bind(user.user_id).first() as any
+    if (userRecord?.is_banned) return c.json({ success: false, error: 'アカウントが停止されています' }, 403)
+    if (userRecord?.post_ban) return c.json({ success: false, error: '投稿機能が制限されています。サポートにお問い合わせください。' }, 403)
+
     // Use NULL for id to let autoincrement work
     await c.env.DB.prepare(
       'INSERT INTO community_posts (user_id, language, content, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)'
@@ -2146,9 +2174,8 @@ app.post('/api/debate/generate', async (c) => {
       return c.json({ error: 'OpenAI API key not configured' }, 500)
     }
 
-    // 会話履歴をOpenAI形式のメッセージに変換
-    // OpenAI Prompt Cachingは自動動作（1024トークン以上で有効、90%割引）
-    // 重要: 静的コンテンツを先頭に配置し、プレフィックスを一致させる
+    // 会話履歴をOpenAI形式のメッセージに構築
+    // watch.jsは既に {role, content} 形式で送信してくるのでそのまま使用
     const messages: any[] = []
 
     // 1. システムプロンプト（静的コンテンツ = キャッシュ対象）
@@ -2157,27 +2184,18 @@ app.post('/api/debate/generate', async (c) => {
       content: systemPrompt
     })
 
-    // 2. 会話履歴を全て送信（user/assistantを交互に配置）
+    // 2. 会話履歴をそのまま追加（watch.jsが正しいrole付きで送信）
     if (conversationHistory && conversationHistory.length > 0) {
-      for (let i = 0; i < conversationHistory.length; i++) {
-        const msg = conversationHistory[i]
-        // 偶数番目はuser、奇数番目はassistant（交互に配置）
-        messages.push({
-          role: i % 2 === 0 ? 'user' : 'assistant',
-          content: msg.content
-        })
+      for (const msg of conversationHistory) {
+        if (msg.role && msg.content) {
+          messages.push({ role: msg.role, content: msg.content })
+        }
       }
-
-      // 3. 最後に固定の指示を追加（キャッシュプレフィックスを維持）
-      messages.push({
-        role: conversationHistory.length % 2 === 0 ? 'user' : 'assistant',
-        content: '続けてください。180文字以内、句読点で終わること。'
-      })
     } else {
-      // 初回は通常通り
+      // 初回
       messages.push({
         role: 'user',
-        content: '【重要】必ず180文字以内、句読点（。）で終わること。180文字を超えた場合は即座に無効です。180文字で完結する内容にしてください。簡潔に主張してください。'
+        content: '300文字以内で句点（。）で終えること。'
       })
     }
 
@@ -2188,7 +2206,7 @@ app.post('/api/debate/generate', async (c) => {
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-5-nano',  // gpt-5-nano: $0.05/$0.005/$0.40
+        model: 'gpt-4.1-nano',  // gpt-4.1-nano: $0.05/$0.005/$0.40
         messages: messages,
         max_tokens: maxTokens || 340,  // 300文字（日本語）≈ 340トークン
         temperature: temperature || 0.7
@@ -2205,10 +2223,10 @@ app.post('/api/debate/generate', async (c) => {
     let message = data.choices[0].message.content.trim()
 
     // 実際に使用されたモデル情報を取得
-    const usedModel = data.model || 'gpt-5-nano'
+    const usedModel = data.model || 'gpt-4.1-nano'
 
     // トークン使用量をログ出力（キャッシュヒット率確認）
-    // gpt-5-nano: $0.05/$0.005/$0.40
+    // gpt-4.1-nano: $0.05/$0.005/$0.40
     if (data.usage) {
       const cached = data.usage.prompt_tokens_details?.cached_tokens || 0
       const cacheRate = data.usage.prompt_tokens > 0
@@ -2275,7 +2293,7 @@ app.post('/api/debate/evaluate', async (c) => {
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-5-nano',
+        model: 'gpt-4.1-nano',
         messages: [
           {
             role: 'system',
@@ -2733,6 +2751,8 @@ app.get('/api/user', async (c) => {
     ).bind(cookieUser.user_id).first()
 
     if (dbUser) {
+      // Update last_access_at silently
+      try { await c.env.DB.prepare('UPDATE users SET last_access_at = CURRENT_TIMESTAMP WHERE user_id = ?').bind(cookieUser.user_id).run() } catch(e) {}
       // Update cookie with fresh data (MINIMAL)
       setCookie(c, 'user', JSON.stringify(getMinimalUser(dbUser)), {
         path: '/',
@@ -2917,14 +2937,20 @@ app.post('/api/theme-votes/propose', async (c) => {
 
     // Always get fresh user data from DB
     const freshUserData = await c.env.DB.prepare(
-      'SELECT user_id, credits FROM users WHERE user_id = ?'
-    ).bind(user.user_id).first()
+      'SELECT user_id, credits, credit_freeze FROM users WHERE user_id = ?'
+    ).bind(user.user_id).first() as any
 
     if (!freshUserData) {
       return c.json({ success: false, error: 'ユーザーが見つかりません' }, 404)
     }
 
     const currentCredits = freshUserData.credits as number
+    const isCreditFrozen = freshUserData.credit_freeze === 1
+
+    // Check credit_freeze
+    if (isCreditFrozen) {
+      return c.json({ success: false, error: 'クレジットが凍結されています。サポートにお問い合わせください。' }, 403)
+    }
 
     // Check credits: 20 credits for proposal
     if (currentCredits < 20) {
@@ -3138,6 +3164,7 @@ app.get('/api/admin/users', async (c) => {
     if (!user || !(await isDevAdminDB(user, c.env))) return c.json({ success: false, error: 'Permission denied' }, 403)
     const result = await c.env.DB.prepare(
       `SELECT user_id, username, email, credits, is_dev, is_banned, ban_reason,
+              post_ban, debate_ban, credit_freeze, restriction_reason,
               last_access_at, created_at
        FROM users ORDER BY created_at DESC LIMIT 200`
     ).all()
@@ -3564,7 +3591,8 @@ app.post('/api/notifications/read/:id', async (c) => {
 // USER BAN / RESTRICT API (dev admin only)
 // ============================================================
 
-// POST /api/admin/ban - ban or unban a user
+// POST /api/admin/ban - ban/unban/restrict a user
+// action: 'ban' | 'unban' | 'post_ban' | 'post_unban' | 'debate_ban' | 'debate_unban' | 'credit_freeze' | 'credit_unfreeze'
 app.post('/api/admin/ban', async (c) => {
   try {
     const userCookie = getCookie(c, 'user')
@@ -3572,35 +3600,82 @@ app.post('/api/admin/ban', async (c) => {
     if (!user || !(await isDevAdminDB(user, c.env))) return c.json({ success: false, error: 'Permission denied' }, 403)
     
     const { target_user_id, action, reason } = await c.req.json()
-    if (!target_user_id || !['ban', 'unban'].includes(action)) return c.json({ success: false, error: 'Invalid params' }, 400)
-    if (target_user_id === 'dev') return c.json({ success: false, error: 'devユーザーはBANできません' }, 403)
+    const validActions = ['ban','unban','post_ban','post_unban','debate_ban','debate_unban','credit_freeze','credit_unfreeze']
+    if (!target_user_id || !validActions.includes(action)) return c.json({ success: false, error: 'Invalid params' }, 400)
+    if (target_user_id === 'dev') return c.json({ success: false, error: 'devユーザーは制限できません' }, 403)
     
-    const targetUser = await c.env.DB.prepare('SELECT user_id, username FROM users WHERE user_id = ?').bind(target_user_id).first()
+    const targetUser = await c.env.DB.prepare('SELECT user_id, username, is_dev FROM users WHERE user_id = ?').bind(target_user_id).first() as any
     if (!targetUser) return c.json({ success: false, error: 'ユーザーが見つかりません' }, 404)
+    if (targetUser.is_dev && ['ban','post_ban','debate_ban','credit_freeze'].includes(action)) {
+      return c.json({ success: false, error: 'dev権限ユーザーは制限できません' }, 403)
+    }
     
+    let notifTitle = ''
+    let notifBody = ''
+    let notifType = 'warning'
+
     if (action === 'ban') {
       await c.env.DB.prepare(
         `UPDATE users SET is_banned = 1, ban_reason = ? WHERE user_id = ?`
       ).bind(reason || 'Admin ban', target_user_id).run()
-      // Create notification for banned user
-      try {
-        await c.env.DB.prepare(
-          `INSERT INTO notifications (id, user_id, type, title, body, created_at) VALUES (?, ?, 'warning', ?, ?, CURRENT_TIMESTAMP)`
-        ).bind(crypto.randomUUID(), target_user_id, 'アカウント制限のお知らせ', reason || 'あなたのアカウントは一時的に制限されました。詳細はサポートにお問い合わせください。').run()
-      } catch(e) {}
-    } else {
+      notifTitle = 'アカウント停止のお知らせ'
+      notifBody = `あなたのアカウントは停止されました。理由: ${reason || '規約違反'}。詳細はサポートにお問い合わせください。`
+    } else if (action === 'unban') {
       await c.env.DB.prepare(
         `UPDATE users SET is_banned = 0, ban_reason = NULL WHERE user_id = ?`
       ).bind(target_user_id).run()
-      // Notify unban
-      try {
-        await c.env.DB.prepare(
-          `INSERT INTO notifications (id, user_id, type, title, body, created_at) VALUES (?, ?, 'info', ?, ?, CURRENT_TIMESTAMP)`
-        ).bind(crypto.randomUUID(), target_user_id, 'アカウント制限の解除', 'あなたのアカウントの制限が解除されました。').run()
-      } catch(e) {}
+      notifTitle = 'アカウント停止の解除'
+      notifBody = 'アカウント停止が解除されました。通常通りご利用いただけます。'
+      notifType = 'info'
+    } else if (action === 'post_ban') {
+      await c.env.DB.prepare(
+        `UPDATE users SET post_ban = 1, restriction_reason = ? WHERE user_id = ?`
+      ).bind(reason || '投稿禁止', target_user_id).run()
+      notifTitle = '投稿機能の制限'
+      notifBody = `コミュニティへの投稿が制限されました。理由: ${reason || '規約違反'}。`
+    } else if (action === 'post_unban') {
+      await c.env.DB.prepare(
+        `UPDATE users SET post_ban = 0 WHERE user_id = ?`
+      ).bind(target_user_id).run()
+      notifTitle = '投稿制限の解除'
+      notifBody = 'コミュニティへの投稿制限が解除されました。'
+      notifType = 'info'
+    } else if (action === 'debate_ban') {
+      await c.env.DB.prepare(
+        `UPDATE users SET debate_ban = 1, restriction_reason = ? WHERE user_id = ?`
+      ).bind(reason || 'ディベート禁止', target_user_id).run()
+      notifTitle = 'ディベート機能の制限'
+      notifBody = `ディベートへの参加が制限されました。理由: ${reason || '規約違反'}。`
+    } else if (action === 'debate_unban') {
+      await c.env.DB.prepare(
+        `UPDATE users SET debate_ban = 0 WHERE user_id = ?`
+      ).bind(target_user_id).run()
+      notifTitle = 'ディベート制限の解除'
+      notifBody = 'ディベートへの参加制限が解除されました。'
+      notifType = 'info'
+    } else if (action === 'credit_freeze') {
+      await c.env.DB.prepare(
+        `UPDATE users SET credit_freeze = 1, restriction_reason = ? WHERE user_id = ?`
+      ).bind(reason || 'クレジット凍結', target_user_id).run()
+      notifTitle = 'クレジット凍結のお知らせ'
+      notifBody = `クレジットの使用が凍結されました。理由: ${reason || '規約違反'}。詳細はサポートにお問い合わせください。`
+    } else if (action === 'credit_unfreeze') {
+      await c.env.DB.prepare(
+        `UPDATE users SET credit_freeze = 0 WHERE user_id = ?`
+      ).bind(target_user_id).run()
+      notifTitle = 'クレジット凍結の解除'
+      notifBody = 'クレジットの使用凍結が解除されました。'
+      notifType = 'info'
     }
     
-    console.log(`[Admin BAN] ${action} user ${target_user_id} by ${user.user_id}`)
+    // Send notification
+    try {
+      await c.env.DB.prepare(
+        `INSERT INTO notifications (id, user_id, type, title, body, created_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
+      ).bind(crypto.randomUUID(), target_user_id, notifType, notifTitle, notifBody).run()
+    } catch(e) {}
+    
+    console.log(`[Admin RESTRICT] ${action} user ${target_user_id} by ${user.user_id}`)
     return c.json({ success: true })
   } catch(e) {
     return c.json({ success: false, error: String(e) }, 500)
@@ -3641,7 +3716,7 @@ app.post('/api/admin/notify', async (c) => {
   }
 })
 
-// GET /api/admin/users - updated version with last_access_at, is_banned
+// GET /api/admin/users - updated version with last_access_at, is_banned, restriction types
 app.get('/api/admin/users/full', async (c) => {
   try {
     const userCookie = getCookie(c, 'user')
@@ -3649,6 +3724,7 @@ app.get('/api/admin/users/full', async (c) => {
     if (!user || !(await isDevAdminDB(user, c.env))) return c.json({ success: false, error: 'Permission denied' }, 403)
     const result = await c.env.DB.prepare(
       `SELECT user_id, username, email, credits, is_dev, is_banned, ban_reason,
+              post_ban, debate_ban, credit_freeze, restriction_reason,
               last_access_at, created_at
        FROM users ORDER BY created_at DESC LIMIT 200`
     ).all()

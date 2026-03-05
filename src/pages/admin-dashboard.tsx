@@ -336,30 +336,50 @@ export const adminDashboardPage = (userData: any) => `<!DOCTYPE html>
         list.innerHTML = users.map(u => {
             const lastAccess = u.last_access_at ? formatTime(u.last_access_at) : '未記録';
             const isBanned = u.is_banned;
+            const isPostBan = u.post_ban;
+            const isDebateBan = u.debate_ban;
+            const isCreditFreeze = u.credit_freeze;
+            const hasRestriction = isPostBan || isDebateBan || isCreditFreeze;
             return \`
-            <div class="user-row \${isBanned ? 'opacity-60 border-red-500/40' : ''}">
+            <div class="user-row \${isBanned ? 'opacity-60' : ''}" style="\${isBanned ? 'border-color:rgba(239,68,68,0.5);background:rgba(239,68,68,0.05);' : hasRestriction ? 'border-color:rgba(251,191,36,0.4);background:rgba(251,191,36,0.03);' : ''}">
                 <div class="flex items-center gap-3 flex-1 min-w-0">
-                    <div>
+                    <div style="flex:1;min-width:0;">
                         <div class="font-bold text-cyan-300 flex items-center gap-2 flex-wrap">
                             @\${escHtml(u.user_id)}
                             \${u.is_dev ? '<span class=\\"dev-badge-pill\\"><i class=\\"fas fa-crown mr-1\\"></i>DEV</span>' : ''}
-                            \${isBanned ? '<span style=\\"background:rgba(239,68,68,0.2);color:#f87171;border:1px solid #ef4444;border-radius:8px;padding:2px 8px;font-size:11px;font-weight:700;\\">BAN</span>' : ''}
+                            \${isBanned ? '<span style=\\"background:rgba(239,68,68,0.2);color:#f87171;border:1px solid #ef4444;border-radius:8px;padding:2px 8px;font-size:11px;font-weight:700;\\"><i class=\\"fas fa-ban mr-1\\"></i>BAN</span>' : ''}
+                            \${isPostBan ? '<span style=\\"background:rgba(251,191,36,0.2);color:#fbbf24;border:1px solid #f59e0b;border-radius:8px;padding:2px 8px;font-size:11px;font-weight:700;\\"><i class=\\"fas fa-comment-slash mr-1\\"></i>投稿禁</span>' : ''}
+                            \${isDebateBan ? '<span style=\\"background:rgba(249,115,22,0.2);color:#fb923c;border:1px solid #f97316;border-radius:8px;padding:2px 8px;font-size:11px;font-weight:700;\\"><i class=\\"fas fa-gavel mr-1\\"></i>議論禁</span>' : ''}
+                            \${isCreditFreeze ? '<span style=\\"background:rgba(99,102,241,0.2);color:#818cf8;border:1px solid #6366f1;border-radius:8px;padding:2px 8px;font-size:11px;font-weight:700;\\"><i class=\\"fas fa-snowflake mr-1\\"></i>凍結</span>' : ''}
                         </div>
                         <div class="text-xs text-gray-400">\${escHtml(u.email||'')} · \${escHtml(u.username||'')}</div>
                         <div class="text-xs text-gray-500">\${Number(u.credits||0).toLocaleString()} Credits · 登録: \${(u.created_at||'').slice(0,10)}</div>
                         <div class="text-xs text-gray-600"><i class="fas fa-clock mr-1"></i>最終アクセス: \${lastAccess}</div>
                         \${isBanned && u.ban_reason ? '<div class="text-xs text-red-400 mt-1"><i class="fas fa-ban mr-1"></i>' + escHtml(u.ban_reason) + '</div>' : ''}
+                        \${hasRestriction && u.restriction_reason ? '<div class="text-xs text-yellow-500 mt-1"><i class="fas fa-exclamation-triangle mr-1"></i>' + escHtml(u.restriction_reason) + '</div>' : ''}
                     </div>
                 </div>
-                <div class="flex gap-2 flex-shrink-0 flex-wrap justify-end">
+                <div class="flex gap-1 flex-shrink-0 flex-wrap justify-end" style="max-width:340px;">
                     \${u.is_dev
-                        ? \`<button class="action-btn btn-revoke-dev" onclick="revokeDevRole('\${escHtml(u.user_id)}')"><i class="fas fa-ban mr-1"></i>dev剥奪</button>\`
-                        : \`<button class="action-btn btn-grant-dev" onclick="quickGrantDev('\${escHtml(u.user_id)}')"><i class="fas fa-crown mr-1"></i>dev付与</button>\`
+                        ? \`<button class="action-btn btn-revoke-dev" onclick="revokeDevRole('\${escHtml(u.user_id)}')"><i class="fas fa-crown mr-1"></i>dev剥奪</button>\`
+                        : \`<button class="action-btn btn-grant-dev" onclick="quickGrantDev('\${escHtml(u.user_id)}')"><i class="fas fa-crown mr-1"></i>dev</button>\`
                     }
                     <button class="action-btn btn-add-credits" onclick="quickAddCredits('\${escHtml(u.user_id)}')"><i class="fas fa-coins mr-1"></i>付与</button>
                     \${isBanned
-                        ? \`<button class="action-btn" style="background:rgba(34,197,94,0.15);border-color:#22c55e;color:#22c55e;" onclick="toggleBan('\${escHtml(u.user_id)}', false)"><i class="fas fa-unlock mr-1"></i>BAN解除</button>\`
-                        : \`<button class="action-btn btn-danger" onclick="toggleBan('\${escHtml(u.user_id)}', true)"><i class="fas fa-ban mr-1"></i>BAN</button>\`
+                        ? \`<button class="action-btn" style="background:rgba(34,197,94,0.15);border-color:#22c55e;color:#22c55e;" onclick="applyRestriction('\${escHtml(u.user_id)}','unban')"><i class="fas fa-unlock mr-1"></i>BAN解除</button>\`
+                        : \`<button class="action-btn btn-danger" onclick="applyRestriction('\${escHtml(u.user_id)}','ban')"><i class="fas fa-ban mr-1"></i>BAN</button>\`
+                    }
+                    \${isPostBan
+                        ? \`<button class="action-btn" style="background:rgba(34,197,94,0.1);border-color:#22c55e;color:#86efac;font-size:11px;" onclick="applyRestriction('\${escHtml(u.user_id)}','post_unban')"><i class="fas fa-comment mr-1"></i>投稿解除</button>\`
+                        : \`<button class="action-btn" style="background:rgba(251,191,36,0.1);border-color:#f59e0b;color:#fbbf24;font-size:11px;" onclick="applyRestriction('\${escHtml(u.user_id)}','post_ban')"><i class="fas fa-comment-slash mr-1"></i>投稿禁</button>\`
+                    }
+                    \${isDebateBan
+                        ? \`<button class="action-btn" style="background:rgba(34,197,94,0.1);border-color:#22c55e;color:#86efac;font-size:11px;" onclick="applyRestriction('\${escHtml(u.user_id)}','debate_unban')"><i class="fas fa-comments mr-1"></i>議論解除</button>\`
+                        : \`<button class="action-btn" style="background:rgba(249,115,22,0.1);border-color:#f97316;color:#fb923c;font-size:11px;" onclick="applyRestriction('\${escHtml(u.user_id)}','debate_ban')"><i class="fas fa-gavel mr-1"></i>議論禁</button>\`
+                    }
+                    \${isCreditFreeze
+                        ? \`<button class="action-btn" style="background:rgba(34,197,94,0.1);border-color:#22c55e;color:#86efac;font-size:11px;" onclick="applyRestriction('\${escHtml(u.user_id)}','credit_unfreeze')"><i class="fas fa-fire mr-1"></i>凍結解除</button>\`
+                        : \`<button class="action-btn" style="background:rgba(99,102,241,0.1);border-color:#6366f1;color:#818cf8;font-size:11px;" onclick="applyRestriction('\${escHtml(u.user_id)}','credit_freeze')"><i class="fas fa-snowflake mr-1"></i>凍結</button>\`
                     }
                     <button class="action-btn" style="background:rgba(139,92,246,0.15);border-color:#8b5cf6;color:#a78bfa;" onclick="sendNotif('\${escHtml(u.user_id)}')"><i class="fas fa-bell mr-1"></i>通知</button>
                 </div>
@@ -560,17 +580,37 @@ export const adminDashboardPage = (userData: any) => `<!DOCTYPE html>
     }
 
     async function toggleBan(userId, doBan) {
-        const reason = doBan ? prompt(\`@\${userId} をBANする理由を入力してください:\`) : null;
-        if (doBan && reason === null) return; // cancelled
-        if (!confirm(doBan ? \`@\${userId} をBANしますか？\` : \`@\${userId} のBANを解除しますか？\`)) return;
+        return applyRestriction(userId, doBan ? 'ban' : 'unban');
+    }
+
+    const restrictionLabels = {
+        ban: { label: 'BAN', msg: 'BANしますか？', done: 'BANしました', needReason: true },
+        unban: { label: 'BAN解除', msg: 'BANを解除しますか？', done: 'BAN解除しました', needReason: false },
+        post_ban: { label: '投稿禁止', msg: '投稿機能を制限しますか？', done: '投稿禁止にしました', needReason: true },
+        post_unban: { label: '投稿制限解除', msg: '投稿制限を解除しますか？', done: '投稿制限解除しました', needReason: false },
+        debate_ban: { label: 'ディベート禁止', msg: 'ディベート参加を禁止しますか？', done: 'ディベート禁止にしました', needReason: true },
+        debate_unban: { label: 'ディベート制限解除', msg: 'ディベート制限を解除しますか？', done: 'ディベート制限解除しました', needReason: false },
+        credit_freeze: { label: 'クレジット凍結', msg: 'クレジットを凍結しますか？', done: 'クレジット凍結しました', needReason: true },
+        credit_unfreeze: { label: 'クレジット凍結解除', msg: 'クレジット凍結を解除しますか？', done: 'クレジット凍結解除しました', needReason: false },
+    };
+
+    async function applyRestriction(userId, action) {
+        const info = restrictionLabels[action];
+        if (!info) return;
+        let reason = null;
+        if (info.needReason) {
+            reason = prompt(\`@\${userId} の制限理由を入力してください（\${info.label}）:\`);
+            if (reason === null) return; // cancelled
+        }
+        if (!confirm(\`@\${userId} を「\${info.label}」しますか？\`)) return;
         try {
             const res = await fetch('/api/admin/ban', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ target_user_id: userId, action: doBan ? 'ban' : 'unban', reason: reason || '' })
+                body: JSON.stringify({ target_user_id: userId, action, reason: reason || '' })
             });
             const data = await res.json();
-            if (data.success) { showNotif(doBan ? \`✅ @\${userId} をBANしました\` : \`✅ @\${userId} のBAN解除しました\`); loadUsers(); }
+            if (data.success) { showNotif(\`✅ @\${userId} を\${info.done}\`); loadUsers(); }
             else showNotif(data.error || '失敗', 'error');
         } catch(e) { showNotif('エラー', 'error'); }
     }

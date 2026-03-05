@@ -29,7 +29,7 @@ export const communityPage = (userData: any) => `<!DOCTYPE html>
         }
         
         .chat-header {
-            padding: 20px;
+            padding: 10px 16px;
             background: linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(255, 0, 255, 0.1));
             border-bottom: 2px solid cyan;
             flex-shrink: 0;
@@ -37,10 +37,10 @@ export const communityPage = (userData: any) => `<!DOCTYPE html>
         
         .language-tabs {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             flex-wrap: wrap;
             justify-content: center;
-            margin-top: 15px;
+            margin-top: 8px;
         }
         
         .tab-button {

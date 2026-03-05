@@ -224,6 +224,15 @@ export const watchPage = (user: any, debateId: string) => `
                     </div>
                 </div>
 
+                <!-- Page Separator -->
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="flex-1 h-px bg-gradient-to-r from-transparent via-cyan-500/60 to-transparent"></div>
+                    <span class="text-cyan-400/70 text-xs font-bold tracking-widest uppercase">
+                        <i class="fas fa-comments mr-1"></i>LIVE DEBATE
+                    </span>
+                    <div class="flex-1 h-px bg-gradient-to-r from-transparent via-cyan-500/60 to-transparent"></div>
+                </div>
+
                 <!-- Main Layout: Debate (Left) + Comments (Right) -->
                 <div class="grid grid-cols-3 gap-6">
                     <!-- Debate Area (2 columns) -->
@@ -282,7 +291,14 @@ export const watchPage = (user: any, debateId: string) => `
                 </div>
 
                 <!-- AI Judges Evaluation Section -->
-                <div class="cyber-card mt-6">
+                <div class="flex items-center gap-4 mt-6 mb-4">
+                    <div class="flex-1 h-px bg-gradient-to-r from-transparent via-purple-500/60 to-transparent"></div>
+                    <span class="text-purple-400/70 text-xs font-bold tracking-widest uppercase">
+                        <i class="fas fa-gavel mr-1"></i>AI JUDGES
+                    </span>
+                    <div class="flex-1 h-px bg-gradient-to-r from-transparent via-purple-500/60 to-transparent"></div>
+                </div>
+                <div class="cyber-card mt-0">
                     <h3 class="text-xl font-bold mb-4 flex items-center">
                         <i class="fas fa-gavel mr-3 text-cyan-400"></i>
                         AI審査員の評価
@@ -304,7 +320,14 @@ export const watchPage = (user: any, debateId: string) => `
                 </div>
 
                 <!-- Winner Prediction Section -->
-                <div class="cyber-card mt-6">
+                <div class="flex items-center gap-4 mt-6 mb-4">
+                    <div class="flex-1 h-px bg-gradient-to-r from-transparent via-yellow-500/60 to-transparent"></div>
+                    <span class="text-yellow-400/70 text-xs font-bold tracking-widest uppercase">
+                        <i class="fas fa-poll mr-1"></i>VOTE &amp; PREDICT
+                    </span>
+                    <div class="flex-1 h-px bg-gradient-to-r from-transparent via-yellow-500/60 to-transparent"></div>
+                </div>
+                <div class="cyber-card mt-0">
                     <h3 class="text-2xl font-bold mb-4 flex items-center">
                         <i class="fas fa-poll mr-3 text-cyan-400"></i>
                         どちらの意見が優勢だと思いますか？
