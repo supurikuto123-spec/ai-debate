@@ -386,95 +386,66 @@ async function getAIEvaluation(message, side) {
         const myOpinion = side === 'agree' ? OPINION_A : OPINION_B;
         const opponentOpinion = side === 'agree' ? OPINION_B : OPINION_A;
 
-        const recentDebate = conversationHistory.slice(-6).map(msg => {
-            return '[' + (msg.side === 'agree' ? 'Aether(賛成)' : 'Nova(反対)') + ']: ' + msg.content;
-        }).join('\n');
+        // 全履歴を送信（キャッシュ効率のため整形ルール固定）
+        const fullHistory = conversationHistory.map(msg =>
+            '[' + (msg.side === 'agree' ? 'Aether' : 'Nova') + ']: ' + msg.content
+        ).join('\n');
 
-        // 立場変更の事前チェック（クライアント側）
-        const concessionPatterns = ['確かに', 'おっしゃる通り', 'それも一理', '同感', '納得', '譲歩', '認めます', '確かにそうですね', '一部賛成'];
-        const hasConcession = concessionPatterns.some(p => message.includes(p));
-
+        // キャッシュ効率のため固定テンプレート構造を維持
+        // 可変部分を末尾に集約
         const prompt = [
-            'ディベートテーマ: ' + DEBATE_THEME,
-            myLabel + 'の立場: ' + myOpinion,
-            '相手の立場: ' + opponentOpinion,
-            '',
-            '直近の会話:',
-            recentDebate,
-            '',
-            '評価対象発言 (' + myLabel + '):',
-            '「' + message + '」',
-            '',
-            hasConcession ? '⚠️警告: この発言に立場を揺らがせる表現が検出されました。' : '',
-            '',
-            '評価基準:',
-            '!! = 立場を完全に守り、非常に有効な反論（具体的事実あり）',
-            '!  = 立場を守り、有効な主張',
-            '?  = 根拠が弱いまたは抽象的だが立場は守っている',
-            '?? = 相手立場に譲歩・同調、または立場不明瞭（自動的に減点）',
-            '',
-            '必ずJSON: {"symbol": "!!" or "!" or "?" or "??", "comment": "15字以内"}'
-        ].filter(l => l !== '').join('\n');
+            'THEME: ' + DEBATE_THEME,
+            'STANCE_' + (side === 'agree' ? 'A' : 'B') + ': ' + myOpinion,
+            'STANCE_' + (side === 'agree' ? 'B' : 'A') + ': ' + opponentOpinion,
+            'HISTORY:\n' + (fullHistory || '(none)'),
+            'TARGET [' + myLabel + ']: ' + message
+        ].join('\n');
 
         const response = await fetch('/api/debate/evaluate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt })
+            body: JSON.stringify({ prompt, mode: 'symbol' })
         });
 
         const data = await response.json();
-        
-        // 立場変更の事前チェック結果を使う（APIが間違えた場合のフォールバック）
-        if (hasConcession) {
-            try {
-                const result = JSON.parse(data.message);
-                // If API returned !! or ! despite concession, override to ??
-                if (result.symbol === '!!' || result.symbol === '!') {
-                    return { symbol: '??', comment: '立場変更検出', support: side, shouldVote: true };
-                }
-                if (['!!', '!', '?', '??'].includes(result.symbol)) {
-                    return { symbol: result.symbol, comment: result.comment || '', support: side, shouldVote: true };
-                }
-            } catch(e) {}
-            return { symbol: '??', comment: '立場変更検出', support: side, shouldVote: true };
-        }
-        
+
+        // symbolのみパース（commentは不要）
         try {
             const result = JSON.parse(data.message);
             if (result.symbol && ['!!', '!', '?', '??'].includes(result.symbol)) {
-                return { symbol: result.symbol, comment: result.comment || '', support: side, shouldVote: true };
+                return { symbol: result.symbol, support: side, shouldVote: true };
             }
-            return { symbol: null, comment: '', support: side, shouldVote: false };
+            return { symbol: null, support: side, shouldVote: false };
         } catch (e) {
-            // Improved fallback parsing - check full symbols first
             const msg = data.message || '';
-            if (msg.includes('!!')) return { symbol: '!!', comment: '圧倒的', support: side, shouldVote: true };
-            if (msg.includes('??')) return { symbol: '??', comment: '意図不明', support: side, shouldVote: true };
-            if (msg.includes('"!"') || msg.includes("'!'")) return { symbol: '!', comment: '有力', support: side, shouldVote: true };
-            if (msg.includes('"?"') || msg.includes("'?'")) return { symbol: '?', comment: '根拠不足', support: side, shouldVote: true };
-            // Last resort - look for isolated symbols
-            const symbolMatch = msg.match(/"symbol"\s*:\s*"([!?]+)"/);
-            if (symbolMatch) {
-                const sym = symbolMatch[1];
-                if (['!!', '!', '?', '??'].includes(sym)) return { symbol: sym, comment: '', support: side, shouldVote: true };
+            // !! / ?? を先にチェック（! / ? より前に）
+            if (msg.includes('!!')) return { symbol: '!!', support: side, shouldVote: true };
+            if (msg.includes('??')) return { symbol: '??', support: side, shouldVote: true };
+            const symMatch = msg.match(/"symbol"\s*:\s*"([!?]+)"/);
+            if (symMatch && ['!!', '!', '?', '??'].includes(symMatch[1])) {
+                return { symbol: symMatch[1], support: side, shouldVote: true };
             }
-            return { symbol: null, comment: '', support: side, shouldVote: false };
+            if (msg.includes('"!"') || msg.includes("'!'")) return { symbol: '!', support: side, shouldVote: true };
+            if (msg.includes('"?"') || msg.includes("'?'")) return { symbol: '?', support: side, shouldVote: true };
+            return { symbol: null, support: side, shouldVote: false };
         }
     } catch (error) {
-        return { symbol: null, comment: '', support: side, shouldVote: false };
+        return { symbol: null, support: side, shouldVote: false };
     }
 }
 
 async function performAIJudging() {
     try {
-        const fullDebate = conversationHistory.map(msg => {
-            return '[' + (msg.side === 'agree' ? '意見A' : '意見B') + ']: ' + msg.content;
-        }).join('\n');
+        // 全履歴を送信（キャッシュ効率のため固定フォーマット）
+        const fullDebate = conversationHistory.map(msg =>
+            '[' + (msg.side === 'agree' ? 'A' : 'B') + ']: ' + msg.content
+        ).join('\n');
 
+        // 審判3名：全員低temperature固定（安定性重視）、差異は内部重み設定で対応
         const judgments = await Promise.all([
-            getAIJudgment(fullDebate, 'AI-Judge-1', 0.7),
-            getAIJudgment(fullDebate, 'AI-Judge-2', 0.8),
-            getAIJudgment(fullDebate, 'AI-Judge-3', 0.9)
+            getAIJudgment(fullDebate, 0.1),
+            getAIJudgment(fullDebate, 0.1),
+            getAIJudgment(fullDebate, 0.1)
         ]);
 
         judgments.forEach((judgment, index) => {
@@ -491,59 +462,45 @@ async function performAIJudging() {
     }
 }
 
-async function getAIJudgment(fullDebate, aiName, temperature) {
+async function getAIJudgment(fullDebate, temperature) {
     try {
+        // キャッシュ効率のため固定テンプレート構造を維持
         const prompt = [
-            'ディベートテーマ：' + DEBATE_THEME,
-            '意見A(Aether)の立場：' + OPINION_A,
-            '意見B(Nova)の立場：' + OPINION_B,
-            '',
-            'ディベート全体：',
-            fullDebate,
-            '',
-            '【厳格な審査基準】',
-            '1. 立場の一貫性（最重要）：各AIが自分の立場を最後まで守り抜いたか',
-            '   - 「確かに」「それも一理」「おっしゃる通り」などの譲歩表現は即減点',
-            '   - 立場変更が検出された場合、相手側を勝者とする',
-            '2. 記号の意味を考慮：!!は強い主張、!は有効な主張、?は弱い主張、??は立場ぶれ',
-            '3. 具体的根拠：事実・データ・事例があるか',
-            '4. 反論の質：相手の弱点を論理的に突けているか',
-            '',
-            '※ 立場を変えた・譲歩した方は必ず負けとする',
-            '必ずJSON形式のみで返す: {"winner": "agree"} または {"winner": "disagree"}'
+            'THEME: ' + DEBATE_THEME,
+            'STANCE_A: ' + OPINION_A,
+            'STANCE_B: ' + OPINION_B,
+            'DEBATE:\n' + fullDebate
         ].join('\n');
 
         const response = await fetch('/api/debate/evaluate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt })
+            body: JSON.stringify({ prompt, mode: 'judge' })
         });
 
         const data = await response.json();
         try {
             const result = JSON.parse(data.message);
             if (result.winner === 'agree' || result.winner === 'disagree') return result;
-            // Handle other formats
             if (result.winner) {
                 const w = String(result.winner).toLowerCase();
-                if (w.includes('agree') || w.includes('a') || w.includes('賛成')) return { winner: 'agree' };
-                if (w.includes('disagree') || w.includes('b') || w.includes('反対')) return { winner: 'disagree' };
+                if (w.includes('agree') || w.includes('賛成')) return { winner: 'agree' };
+                if (w.includes('disagree') || w.includes('反対')) return { winner: 'disagree' };
             }
         } catch {
             const msg = (data.message || '').toLowerCase();
-            // Check for JSON-like patterns first
             const winnerMatch = msg.match(/"winner"\s*:\s*"([^"]+)"/);
             if (winnerMatch) {
                 const w = winnerMatch[1];
-                if (w === 'agree' || w.includes('agree') || w.includes('賛成')) return { winner: 'agree' };
-                if (w === 'disagree' || w.includes('disagree') || w.includes('反対')) return { winner: 'disagree' };
+                if (w.includes('agree') || w.includes('賛成')) return { winner: 'agree' };
+                if (w.includes('disagree') || w.includes('反対')) return { winner: 'disagree' };
             }
-            if (msg.includes('"agree"') || msg.includes('意見a')) return { winner: 'agree' };
-            if (msg.includes('"disagree"') || msg.includes('意見b')) return { winner: 'disagree' };
+            if (msg.includes('"agree"')) return { winner: 'agree' };
+            if (msg.includes('"disagree"')) return { winner: 'disagree' };
         }
-        // Deterministic fallback based on debate content analysis (avoid pure random)
-        const agreeScore = fullDebate.split('意見A]').length + fullDebate.split('!!').length;
-        const disagreeScore = fullDebate.split('意見B]').length;
+        // 決定論的フォールバック（!! 数で判定）
+        const agreeScore = (fullDebate.match(/\[A\]/g) || []).length + (fullDebate.match(/!!/g) || []).length;
+        const disagreeScore = (fullDebate.match(/\[B\]/g) || []).length;
         return { winner: agreeScore >= disagreeScore ? 'agree' : 'disagree' };
     } catch (error) {
         return { winner: 'agree' };
@@ -869,45 +826,44 @@ async function generateAIResponse(side) {
     const opponentOpinion = side === 'agree' ? OPINION_B : OPINION_A;
     const myName = side === 'agree' ? 'Aether' : 'Nova';
 
-    // Build last 3 messages as context (avoid too-long history → repetition)
-    const recentHistory = conversationHistory.slice(-6);
-    const lastMessages = recentHistory.map(m =>
+    // 全履歴を送信（AIが全発言を記憶した状態でディベートする）
+    // キャッシュ効率のため固定フォーマットで整形
+    const allHistory = conversationHistory.map(m =>
         '[' + (m.side === 'agree' ? 'Aether' : 'Nova') + ']: ' + m.content
     ).join('\n');
 
-    // Strong system prompt to prevent repetition and stance drift
+    // systemPromptの固定部分を最大化してキャッシュヒット率を上げる
+    // 可変部分（テーマ・立場・履歴）を末尾に集約
     const systemPrompt =
-        'あなたは「' + myName + '」というプロのAIディベーターです。\n' +
+        'あなたはプロのAIディベーターです。\n' +
+        '【ルール】\n' +
+        '1. 自分の立場を最後まで一貫して主張する。立場変更は失格。\n' +
+        '2. 相手の立場を支持・肯定する結論は禁止。相手論点への部分的言及は構わない。\n' +
+        '3. 完全に同一の文・コピペ繰り返しは禁止。既出論点の深掘り・補強・別角度再構成は可。\n' +
+        '4. 300文字以内・句点（。）で終える。\n' +
+        '5. 冒頭に記号・括弧・ラベル（[意見A]等）を付けない。\n' +
+        '【あなたの名前】' + myName + '\n' +
         '【ディベートテーマ】' + DEBATE_THEME + '\n' +
-        '【あなたの絶対的立場】' + myOpinion + '\n' +
-        '【相手の立場（反論対象）】' + opponentOpinion + '\n\n' +
-        '【絶対に守るべきルール（違反は失格）】\n' +
-        '1. あなたの立場「' + myOpinion + '」を最後まで一貫して主張する。立場を変えることは絶対禁止。\n' +
-        '2. 「' + opponentOpinion + '」を支持・肯定する表現は一切使わない。\n' +
-        '3. 直前の自分の発言と同じ内容・同じ表現・同じ根拠の繰り返し禁止。必ず新しい論点を出す。\n' +
-        '4. 300文字以内で句点（。）で終える。超過した場合は無効。\n' +
-        '5. 相手の主張の具体的な弱点を突き、自分の立場の優位性を論理的に示す。\n' +
-        '6. 記号・括弧・ラベル（[意見A]など）を冒頭に付けない。\n' +
-        '7. 「私は' + opponentOpinion + 'も理解できます」等の譲歩表現禁止。\n\n' +
-        '【直前の会話履歴】\n' + (lastMessages || '（ディベート開始）');
+        '【あなたの立場】' + myOpinion + '\n' +
+        '【相手の立場】' + opponentOpinion + '\n' +
+        '【全ディベート履歴】\n' + (allHistory || '（ディベート開始）');
 
-    // Build messages: use alternating roles based on side
+    // messagesは全履歴をrole変換して送信
     let messagesToSend;
     if (conversationHistory.length === 0) {
         messagesToSend = [{
             role: 'user',
-            content: '【ディベートテーマ】' + DEBATE_THEME + '\nあなたの立場「' + myOpinion + '」で最初の主張を述べてください。300文字以内で句点で終えること。'
+            content: 'テーマ「' + DEBATE_THEME + '」について立場「' + myOpinion + '」で最初の主張を述べてください。300文字以内・句点で終えること。'
         }];
     } else {
-        // Send last 6 turns max, with correct role mapping for this side
-        messagesToSend = recentHistory.map(m => ({
+        // 全履歴をrole変換（自分=assistant、相手=user）
+        messagesToSend = conversationHistory.map(m => ({
             role: m.side === side ? 'assistant' : 'user',
             content: m.content
         }));
-        // Add instruction to generate next response
         messagesToSend.push({
             role: 'user',
-            content: '続きのあなたの発言を生成してください。必ず新しい根拠・切り口を使い、前のあなたの発言と異なる表現にしてください。300文字以内・句点で終えること。立場「' + myOpinion + '」を必ず守ること。'
+            content: '次の発言を生成してください。立場「' + myOpinion + '」を守り、300文字以内・句点で終えること。前回と完全同一の文は避け、論点の深掘りまたは新角度での主張を行うこと。'
         });
     }
 
@@ -927,11 +883,10 @@ async function generateAIResponse(side) {
         const data = await response.json();
 
         if (data.message && debateActive) {
-            // Deduplicate: skip if same as last message from same side
+            // 完全一致の重複のみ再試行（部分的な類似は許容）
             const lastSameSide = [...conversationHistory].reverse().find(m => m.side === side);
             if (lastSameSide && lastSameSide.content === data.message) {
-                // Retry once with higher temperature
-                console.warn('[Debate] Duplicate detected, retrying...');
+                console.warn('[Debate] 完全重複検出、再試行...');
                 const retry = await fetch('/api/debate/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -945,10 +900,11 @@ async function generateAIResponse(side) {
 
             conversationHistory.push({
                 role: side === 'agree' ? 'assistant' : 'user',
-                content: data.message, side: side
+                content: data.message,
+                side: side
             });
 
-            const actualModel = data.model || 'gpt-5-nano';
+            const actualModel = data.model || 'gpt-4.1-nano';
             await addDebateMessageWithTyping(side, data.message, actualModel);
 
             setTimeout(() => {
