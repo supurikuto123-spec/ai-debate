@@ -2355,7 +2355,55 @@ app.post('/api/debate/evaluate', async (c) => {
 
     // ── システムプロンプトをmodeで分岐 ──────────────────────────────────
     // ※ system部分を固定化してOpenAIプロンプトキャッシュヒット率を最大化する
-    // ── 発言評価モード (symbol) ──────────────────────────────────────────
+    // ── 統合評価モード (evaluate) — symbol + winner を1回で返す ──────────
+    const SYSTEM_EVALUATE = `You are a strict debate evaluator and judge. Given a debate history and a TARGET statement, you MUST output BOTH a symbol for the target statement AND a winner judgment for the overall debate so far.
+
+━━ STEP 1: SYMBOL (evaluate TARGET statement) ━━
+
+INTERNAL CHECK (mandatory):
+Q1: "strengthen_side" — Does the TARGET statement's OVERALL ARGUMENT body primarily strengthen "agree", "disagree", or "neither"?
+Q2: "stance_match" — Does strengthen_side match the speaker's assigned side (given in TARGET line)?
+- If stance_match = NO → symbol is "??" immediately.
+- If strengthen_side = "neither" → symbol is "?" at best.
+
+RULES for Q1:
+- Ignore self-declaration labels ("therefore I agree"). Judge only the argument body.
+- "wealth doesn't guarantee happiness / inner growth matters more" = DISAGREE body.
+- "wealth provides safety and freedom that enable happiness" = AGREE body.
+- Abstract claims with no side-specific conclusion = "neither".
+
+QUALITY AXES (only when stance_match = YES):
+1. Rebuttal quality: attacked a SPECIFIC weakness of opponent's last argument?
+2. Reasoning specificity: concrete comparison, causal chain, or example?
+3. Logical coherence: no self-contradiction?
+
+SYMBOL RULES:
+!! : stance_match=YES AND targeted rebuttal AND concrete reasoning. ALL THREE required.
+!  : stance_match=YES AND rebuttal OR specificity is solid.
+?  : stance_match=YES BUT only abstract self-assertion, no specific opponent attack.
+?? : stance_match=NO.
+
+━━ STEP 2: WINNER (judge overall debate so far) ━━
+
+For EACH side, determine whether its body arguments consistently strengthen its assigned position across all turns.
+Ignore self-declaration phrases.
+
+Drift detection:
+- agree side drift: body argument supports DISAGREE position.
+- disagree side no-drift: body argument supports DISAGREE position (consistent).
+
+WINNER RULES:
+Rule A: One side drifted, other did not → non-drifting side WINS.
+Rule B: Neither drifted → judge by (1) rebuttal quality, (2) reasoning specificity.
+Rule C: Both drifted → the side whose body stayed closer to its assigned position wins.
+
+━━ OUTPUT ━━
+JSON only. No other text.
+{"symbol":"!!","winner":"agree"}
+Valid symbols: "!!", "!", "?", "??"
+Valid winners: "agree", "disagree"`
+
+    // ── 後方互換: symbol専用モード (3ターン未満など) ─────────────────────
     const SYSTEM_SYMBOL = `You are a strict debate evaluator. Before choosing a symbol, you MUST internally determine which side this statement actually strengthens.
 
 INTERNAL CHECK (mandatory, before any scoring):
@@ -2384,7 +2432,7 @@ SYMBOL RULES:
 OUTPUT: JSON only. {"symbol":"!!"} or {"symbol":"!"} or {"symbol":"?"} or {"symbol":"??"}
 No other text.`
 
-    // ── 審判モード (judge) ───────────────────────────────────────────────
+    // ── 後方互換: judge専用モード ─────────────────────────────────────────
     const SYSTEM_JUDGE = `You are an impartial debate judge. Your PRIMARY task is to detect stance-drift by analyzing argument BODY — not by labels or self-declarations.
 
 MANDATORY INTERNAL ANALYSIS per side:
@@ -2407,9 +2455,20 @@ DO NOT reward:
 OUTPUT: JSON only. {"winner":"agree"} or {"winner":"disagree"}
 No other text.`
 
-    const systemContent = (mode === 'judge') ? SYSTEM_JUDGE : SYSTEM_SYMBOL
-    // judgeは再現性重視でmax_completion_tokens=30、symbolは内部思考余裕でmax_completion_tokens=60
-    const maxTok = (mode === 'judge') ? 30 : 60
+    // mode: 'evaluate'=統合(symbol+winner), 'symbol'=符号のみ(後方互換), 'judge'=勝者のみ(後方互換)
+    let systemContent: string
+    let maxTok: number
+    if (mode === 'evaluate') {
+      systemContent = SYSTEM_EVALUATE
+      maxTok = 40  // {"symbol":"!!","winner":"agree"} = 短いので40で十分
+    } else if (mode === 'judge') {
+      systemContent = SYSTEM_JUDGE
+      maxTok = 30
+    } else {
+      // 'symbol' or デフォルト
+      systemContent = SYSTEM_SYMBOL
+      maxTok = 60
+    }
 
     // GPT-5.1を使用
     const EVAL_MODELS = ['gpt-5.1']
@@ -2461,18 +2520,27 @@ No other text.`
     // ── サーバー側でJSONバリデーション ──────────────────────────────────
     try {
       const parsed = JSON.parse(message)
-      if (mode === 'judge') {
-        // judgeは winner のみ返す
-        if (parsed.winner === 'agree' || parsed.winner === 'disagree') {
-          // OK
-        } else {
+      const validSymbols = ['!!', '!', '?', '??']
+      const validWinners = ['agree', 'disagree']
+
+      if (mode === 'evaluate') {
+        // 統合モード: symbol + winner を両方検証して返す
+        const sym = validSymbols.includes(parsed.symbol) ? parsed.symbol : null
+        const win = validWinners.includes(parsed.winner) ? parsed.winner : null
+        if (!sym) console.warn('[evaluate/evaluate] invalid symbol:', message)
+        if (!win) console.warn('[evaluate/evaluate] invalid winner:', message)
+        message = JSON.stringify({
+          symbol: sym || '?',
+          winner: win || 'agree'
+        })
+      } else if (mode === 'judge') {
+        // 後方互換: winner のみ返す
+        if (!validWinners.includes(parsed.winner)) {
           console.warn('[evaluate/judge] unexpected JSON:', message)
         }
-        // comment等の余分なキーを除去
-        message = JSON.stringify({ winner: parsed.winner === 'agree' ? 'agree' : 'disagree' })
+        message = JSON.stringify({ winner: validWinners.includes(parsed.winner) ? parsed.winner : 'agree' })
       } else {
-        // symbolモードはsymbolのみ返す（comment削除）
-        const validSymbols = ['!!', '!', '?', '??']
+        // 後方互換: symbol のみ返す
         if (parsed.symbol && validSymbols.includes(parsed.symbol)) {
           message = JSON.stringify({ symbol: parsed.symbol })
         } else {

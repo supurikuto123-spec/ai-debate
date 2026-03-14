@@ -355,37 +355,21 @@ function showToast(message) {
     setTimeout(() => { toast.classList.add('hidden'); }, 3000);
 }
 
-// ===== AI Evaluation System (judges only, no vote manipulation) =====
+// ===== AI Evaluation System — 統合モード =====
+// ターン3以降: mode:'evaluate' で symbol + winner を1回のAPI呼び出しで取得
+// ターン1〜2: mode:'symbol' のみ (履歴が浅いため winner は省略)
 
 async function getAIEvaluations(message, side) {
-    try {
-        const evaluation = await getAIEvaluation(message, side);
-        if (evaluation.shouldVote) {
-            displayAIEvaluation(evaluation, side);
-        }
-
-        const currentTurn = conversationHistory.length;
-        if (currentTurn >= 3) {
-            await performAIJudging();
-        }
-    } catch (error) {
-        console.error('AI evaluation error:', error);
-    }
-}
-
-async function getAIEvaluation(message, side) {
     try {
         const myLabel = side === 'agree' ? 'Aether(賛成)' : 'Nova(反対)';
         const myOpinion = side === 'agree' ? OPINION_A : OPINION_B;
         const opponentOpinion = side === 'agree' ? OPINION_B : OPINION_A;
 
-        // 全履歴を送信（キャッシュ効率のため整形ルール固定）
         const fullHistory = conversationHistory.map(msg =>
             '[' + (msg.side === 'agree' ? 'Aether' : 'Nova') + ']: ' + msg.content
         ).join('\n');
 
         // キャッシュ効率のため固定テンプレート構造を維持
-        // 可変部分を末尾に集約
         const prompt = [
             'THEME: ' + DEBATE_THEME,
             'STANCE_' + (side === 'agree' ? 'A' : 'B') + ': ' + myOpinion,
@@ -394,104 +378,57 @@ async function getAIEvaluation(message, side) {
             'TARGET [' + myLabel + ']: ' + message
         ].join('\n');
 
+        // ターン3以降は統合モード (symbol + winner を1回で取得)
+        const currentTurn = conversationHistory.length;
+        const useEvaluateMode = currentTurn >= 3;
+
         const response = await fetch('/api/debate/evaluate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt, mode: 'symbol' })
+            body: JSON.stringify({ prompt, mode: useEvaluateMode ? 'evaluate' : 'symbol' })
         });
 
         const data = await response.json();
 
-        // symbolのみパース（commentは不要）
+        let symbol = null;
+        let winner = null;
+
         try {
             const result = JSON.parse(data.message);
-            if (result.symbol && ['!!', '!', '?', '??'].includes(result.symbol)) {
-                return { symbol: result.symbol, support: side, shouldVote: true };
-            }
-            return { symbol: null, support: side, shouldVote: false };
+            const validSymbols = ['!!', '!', '?', '??'];
+
+            if (validSymbols.includes(result.symbol)) symbol = result.symbol;
+            if (result.winner === 'agree' || result.winner === 'disagree') winner = result.winner;
         } catch (e) {
+            // フォールバック: テキストからシンボルを検出
             const msg = data.message || '';
-            // !! / ?? を先にチェック（! / ? より前に）
-            if (msg.includes('!!')) return { symbol: '!!', support: side, shouldVote: true };
-            if (msg.includes('??')) return { symbol: '??', support: side, shouldVote: true };
-            const symMatch = msg.match(/"symbol"\s*:\s*"([!?]+)"/);
-            if (symMatch && ['!!', '!', '?', '??'].includes(symMatch[1])) {
-                return { symbol: symMatch[1], support: side, shouldVote: true };
+            if (msg.includes('!!')) symbol = '!!';
+            else if (msg.includes('??')) symbol = '??';
+            else {
+                const symMatch = msg.match(/"symbol"\s*:\s*"([!?]+)"/);
+                if (symMatch && ['!!', '!', '?', '??'].includes(symMatch[1])) symbol = symMatch[1];
+                else if (msg.includes('"!"')) symbol = '!';
+                else if (msg.includes('"?"')) symbol = '?';
             }
-            if (msg.includes('"!"') || msg.includes("'!'")) return { symbol: '!', support: side, shouldVote: true };
-            if (msg.includes('"?"') || msg.includes("'?'")) return { symbol: '?', support: side, shouldVote: true };
-            return { symbol: null, support: side, shouldVote: false };
+            // winner フォールバック
+            if (msg.includes('"agree"')) winner = 'agree';
+            else if (msg.includes('"disagree"')) winner = 'disagree';
+        }
+
+        // シンボル表示
+        if (symbol) {
+            displayAIEvaluation({ symbol, support: side, shouldVote: true }, side);
+        }
+
+        // winner更新 (統合モード時のみ)
+        if (useEvaluateMode && winner) {
+            aiJudgeStances['judge1'] = winner;
+            if (!fogMode) {
+                updateJudgeDisplay();
+            }
         }
     } catch (error) {
-        return { symbol: null, support: side, shouldVote: false };
-    }
-}
-
-async function performAIJudging() {
-    try {
-        // 全履歴を送信（キャッシュ効率のため固定フォーマット）
-        const fullDebate = conversationHistory.map(msg =>
-            '[' + (msg.side === 'agree' ? 'A' : 'B') + ']: ' + msg.content
-        ).join('\n');
-
-        // 審判AI: gpt-5.1 シングル1体（コスト削減 + 安定性向上）
-        const judgment = await getAIJudgment(fullDebate, 0.1);
-
-        if (judgment && judgment.winner) {
-            // シングル審判（gpt-5.1 x1）
-            aiJudgeStances['judge1'] = judgment.winner;
-        }
-
-        if (!fogMode) {
-            updateJudgeDisplay();
-        }
-    } catch (error) {
-        console.error('AI judging error:', error);
-    }
-}
-
-async function getAIJudgment(fullDebate, temperature) {
-    try {
-        // キャッシュ効率のため固定テンプレート構造を維持
-        const prompt = [
-            'THEME: ' + DEBATE_THEME,
-            'STANCE_A: ' + OPINION_A,
-            'STANCE_B: ' + OPINION_B,
-            'DEBATE:\n' + fullDebate
-        ].join('\n');
-
-        const response = await fetch('/api/debate/evaluate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt, mode: 'judge' })
-        });
-
-        const data = await response.json();
-        try {
-            const result = JSON.parse(data.message);
-            if (result.winner === 'agree' || result.winner === 'disagree') return result;
-            if (result.winner) {
-                const w = String(result.winner).toLowerCase();
-                if (w.includes('agree') || w.includes('賛成')) return { winner: 'agree' };
-                if (w.includes('disagree') || w.includes('反対')) return { winner: 'disagree' };
-            }
-        } catch {
-            const msg = (data.message || '').toLowerCase();
-            const winnerMatch = msg.match(/"winner"\s*:\s*"([^"]+)"/);
-            if (winnerMatch) {
-                const w = winnerMatch[1];
-                if (w.includes('agree') || w.includes('賛成')) return { winner: 'agree' };
-                if (w.includes('disagree') || w.includes('反対')) return { winner: 'disagree' };
-            }
-            if (msg.includes('"agree"')) return { winner: 'agree' };
-            if (msg.includes('"disagree"')) return { winner: 'disagree' };
-        }
-        // 決定論的フォールバック（!! 数で判定）
-        const agreeScore = (fullDebate.match(/\[A\]/g) || []).length + (fullDebate.match(/!!/g) || []).length;
-        const disagreeScore = (fullDebate.match(/\[B\]/g) || []).length;
-        return { winner: agreeScore >= disagreeScore ? 'agree' : 'disagree' };
-    } catch (error) {
-        return { winner: 'agree' };
+        console.error('AI evaluation error:', error);
     }
 }
 
@@ -691,9 +628,38 @@ async function showFinalResults() {
     updateVoteDisplay();
 
     // AI judging is ALWAYS performed (used as tiebreaker)
-    if (conversationHistory.length >= 2) {
+    // ターン3以降はgetAIEvaluationsで随時更新済み
+    // ターンが少ない場合はここで最終審判を実施
+    if (conversationHistory.length >= 2 && !aiJudgeStances['judge1']) {
         showToast('AIによる最終評価を実施中...');
-        await performAIJudging();
+        // 最終審判: 統合モードで実行 (symbolは不要なのでjudgeモードで後方互換)
+        try {
+            const fullDebate = conversationHistory.map(msg =>
+                '[' + (msg.side === 'agree' ? 'A' : 'B') + ']: ' + msg.content
+            ).join('\n');
+            const prompt = [
+                'THEME: ' + DEBATE_THEME,
+                'STANCE_A: ' + OPINION_A,
+                'STANCE_B: ' + OPINION_B,
+                'HISTORY:\n' + fullDebate,
+                'TARGET [最終審判]: ディベート全体を評価してください'
+            ].join('\n');
+            const resp = await fetch('/api/debate/evaluate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt, mode: 'evaluate' })
+            });
+            const respData = await resp.json();
+            try {
+                const result = JSON.parse(respData.message);
+                if (result.winner === 'agree' || result.winner === 'disagree') {
+                    aiJudgeStances['judge1'] = result.winner;
+                }
+            } catch (e) { /* ignore */ }
+        } catch (e) {
+            console.error('Final judgment error:', e);
+        }
+        if (!fogMode) updateJudgeDisplay();
     }
 
     const total = voteData.total || 1;
