@@ -2089,8 +2089,16 @@ app.post('/api/community/post', async (c) => {
       return c.json({ success: false, error: 'Content and language required' })
     }
 
-    // Check post_ban restriction
-    const userRecord = await c.env.DB.prepare('SELECT post_ban, is_banned FROM users WHERE user_id = ?').bind(user.user_id).first() as any
+    // Check post_ban restriction (try/catch for DB schema compatibility)
+    let userRecord: any = null
+    try {
+      userRecord = await c.env.DB.prepare('SELECT post_ban, is_banned FROM users WHERE user_id = ?').bind(user.user_id).first() as any
+    } catch(e) {
+      // Fallback: post_ban column may not exist yet in older DBs
+      try {
+        userRecord = await c.env.DB.prepare('SELECT is_banned FROM users WHERE user_id = ?').bind(user.user_id).first() as any
+      } catch(e2) {}
+    }
     if (userRecord?.is_banned) return c.json({ success: false, error: 'アカウントが停止されています' }, 403)
     if (userRecord?.post_ban) return c.json({ success: false, error: '投稿機能が制限されています。サポートにお問い合わせください。' }, 403)
 
