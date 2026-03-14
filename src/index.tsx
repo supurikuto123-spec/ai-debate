@@ -904,6 +904,30 @@ app.get('/credits', async (c) => {
 
 
 // ============================================================
+// DEBATES LIVE API
+// ============================================================
+
+// GET /api/debates/live — 現在ライブ中のディベートを取得
+app.get('/api/debates/live', async (c) => {
+  try {
+    const debate = await c.env.DB.prepare(
+      "SELECT id, title, agree_position, disagree_position, status, duration_seconds FROM debates WHERE status = 'live' ORDER BY created_at DESC LIMIT 1"
+    ).first() as any
+    if (!debate) return c.json({ debate: null })
+    return c.json({
+      debate: {
+        id: debate.id,
+        title: debate.title,
+        agree_position: debate.agree_position,
+        disagree_position: debate.disagree_position,
+        status: debate.status,
+        duration_seconds: debate.duration_seconds || 300
+      }
+    })
+  } catch(e) { return c.json({ debate: null }) }
+})
+
+// ============================================================
 // BATTLE / PvP APIs
 // ============================================================
 
@@ -913,10 +937,24 @@ app.post('/api/battle/queue/join', async (c) => {
   const user = safeParseUserCookie(userCookie)
   if (!user) return c.json({ error: 'Not authenticated' }, 401)
   try {
+    await ensurePvpTables(c.env.DB)
     await autoExpireRestrictions(c.env.DB, user.user_id)
-    const freshUser = await c.env.DB.prepare('SELECT credits, is_banned, debate_ban FROM users WHERE user_id = ?').bind(user.user_id).first() as any
-    if (freshUser?.is_banned) return c.json({ error: 'アカウントが停止されています' }, 403)
-    if (freshUser?.debate_ban) return c.json({ error: 'ディベートが制限されています' }, 403)
+    let freshUser: any = null
+    try {
+      freshUser = await c.env.DB.prepare(
+        'SELECT credits, is_banned, ban_expires_at, debate_ban, debate_ban_expires_at, ban_reason, restriction_reason FROM users WHERE user_id = ?'
+      ).bind(user.user_id).first() as any
+    } catch(e) {
+      freshUser = await c.env.DB.prepare('SELECT credits, is_banned, debate_ban FROM users WHERE user_id = ?').bind(user.user_id).first() as any
+    }
+    if (freshUser?.is_banned) {
+      const remaining = restrictionRemainingText(freshUser.ban_expires_at)
+      return c.json({ error: `アカウントが停止されています（${remaining}）` }, 403)
+    }
+    if (freshUser?.debate_ban) {
+      const remaining = restrictionRemainingText(freshUser.debate_ban_expires_at)
+      return c.json({ error: `ディベートが制限されています（${remaining}）` }, 403)
+    }
 
     const { mode, stance } = await c.req.json()
     // 既存エントリを削除してから追加
@@ -1199,6 +1237,39 @@ async function autoExpireRestrictions(db: D1Database, userId: string) {
         credit_freeze_expires_at = CASE WHEN credit_freeze_expires_at IS NOT NULL AND credit_freeze_expires_at <= ? THEN NULL ELSE credit_freeze_expires_at END
       WHERE user_id = ?
     `).bind(now,now,now,now,now,now,now,now, userId).run()
+  } catch(e) {}
+}
+
+// ── PvPテーブル自動作成ヘルパー（VPS未マイグレーション対応） ──────────
+async function ensurePvpTables(db: D1Database) {
+  try {
+    await db.prepare(`CREATE TABLE IF NOT EXISTS match_queue (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL UNIQUE,
+      username TEXT,
+      mode TEXT DEFAULT 'pvp',
+      stance TEXT,
+      status TEXT DEFAULT 'waiting',
+      debate_id TEXT,
+      matched_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`).run()
+  } catch(e) {}
+  try {
+    await db.prepare(`CREATE TABLE IF NOT EXISTS pvp_rooms (
+      room_id TEXT PRIMARY KEY,
+      debate_id TEXT,
+      player_a TEXT NOT NULL,
+      player_b TEXT,
+      player_a_stance TEXT DEFAULT 'agree',
+      player_b_stance TEXT DEFAULT 'disagree',
+      status TEXT DEFAULT 'active',
+      messages TEXT DEFAULT '[]',
+      winner TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      started_at DATETIME,
+      ended_at DATETIME
+    )`).run()
   } catch(e) {}
 }
 
@@ -1874,7 +1945,7 @@ app.get('/api/dev/themes', async (c) => {
       FROM theme_proposals ORDER BY created_at DESC LIMIT 100
     `).all()
     const debates = await c.env.DB.prepare(`
-      SELECT id, title, topic, agree_position, disagree_position, status, scheduled_at, created_at
+      SELECT id, title, topic, agree_position, disagree_position, status, scheduled_at, duration_seconds, created_at
       FROM debates ORDER BY created_at DESC LIMIT 20
     `).all()
     return c.json({ themes: themes.results || [], debates: debates.results || [] })
@@ -1930,7 +2001,7 @@ app.post('/api/dev/debates/schedule', async (c) => {
   const user = safeParseUserCookie(userCookie)
   if (!user || !(await isDevAdminDB(user, c.env))) return c.json({ error: 'Permission denied' }, 403)
   try {
-    const { theme_id, title, agree_opinion, disagree_opinion, start_at } = await c.req.json()
+    const { theme_id, title, agree_opinion, disagree_opinion, start_at, duration_minutes } = await c.req.json()
     // 既存liveディベートを完了にする
     await c.env.DB.prepare("UPDATE debates SET status='completed' WHERE status IN ('live','upcoming','pending')").run()
 
@@ -1946,13 +2017,18 @@ app.post('/api/dev/debates/schedule', async (c) => {
     const isNow = !start_at || start_at === 'now'
     const scheduledAt = isNow ? null : start_at
     const status = isNow ? 'live' : 'upcoming'
+    // duration_minutes: デフォルト5分
+    const durMin = typeof duration_minutes === 'number' && duration_minutes > 0 ? duration_minutes : 5
+
+    // duration_seconds カラムが存在しない場合は追加
+    try { await c.env.DB.prepare('ALTER TABLE debates ADD COLUMN duration_seconds INTEGER DEFAULT 300').run() } catch(e) {}
 
     await c.env.DB.prepare(`
-      INSERT INTO debates (id, title, topic, agree_position, disagree_position, status, scheduled_at, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(debateId, themeData.title, themeData.title, themeData.agree_opinion, themeData.disagree_opinion, status, scheduledAt, now).run()
+      INSERT INTO debates (id, title, topic, agree_position, disagree_position, status, scheduled_at, duration_seconds, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(debateId, themeData.title, themeData.title, themeData.agree_opinion, themeData.disagree_opinion, status, scheduledAt, durMin * 60, now).run()
 
-    return c.json({ success: true, debate_id: debateId, status, scheduled_at: scheduledAt })
+    return c.json({ success: true, debate_id: debateId, status, scheduled_at: scheduledAt, duration_seconds: durMin * 60 })
   } catch(e) { return c.json({ error: String(e) }, 500) }
 })
 
@@ -2407,15 +2483,24 @@ app.post('/api/community/post', async (c) => {
     // Check post_ban restriction (try/catch for DB schema compatibility)
     let userRecord: any = null
     try {
-      userRecord = await c.env.DB.prepare('SELECT post_ban, is_banned FROM users WHERE user_id = ?').bind(user.user_id).first() as any
+      await autoExpireRestrictions(c.env.DB, user.user_id)
+      userRecord = await c.env.DB.prepare(
+        'SELECT post_ban, is_banned, ban_expires_at, post_ban_expires_at FROM users WHERE user_id = ?'
+      ).bind(user.user_id).first() as any
     } catch(e) {
       // Fallback: post_ban column may not exist yet in older DBs
       try {
         userRecord = await c.env.DB.prepare('SELECT is_banned FROM users WHERE user_id = ?').bind(user.user_id).first() as any
       } catch(e2) {}
     }
-    if (userRecord?.is_banned) return c.json({ success: false, error: 'アカウントが停止されています' }, 403)
-    if (userRecord?.post_ban) return c.json({ success: false, error: '投稿機能が制限されています。サポートにお問い合わせください。' }, 403)
+    if (userRecord?.is_banned) {
+      const rem = restrictionRemainingText(userRecord.ban_expires_at)
+      return c.json({ success: false, error: `アカウントが停止されています（${rem}）` }, 403)
+    }
+    if (userRecord?.post_ban) {
+      const rem = restrictionRemainingText(userRecord.post_ban_expires_at)
+      return c.json({ success: false, error: `投稿機能が制限されています（${rem}）。サポートにお問い合わせください。` }, 403)
+    }
 
     // Use NULL for id to let autoincrement work
     await c.env.DB.prepare(
@@ -4164,6 +4249,12 @@ app.post('/api/admin/ban', async (c) => {
     const expiresAt = daysNum > 0
       ? new Date(Date.now() + daysNum * 86400000).toISOString().replace('T', ' ').substring(0, 19)
       : null
+
+    // VPS DB互換: *_expires_at カラムが存在しない場合に追加
+    const expiryColumns = ['ban_expires_at','post_ban_expires_at','debate_ban_expires_at','credit_freeze_expires_at']
+    for (const col of expiryColumns) {
+      try { await c.env.DB.prepare(`ALTER TABLE users ADD COLUMN ${col} DATETIME`).run() } catch(e) {}
+    }
 
     let notifTitle = ''
     let notifBody = ''

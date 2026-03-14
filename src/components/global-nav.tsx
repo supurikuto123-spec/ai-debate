@@ -1,4 +1,4 @@
-﻿// Global Navigation Component - Cyberpunk Hamburger Menu
+// Global Navigation Component - Cyberpunk Hamburger Menu
 export const globalNav = (user: { credits: number; user_id: string; avatar_type?: string; avatar_value?: string; avatar_url?: string; is_dev?: number | boolean; email?: string } | null) => {
   if (!user) {
     // Guest navigation (not logged in)
@@ -81,7 +81,6 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
     <!-- Fixed Top Header -->
     <header style="position: fixed; top: 0; left: 0; width: 100%; height: 60px; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(0,255,255,0.3); display: flex; justify-content: space-between; align-items: center; padding: 0 20px; z-index: 9997;">
       <a href="/main" style="text-decoration: none; display: flex; align-items: center; gap: 10px;">
-        <!-- Inline SVG icon - no external request needed -->
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" style="width:34px;height:34px;flex-shrink:0;">
           <defs>
             <linearGradient id="nav-bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#03050f"/><stop offset="100%" stop-color="#080018"/></linearGradient>
@@ -127,6 +126,9 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
         <a href="/battle" class="nav-link">
           <i class="fas fa-gamepad"></i><span>対戦</span>
         </a>
+        <a href="/credits" class="nav-link">
+          <i class="fas fa-coins" style="color:#fbbf24;"></i><span style="color:#fbbf24;">クレジット購入</span>
+        </a>
         <a href="/archive" class="nav-link">
           <i class="fas fa-archive"></i><span>アーカイブ</span>
         </a>
@@ -144,17 +146,15 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
           <span>通知 <span id="nav-notif-badge" style="display:none;background:#ef4444;color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;margin-left:4px;font-weight:700;"></span></span>
         </a>
         ${isDevUser ? `
-        <a href="#" class="nav-link" onclick="event.preventDefault();openCommandPanel();">
-          <i class="fas fa-terminal" style="color: #22c55e;"></i><span style="color: #22c55e;">コマンド</span>
+        <a href="/dev/themes" class="nav-link" style="border-top: 1px solid rgba(255,215,0,0.3);">
+          <i class="fas fa-cogs" style="color: #ffd700;"></i><span style="color: #ffd700;">テーマ管理</span>
         </a>
-        <a href="/admin/dashboard" class="nav-link" style="border-top: 1px solid rgba(255,215,0,0.3);">
+        <a href="/admin/dashboard" class="nav-link">
           <i class="fas fa-crown" style="color: #ffd700;"></i><span style="color: #ffd700;">開発者ダッシュボード</span>
         </a>
-        ` : ''}
-        ${isDevUser ? `
-        <a href="/admin/tickets" class="nav-link" style="border-top: 1px solid rgba(255,0,128,0.3);">
+        <a href="/admin/tickets" class="nav-link">
           <i class="fas fa-headset" style="color: #ff0080;"></i>
-          <span style="color: #ff0080;">サポートチャット管理</span>
+          <span style="color: #ff0080;">サポート管理</span>
         </a>
         ` : `
         <a href="/tickets" class="nav-link">
@@ -210,13 +210,40 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
         const menu = document.getElementById('nav-menu');
         const overlay = document.getElementById('nav-overlay');
         const links = document.querySelectorAll('.nav-link');
-        toggle.addEventListener('click', () => { toggle.classList.toggle('active'); menu.classList.toggle('active'); overlay.classList.toggle('active'); });
-        overlay.addEventListener('click', () => { toggle.classList.remove('active'); menu.classList.remove('active'); overlay.classList.remove('active'); });
+
+        // Toggle menu open/close on hamburger click
+        toggle.addEventListener('click', () => {
+          const isNowActive = !menu.classList.contains('active');
+          toggle.classList.toggle('active');
+          menu.classList.toggle('active');
+          overlay.classList.toggle('active');
+          if (isNowActive) loadAioStats();
+        });
+
+        // Close menu when clicking overlay
+        overlay.addEventListener('click', () => {
+          toggle.classList.remove('active');
+          menu.classList.remove('active');
+          overlay.classList.remove('active');
+        });
+
+        // Highlight current page link
         const currentPath = window.location.pathname;
         links.forEach(link => {
-          if (link.getAttribute('href') === currentPath || (currentPath.startsWith('/watch') && link.getAttribute('href').startsWith('/watch'))) link.classList.add('active');
+          const href = link.getAttribute('href');
+          if (href && (href === currentPath || (currentPath.startsWith('/watch') && href.startsWith('/watch')))) {
+            link.classList.add('active');
+          }
         });
-        links.forEach(link => { link.addEventListener('click', () => { toggle.classList.remove('active'); menu.classList.remove('active'); overlay.classList.remove('active'); }); });
+
+        // Close menu on nav link click (mobile)
+        links.forEach(link => {
+          link.addEventListener('click', () => {
+            toggle.classList.remove('active');
+            menu.classList.remove('active');
+            overlay.classList.remove('active');
+          });
+        });
 
         // Auto-refresh credits from DB
         async function refreshNavCredits() {
@@ -229,9 +256,7 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
             }
           } catch(e) {}
         }
-        // Refresh every 10 seconds
         setInterval(refreshNavCredits, 10000);
-        // Also refresh on page visibility change
         document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshNavCredits(); });
 
         // Load unread notification count
@@ -272,217 +297,19 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
             }
           } catch(e) {}
         }
-        // Load stats when menu opens
-        const menuToggle = document.getElementById('nav-toggle');
-        if (menuToggle) {
-          menuToggle.addEventListener('click', () => {
-            const menu = document.getElementById('nav-menu');
-            if (menu && menu.classList.contains('active')) loadAioStats();
-          });
-        }
       })();
     </script>
 
     <script>
       // Global helper: update all credit displays on the page
       window.updateCreditsDisplay = function(newCredits) {
-        // Nav credits
         const navEl = document.getElementById('nav-credits-value');
         if (navEl) navEl.textContent = Number(newCredits).toLocaleString();
-        // Other common credit elements
         const creditsValue = document.getElementById('credits-value');
         if (creditsValue) creditsValue.textContent = Number(newCredits).toLocaleString();
         const navCredits = document.getElementById('navCredits');
         if (navCredits) navCredits.textContent = Number(newCredits).toLocaleString();
       };
-    </script>
-
-    <!-- Command Panel -->
-    <div id="cmd-panel" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.95);z-index:10001;backdrop-filter:blur(10px);">
-      <div style="max-width:600px;margin:80px auto;padding:30px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-          <h2 style="font-size:24px;font-weight:bold;color:#00ffff;">
-            <i class="fas fa-terminal" style="margin-right:10px;"></i>コマンド
-          </h2>
-          <button onclick="closeCmdPanel()" style="background:none;border:none;color:#ff0080;font-size:24px;cursor:pointer;">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-        
-        <div style="margin-bottom:20px;">
-          <input id="cmd-input" type="text" placeholder="コマンドを入力... (例: !s-0, !s-5, !@user+coin100)"
-            style="width:100%;padding:14px 18px;background:#111;border:2px solid #00ffff;border-radius:10px;color:#fff;font-size:16px;font-family:monospace;outline:none;"
-            onkeydown="if(event.key==='Enter')executeCmd()">
-          <p style="margin-top:8px;font-size:12px;color:#6b7280;"><i class="fas fa-info-circle" style="margin-right:4px;"></i>使用可能: <code style="color:#22c55e;">!s-数字</code>（開始予約）, <code style="color:#22c55e;">!@ユーザー+coin数字</code>（コイン付与）</p>
-          <button onclick="executeCmd()" style="width:100%;margin-top:10px;padding:12px;background:linear-gradient(135deg,rgba(0,255,255,0.3),rgba(255,0,255,0.3));border:2px solid #00ffff;border-radius:10px;color:#00ffff;font-weight:bold;font-size:16px;cursor:pointer;">
-            <i class="fas fa-play" style="margin-right:8px;"></i>実行
-          </button>
-        </div>
-
-        <!-- Admin Quick Actions -->
-        <div style="border-top:1px solid rgba(255,0,128,0.3);padding-top:16px;margin-bottom:16px;">
-          <p style="font-size:12px;color:#ff0080;font-weight:bold;margin-bottom:10px;"><i class="fas fa-shield-alt" style="margin-right:4px;"></i>管理者クイックアクション</p>
-          <button onclick="adminDeleteAllArchives()" style="width:100%;padding:10px;background:rgba(239,68,68,0.2);border:1px solid #ef4444;border-radius:8px;color:#ef4444;font-weight:bold;font-size:14px;cursor:pointer;margin-bottom:8px;">
-            <i class="fas fa-trash-alt" style="margin-right:6px;"></i>アーカイブ全削除
-          </button>
-        </div>
-        
-        <div id="cmd-result" style="margin-bottom:20px;padding:15px;background:#0a0a0a;border:1px solid #333;border-radius:8px;font-family:monospace;font-size:14px;color:#9ca3af;min-height:40px;display:none;">
-        </div>
-      </div>
-    </div>
-
-    <script>
-      function openCommandPanel() {
-        // Close nav menu first
-        document.getElementById('nav-toggle').classList.remove('active');
-        document.getElementById('nav-menu').classList.remove('active');
-        document.getElementById('nav-overlay').classList.remove('active');
-        
-        document.getElementById('cmd-panel').style.display = 'block';
-        document.getElementById('cmd-input').focus();
-      }
-      window.openCommandPanel = openCommandPanel;
-      
-      function closeCmdPanel() {
-        document.getElementById('cmd-panel').style.display = 'none';
-        document.getElementById('cmd-result').style.display = 'none';
-      }
-      window.closeCmdPanel = closeCmdPanel;
-      
-      async function executeCmd() {
-        const input = document.getElementById('cmd-input');
-        const cmd = input.value.trim();
-        if (!cmd) return;
-        
-        const resultEl = document.getElementById('cmd-result');
-        resultEl.style.display = 'block';
-        resultEl.style.color = '#9ca3af';
-        resultEl.textContent = '実行中...';
-        
-        // Get current debateId from page if available
-        const appDataEl = document.getElementById('app-data');
-        const debateId = appDataEl ? appDataEl.dataset.debateId : null;
-        
-        try {
-          const response = await fetch('/api/commands/execute', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ command: cmd, debateId: debateId, source: 'cmd-panel' })
-          });
-          
-          const data = await response.json();
-          
-          if (data.success) {
-            resultEl.style.color = '#22c55e';
-            
-            switch(data.action) {
-              case 'start_debate_archive':
-                resultEl.textContent = '✅ ディベートを即時開始します（終了後自動アーカイブ）';
-                window.archiveOnComplete = true;
-                // Update live status indicator if on watch page
-                const liveEl = document.getElementById('debateLiveStatus');
-                if (liveEl) { liveEl.innerHTML = '<div class="w-2 h-2 bg-green-400 rounded-full inline-block mr-2" style="animation:pulse 1s infinite;"></div>LIVE'; liveEl.className = 'text-green-400'; }
-                if (typeof window.startDebate === 'function') {
-                  closeCmdPanel();
-                  window.startDebate();
-                } else {
-                  // Not on watch page - DB is already updated, guide user
-                  resultEl.innerHTML = '✅ ディベートをLIVEに設定しました。<br><a href="/main" style="color:#00ffff;text-decoration:underline;">メインページ</a>で確認できます。';
-                }
-                break;
-              case 'schedule_debate':
-                resultEl.textContent = '✅ ' + data.schedule_minutes + '分後にディベートを予約しました。';
-                if (typeof window.startDebate === 'function') {
-                  // On watch page - start countdown
-                  const mins = data.schedule_minutes;
-                  resultEl.textContent += ' カウントダウン開始...';
-                  const liveEl2 = document.getElementById('debateLiveStatus');
-                  if (liveEl2) { liveEl2.innerHTML = '<div class="w-2 h-2 bg-blue-400 rounded-full inline-block mr-2" style="animation:pulse 1s infinite;"></div>予約済み'; liveEl2.className = 'text-blue-400'; }
-                  let remaining = mins * 60;
-                  const timer = setInterval(() => {
-                    remaining--;
-                    if (remaining <= 0) {
-                      clearInterval(timer);
-                      resultEl.textContent = '🚀 予約時間です！ディベートを開始します...';
-                      window.archiveOnComplete = true;
-                      const liveEl3 = document.getElementById('debateLiveStatus');
-                      if (liveEl3) { liveEl3.innerHTML = '<div class="w-2 h-2 bg-green-400 rounded-full inline-block mr-2" style="animation:pulse 1s infinite;"></div>LIVE'; liveEl3.className = 'text-green-400'; }
-                      // Update DB status to live
-                      fetch('/api/commands/execute', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ command: '!s-0', debateId: debateId, source: 'cmd-panel' })
-                      }).then(() => {
-                        closeCmdPanel();
-                        window.startDebate();
-                      });
-                    } else {
-                      const m = Math.floor(remaining / 60);
-                      const s = remaining % 60;
-                      resultEl.textContent = '⏳ ディベート開始まで: ' + m + ':' + String(s).padStart(2,'0');
-                    }
-                  }, 1000);
-                } else {
-                  // Not on watch page - DB is already updated as 'upcoming', guide user
-                  resultEl.innerHTML = '✅ ' + data.schedule_minutes + '分後に予約済み。<br><a href="/main" style="color:#00ffff;text-decoration:underline;">メインページ</a>の「予定」タブに表示されます。<br>開始時刻に<a href="/watch?id=' + (debateId || 'default') + '" style="color:#00ffff;text-decoration:underline;">観戦ページ</a>を開いてください。';
-                }
-                break;
-
-              case 'grant_coins':
-                resultEl.textContent = '✅ @' + data.target + ' に ' + data.amount + ' コインを付与しました！';
-                break;
-              default:
-                resultEl.textContent = '✅ コマンド実行完了: ' + data.action;
-            }
-          } else {
-            resultEl.style.color = '#ef4444';
-            resultEl.textContent = '❌ ' + (data.error || 'コマンド実行失敗');
-          }
-        } catch (error) {
-          resultEl.style.color = '#ef4444';
-          resultEl.textContent = '❌ エラー: ' + error.message;
-        }
-        
-        input.value = '';
-      }
-      window.executeCmd = executeCmd;
-
-      async function adminDeleteAllArchives() {
-        const resultEl = document.getElementById('cmd-result');
-        resultEl.style.display = 'block';
-        if (!await window.customConfirm('⚠️ 本当にアーカイブをすべて削除しますか？\\nこの操作は取り消せません。')) return;
-        resultEl.style.color = '#9ca3af';
-        resultEl.textContent = '削除中...';
-        try {
-          const res = await fetch('/api/archive/all', { method: 'DELETE', headers: { 'Content-Type': 'application/json' } });
-          const data = await res.json();
-          if (data.success) {
-            resultEl.style.color = '#22c55e';
-            resultEl.textContent = '✅ ' + (data.message || 'アーカイブを全削除しました');
-          } else {
-            resultEl.style.color = '#ef4444';
-            resultEl.textContent = '❌ ' + (data.error || '削除失敗');
-          }
-        } catch(e) {
-          resultEl.style.color = '#ef4444';
-          resultEl.textContent = '❌ エラー: ' + e.message;
-        }
-      }
-      window.adminDeleteAllArchives = adminDeleteAllArchives;
-
-      // Save avatar URL before logout so guest nav can show it
-      function saveAvatarBeforeLogout(linkEl) {
-        try {
-          const avatarEl = document.querySelector('.nav-avatar');
-          if (avatarEl && avatarEl.src) {
-            localStorage.setItem('lastAvatarUrl', avatarEl.src);
-          }
-          localStorage.setItem('lastUserId', '${user.user_id}');
-        } catch(e) {}
-        // Allow navigation to proceed
-      }
-      window.saveAvatarBeforeLogout = saveAvatarBeforeLogout;
     </script>
 
     <!-- Custom Animated Popups -->
@@ -491,7 +318,6 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
             <div id="ai-debate-popup-icon" style="font-size:3rem;margin-bottom:15px;"></div>
             <div id="ai-debate-popup-message" style="color:#fff;font-size:1.1rem;margin-bottom:25px;line-height:1.5;"></div>
             <div id="ai-debate-popup-buttons" style="display:flex;gap:15px;justify-content:center;">
-                <!-- Generated dynamically -->
             </div>
         </div>
     </div>
@@ -510,10 +336,8 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
             overlay.style.opacity = '1';
             box.style.transform = 'scale(1)';
             box.style.opacity = '1';
-            
             msgEl.innerHTML = (msg||'').toString().replace(/\\n/g, '<br>');
             iconEl.innerHTML = '<i class="fas fa-exclamation-circle" style="color:#00ffff;text-shadow:0 0 10px rgba(0,255,255,0.6);"></i>';
-            
             btnContainer.innerHTML = '';
             const btn = document.createElement('button');
             btn.textContent = 'OK';
@@ -530,21 +354,17 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
             overlay.style.opacity = '1';
             box.style.transform = 'scale(1)';
             box.style.opacity = '1';
-            
             msgEl.innerHTML = (msg||'').toString().replace(/\\n/g, '<br>');
             iconEl.innerHTML = '<i class="fas fa-question-circle" style="color:#ff0080;text-shadow:0 0 10px rgba(255,0,128,0.6);"></i>';
-            
             btnContainer.innerHTML = '';
             const btnCancel = document.createElement('button');
             btnCancel.textContent = 'キャンセル';
             btnCancel.style.cssText = 'padding:10px 20px;background:transparent;border:2px solid #ff0080;color:#ff0080;font-weight:bold;border-radius:6px;cursor:pointer;';
             btnCancel.onclick = () => { closePopup(); resolve(false); };
-            
             const btnOk = document.createElement('button');
             btnOk.textContent = 'OK';
             btnOk.style.cssText = 'padding:10px 25px;background:linear-gradient(90deg, #ff0080, #ff00ff);color:#fff;font-weight:bold;border:none;border-radius:6px;cursor:pointer;';
             btnOk.onclick = () => { closePopup(); resolve(true); };
-            
             btnContainer.appendChild(btnCancel);
             btnContainer.appendChild(btnOk);
           });
@@ -557,10 +377,8 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
           setTimeout(() => { overlay.style.display = 'none'; }, 300);
         }
 
-        // Override default alert
         window.alert = function(msg) { window.customAlert(msg); };
 
-        // Mobile Warning Check
         document.addEventListener('DOMContentLoaded', () => {
           if (/Mobi|Android|iPhone/i.test(navigator.userAgent) && !localStorage.getItem('mobile_warned')) {
             localStorage.setItem('mobile_warned', 'true');
@@ -568,6 +386,17 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
           }
         });
       })();
+    </script>
+
+    <script>
+      function saveAvatarBeforeLogout(linkEl) {
+        try {
+          const avatarEl = document.querySelector('.nav-avatar');
+          if (avatarEl && avatarEl.src) localStorage.setItem('lastAvatarUrl', avatarEl.src);
+          localStorage.setItem('lastUserId', '${user.user_id}');
+        } catch(e) {}
+      }
+      window.saveAvatarBeforeLogout = saveAvatarBeforeLogout;
     </script>
   `;
 };

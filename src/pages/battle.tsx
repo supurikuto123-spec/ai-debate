@@ -1,6 +1,12 @@
 import { globalNav } from '../components/global-nav';
 
-export const battlePage = (user: any) => `
+export const battlePage = (user: any) => {
+  // SyntaxError防止: user_idを安全にJS文字列として埋め込む
+  const safeUserId = JSON.stringify(user?.user_id || '');
+  const safeUsername = JSON.stringify(user?.username || user?.user_id || '');
+  const userCredits = Number(user?.credits || 0);
+
+  return `
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -17,7 +23,7 @@ export const battlePage = (user: any) => `
         .battle-tab:hover { background: rgba(6,182,212,0.15); border-color: rgba(6,182,212,0.4); }
         .battle-tab.active { background: rgba(6,182,212,0.25); border-color: #06b6d4; color: #fff; box-shadow: 0 0 20px rgba(6,182,212,0.3); }
         .mode-card { background: linear-gradient(135deg, rgba(0,20,40,0.9), rgba(20,0,40,0.9)); border: 2px solid rgba(0,255,255,0.3); border-radius: 16px; padding: 28px; transition: all 0.3s; }
-        .mode-card:hover { border-color: rgba(0,255,255,0.6); transform: translateY(-2px); }
+        .mode-card:hover { border-color: rgba(0,255,255,0.6); }
         .stance-btn { flex:1; padding: 14px; border-radius: 12px; font-weight: 700; font-size: 15px; cursor: pointer; transition: all 0.3s; border: 2px solid; }
         .stance-agree { background: rgba(34,197,94,0.15); border-color: rgba(34,197,94,0.5); color: #86efac; }
         .stance-agree:hover, .stance-agree.selected { background: rgba(34,197,94,0.35); border-color: #22c55e; }
@@ -28,9 +34,10 @@ export const battlePage = (user: any) => `
         .chat-bubble-ai { background: rgba(6,182,212,0.15); border: 1px solid rgba(6,182,212,0.4); border-radius: 12px 12px 3px 12px; padding: 10px 14px; max-width: 80%; margin-left: auto; }
         #chatLog { height: 420px; overflow-y: auto; scroll-behavior: smooth; }
         #chatLog::-webkit-scrollbar { width: 4px; } #chatLog::-webkit-scrollbar-thumb { background: rgba(6,182,212,0.4); border-radius: 4px; }
+        #aiChatLog::-webkit-scrollbar { width: 4px; } #aiChatLog::-webkit-scrollbar-thumb { background: rgba(6,182,212,0.4); border-radius: 4px; }
         .pulse-dot { width: 10px; height: 10px; border-radius: 50%; background: #22c55e; animation: pulseDot 1.5s ease-in-out infinite; }
         @keyframes pulseDot { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:0.5;transform:scale(0.7);} }
-        .waiting-spinner { border: 3px solid rgba(6,182,212,0.3); border-top-color: #06b6d4; border-radius: 50%; width: 32px; height: 32px; animation: spin 0.8s linear infinite; }
+        .waiting-spinner { border: 3px solid rgba(6,182,212,0.3); border-top-color: #06b6d4; border-radius: 50%; width: 32px; height: 32px; animation: spin 0.8s linear infinite; display:inline-block; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .diff-btn { padding: 10px 18px; border-radius: 10px; cursor: pointer; font-weight: 700; font-size: 13px; transition: all 0.2s; border: 2px solid; }
         .diff-easy { background: rgba(34,197,94,0.15); border-color: rgba(34,197,94,0.5); color: #86efac; }
@@ -41,6 +48,8 @@ export const battlePage = (user: any) => `
         .diff-hard:hover, .diff-hard.selected { background: rgba(239,68,68,0.35); border-color: #ef4444; }
         .theme-option { padding: 12px 14px; border-radius: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: all 0.2s; }
         .theme-option:hover, .theme-option.selected { background: rgba(6,182,212,0.15); border-color: rgba(6,182,212,0.5); }
+        .live-debate-info { background: rgba(0,255,100,0.07); border: 1px solid rgba(0,255,100,0.3); border-radius: 12px; padding: 14px 18px; margin-bottom: 16px; }
+        .restriction-banner { background: rgba(239,68,68,0.15); border: 2px solid rgba(239,68,68,0.5); border-radius: 12px; padding: 20px; text-align: center; }
     </style>
 </head>
 <body class="bg-black text-white">
@@ -72,8 +81,31 @@ export const battlePage = (user: any) => `
             <div id="pvpSection">
                 <!-- Step 1: Lobby -->
                 <div id="pvpLobby" class="mode-card">
-                    <h2 class="text-xl font-bold text-cyan-300 mb-5"><i class="fas fa-search mr-2"></i>マッチング</h2>
-                    <p class="text-sm text-gray-400 mb-5">現在ライブ中のディベートテーマで対戦します。立場を選んでマッチング開始！</p>
+                    <h2 class="text-xl font-bold text-cyan-300 mb-4"><i class="fas fa-search mr-2"></i>マッチング</h2>
+
+                    <!-- ライブ中ディベート情報 -->
+                    <div id="pvpLiveDebate" class="live-debate-info" style="display:none">
+                        <div class="flex items-center gap-2 mb-2">
+                            <div class="pulse-dot"></div>
+                            <span class="text-green-300 font-bold text-sm">現在ライブ中のディベート</span>
+                        </div>
+                        <p id="pvpLiveTitle" class="text-white font-bold text-base mb-1"></p>
+                        <div class="grid grid-cols-2 gap-2 mt-2">
+                            <div class="bg-green-900/30 rounded-lg px-3 py-2 text-xs">
+                                <span class="text-green-400 font-bold">賛成:</span>
+                                <span id="pvpLiveAgree" class="text-gray-200 ml-1"></span>
+                            </div>
+                            <div class="bg-red-900/30 rounded-lg px-3 py-2 text-xs">
+                                <span class="text-red-400 font-bold">反対:</span>
+                                <span id="pvpLiveDisagree" class="text-gray-200 ml-1"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="pvpNoLive" class="text-sm text-yellow-400 mb-4 bg-yellow-900/20 border border-yellow-500/30 rounded-lg px-4 py-3" style="display:none">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>現在ライブ中のディベートがありません。テーマなしで対戦可能です。
+                    </div>
+
+                    <p class="text-sm text-gray-400 mb-4">立場を選んでマッチング開始！</p>
                     <div class="flex gap-4 mb-5">
                         <button class="stance-btn stance-agree" id="pvpAgreeBtn" onclick="selectPvpStance('agree')">
                             <i class="fas fa-thumbs-up mr-2"></i>賛成
@@ -82,7 +114,7 @@ export const battlePage = (user: any) => `
                             <i class="fas fa-thumbs-down mr-2"></i>反対
                         </button>
                     </div>
-                    <button id="pvpJoinBtn" class="w-full py-3 rounded-xl font-bold text-base bg-cyan-500/20 border-2 border-cyan-500/50 text-cyan-300 hover:bg-cyan-500/35 transition-all" onclick="joinPvpQueue()" disabled>
+                    <button id="pvpJoinBtn" class="w-full py-3 rounded-xl font-bold text-base bg-cyan-500/20 border-2 border-cyan-500/50 text-cyan-300 hover:bg-cyan-500/35 transition-all disabled:opacity-50 disabled:cursor-not-allowed" onclick="joinPvpQueue()" disabled>
                         <i class="fas fa-play mr-2"></i>マッチング開始
                     </button>
                 </div>
@@ -91,7 +123,8 @@ export const battlePage = (user: any) => `
                 <div id="pvpWaiting" class="mode-card text-center" style="display:none">
                     <div class="flex justify-center mb-4"><div class="waiting-spinner"></div></div>
                     <p class="text-cyan-300 font-bold text-lg mb-2">対戦相手を探しています...</p>
-                    <p class="text-gray-400 text-sm mb-5">しばらくお待ちください</p>
+                    <p class="text-gray-400 text-sm mb-1">マッチング中</p>
+                    <p id="pvpWaitingTime" class="text-gray-500 text-xs mb-5"></p>
                     <button onclick="leavePvpQueue()" class="px-6 py-2 rounded-xl bg-red-500/20 border border-red-500/50 text-red-300 font-bold text-sm hover:bg-red-500/35 transition-all">
                         <i class="fas fa-times mr-1"></i>キャンセル
                     </button>
@@ -101,8 +134,18 @@ export const battlePage = (user: any) => `
                 <div id="pvpRoom" style="display:none">
                     <div class="mode-card mb-4">
                         <div class="flex items-center justify-between mb-3">
-                            <div id="pvpRoomTheme" class="text-sm font-bold text-cyan-300"></div>
-                            <div id="pvpTurnIndicator" class="text-xs text-gray-400"></div>
+                            <div id="pvpRoomTheme" class="text-sm font-bold text-cyan-300 flex-1"></div>
+                            <div id="pvpTimer" class="text-xs font-mono text-yellow-300 ml-3"></div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 mb-3 text-xs">
+                            <div class="bg-green-900/30 rounded-lg px-3 py-2">
+                                <span class="text-green-400 font-bold">賛成:</span>
+                                <span id="pvpRoomAgree" class="text-gray-200 ml-1"></span>
+                            </div>
+                            <div class="bg-red-900/30 rounded-lg px-3 py-2">
+                                <span class="text-red-400 font-bold">反対:</span>
+                                <span id="pvpRoomDisagree" class="text-gray-200 ml-1"></span>
+                            </div>
                         </div>
                         <div class="flex items-center gap-3 mb-3 text-xs text-gray-400">
                             <span id="pvpPlayerA" class="text-green-300 font-bold"></span>
@@ -112,12 +155,9 @@ export const battlePage = (user: any) => `
                         <div id="chatLog" class="mb-4 space-y-3 p-3 bg-black/30 rounded-xl border border-white/10"></div>
                         <div id="pvpInputArea" class="flex gap-3">
                             <textarea id="pvpInput" class="flex-1 bg-white/5 border border-white/20 rounded-xl px-3 py-2 text-sm text-white resize-none focus:outline-none focus:border-cyan-500/60" rows="2" placeholder="メッセージを入力... (最大300字)" maxlength="300" onkeydown="pvpEnterSend(event)"></textarea>
-                            <button onclick="sendPvpMessage()" class="px-4 py-2 rounded-xl bg-cyan-500/20 border border-cyan-500/50 text-cyan-300 font-bold text-sm hover:bg-cyan-500/35 transition-all">
+                            <button onclick="sendPvpMessage()" class="px-4 py-2 rounded-xl bg-cyan-500/20 border border-cyan-500/50 text-cyan-300 font-bold text-sm hover:bg-cyan-500/35 transition-all self-end">
                                 <i class="fas fa-paper-plane"></i>
                             </button>
-                        </div>
-                        <div id="pvpWaitOpponent" class="text-center text-gray-400 text-sm py-3" style="display:none">
-                            <i class="fas fa-clock mr-1"></i>相手の返答を待っています...
                         </div>
                         <div class="flex gap-3 mt-3">
                             <button onclick="endPvpBattle()" class="flex-1 py-2 rounded-xl bg-red-500/20 border border-red-500/40 text-red-300 font-bold text-sm hover:bg-red-500/35 transition-all">
@@ -191,7 +231,8 @@ export const battlePage = (user: any) => `
                         </div>
                     </div>
 
-                    <button id="aiStartBtn" onclick="startAiBattle()" class="w-full py-3 rounded-xl font-bold bg-cyan-500/20 border-2 border-cyan-500/50 text-cyan-300 hover:bg-cyan-500/35 transition-all" disabled>
+                    <div class="text-xs text-gray-500 mb-3"><i class="fas fa-info-circle mr-1"></i>AI対戦は50クレジット消費します（現在: ${userCredits}cr）</div>
+                    <button id="aiStartBtn" onclick="startAiBattle()" class="w-full py-3 rounded-xl font-bold bg-cyan-500/20 border-2 border-cyan-500/50 text-cyan-300 hover:bg-cyan-500/35 transition-all disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                         <i class="fas fa-play mr-2"></i>AI対戦開始（50クレジット）
                     </button>
                 </div>
@@ -201,7 +242,17 @@ export const battlePage = (user: any) => `
                     <div class="mode-card mb-4">
                         <div class="flex items-center justify-between mb-3">
                             <div id="aiRoomTheme" class="text-sm font-bold text-cyan-300 flex-1"></div>
-                            <div id="aiTurnCount" class="text-xs text-gray-400"></div>
+                            <div id="aiTurnCount" class="text-xs text-gray-400 ml-3"></div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 mb-3 text-xs">
+                            <div class="bg-green-900/30 rounded-lg px-3 py-2">
+                                <span class="text-green-400 font-bold">賛成:</span>
+                                <span id="aiRoomAgree" class="text-gray-200 ml-1"></span>
+                            </div>
+                            <div class="bg-red-900/30 rounded-lg px-3 py-2">
+                                <span class="text-red-400 font-bold">反対:</span>
+                                <span id="aiRoomDisagree" class="text-gray-200 ml-1"></span>
+                            </div>
                         </div>
                         <div class="flex items-center gap-3 mb-3 text-xs">
                             <span id="aiHumanLabel" class="text-green-300 font-bold"></span>
@@ -211,7 +262,7 @@ export const battlePage = (user: any) => `
                         <div id="aiChatLog" class="mb-4 space-y-3 p-3 bg-black/30 rounded-xl border border-white/10 h-96 overflow-y-auto"></div>
                         <div id="aiInputArea" class="flex gap-3">
                             <textarea id="aiInput" class="flex-1 bg-white/5 border border-white/20 rounded-xl px-3 py-2 text-sm text-white resize-none focus:outline-none focus:border-cyan-500/60" rows="2" placeholder="あなたの主張を入力... (最大300字)" maxlength="300" onkeydown="aiEnterSend(event)"></textarea>
-                            <button onclick="sendAiMessage()" class="px-4 py-2 rounded-xl bg-cyan-500/20 border border-cyan-500/50 text-cyan-300 font-bold text-sm hover:bg-cyan-500/35 transition-all">
+                            <button onclick="sendAiMessage()" class="px-4 py-2 rounded-xl bg-cyan-500/20 border border-cyan-500/50 text-cyan-300 font-bold text-sm hover:bg-cyan-500/35 transition-all self-end">
                                 <i class="fas fa-paper-plane"></i>
                             </button>
                         </div>
@@ -240,10 +291,14 @@ export const battlePage = (user: any) => `
     <div id="toast" style="position:fixed;bottom:20px;right:20px;z-index:9999;display:none;" class="px-5 py-3 rounded-xl text-sm font-bold shadow-lg"></div>
 
     <script>
-    const CURRENT_USER = ${JSON.stringify(user?.user_id || '')};
+    // ─── 安全な定数定義（SyntaxError防止） ───
+    const CURRENT_USER = ${safeUserId};
+    const CURRENT_USERNAME = ${safeUsername};
 
     // ─── Common ───
     let currentMode = 'pvp';
+    let liveDebateData = null;
+
     function switchMode(mode) {
         currentMode = mode;
         document.getElementById('pvpSection').style.display = mode === 'pvp' ? 'block' : 'none';
@@ -252,15 +307,40 @@ export const battlePage = (user: any) => `
         if (mode === 'ai') loadAiThemes();
     }
 
-    function showToast(msg, type='success') {
+    function showToast(msg, type) {
         const el = document.getElementById('toast');
         el.textContent = msg;
-        el.className = 'px-5 py-3 rounded-xl text-sm font-bold shadow-lg ' + (type === 'success' ? 'bg-green-700 text-white' : 'bg-red-700 text-white');
+        el.className = 'px-5 py-3 rounded-xl text-sm font-bold shadow-lg ' + (type === 'success' ? 'bg-green-700 text-white' : type === 'warning' ? 'bg-yellow-700 text-white' : 'bg-red-700 text-white');
         el.style.display = 'block';
-        setTimeout(() => { el.style.display = 'none'; }, 3000);
+        setTimeout(function() { el.style.display = 'none'; }, 3500);
     }
 
     function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+    // ─── ライブディベート取得 ───
+    async function fetchLiveDebate() {
+        try {
+            const r = await fetch('/api/debates/live');
+            if (!r.ok) return null;
+            const d = await r.json();
+            return d.debate || null;
+        } catch(e) { return null; }
+    }
+
+    async function initPvpLobby() {
+        const debate = await fetchLiveDebate();
+        liveDebateData = debate;
+        if (debate && debate.title) {
+            document.getElementById('pvpLiveTitle').textContent = debate.title;
+            document.getElementById('pvpLiveAgree').textContent = debate.agree_position || '';
+            document.getElementById('pvpLiveDisagree').textContent = debate.disagree_position || '';
+            document.getElementById('pvpLiveDebate').style.display = 'block';
+            document.getElementById('pvpNoLive').style.display = 'none';
+        } else {
+            document.getElementById('pvpLiveDebate').style.display = 'none';
+            document.getElementById('pvpNoLive').style.display = 'block';
+        }
+    }
 
     // ─── PvP ───
     let pvpStance = null;
@@ -268,6 +348,8 @@ export const battlePage = (user: any) => `
     let pvpYourStance = null;
     let pvpMessages = [];
     let pvpPollInterval = null;
+    let pvpWaitingSeconds = 0;
+    let pvpWaitTimer = null;
 
     function selectPvpStance(s) {
         pvpStance = s;
@@ -279,21 +361,35 @@ export const battlePage = (user: any) => `
     async function joinPvpQueue() {
         if (!pvpStance) return;
         try {
-            const r = await fetch('/api/battle/queue/join', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({mode:'pvp', stance: pvpStance}) });
+            const r = await fetch('/api/battle/queue/join', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({mode: 'pvp', stance: pvpStance})
+            });
             const d = await r.json();
-            if (d.success || !d.error) {
-                document.getElementById('pvpLobby').style.display = 'none';
-                document.getElementById('pvpWaiting').style.display = 'block';
-                pvpPollInterval = setInterval(pollPvpQueue, 2000);
-            } else { showToast('エラー: ' + d.error, 'error'); }
-        } catch(e) { showToast('通信エラー', 'error'); }
+            if (d.error) {
+                showToast(d.error, 'error');
+                return;
+            }
+            document.getElementById('pvpLobby').style.display = 'none';
+            document.getElementById('pvpWaiting').style.display = 'block';
+            pvpWaitingSeconds = 0;
+            pvpWaitTimer = setInterval(function() {
+                pvpWaitingSeconds++;
+                const el = document.getElementById('pvpWaitingTime');
+                if (el) el.textContent = '待機時間: ' + pvpWaitingSeconds + '秒';
+            }, 1000);
+            pvpPollInterval = setInterval(pollPvpQueue, 2000);
+        } catch(e) { showToast('通信エラーが発生しました', 'error'); }
     }
 
     async function leavePvpQueue() {
         clearInterval(pvpPollInterval);
-        await fetch('/api/battle/queue/leave', { method:'DELETE' });
+        clearInterval(pvpWaitTimer);
+        await fetch('/api/battle/queue/leave', {method: 'DELETE'});
         document.getElementById('pvpWaiting').style.display = 'none';
         document.getElementById('pvpLobby').style.display = 'block';
+        pvpWaitingSeconds = 0;
     }
 
     async function pollPvpQueue() {
@@ -302,11 +398,12 @@ export const battlePage = (user: any) => `
             const d = await r.json();
             if (d.status === 'matched') {
                 clearInterval(pvpPollInterval);
+                clearInterval(pvpWaitTimer);
                 pvpRoomId = d.room_id;
                 pvpYourStance = d.your_stance;
                 document.getElementById('pvpWaiting').style.display = 'none';
                 document.getElementById('pvpRoom').style.display = 'block';
-                showToast('マッチング成立！対戦相手: ' + (d.opponent || '?'), 'success');
+                showToast('マッチング成立！対戦相手: ' + escHtml(d.opponent || '?'), 'success');
                 await loadPvpRoom();
                 pvpPollInterval = setInterval(loadPvpRoom, 3000);
             }
@@ -319,19 +416,23 @@ export const battlePage = (user: any) => `
             const r = await fetch('/api/battle/room/' + pvpRoomId);
             const d = await r.json();
             if (d.error) return;
-            document.getElementById('pvpRoomTheme').textContent = d.debate?.title || 'テーマ未設定';
+            const roomDebateTitle = (d.debate && d.debate.title) ? d.debate.title : (liveDebateData ? liveDebateData.title : 'テーマなし');
+            document.getElementById('pvpRoomTheme').textContent = roomDebateTitle;
+            if (d.debate) {
+                const agreeEl = document.getElementById('pvpRoomAgree');
+                const disagreeEl = document.getElementById('pvpRoomDisagree');
+                if (agreeEl) agreeEl.textContent = d.debate.agree_position || '';
+                if (disagreeEl) disagreeEl.textContent = d.debate.disagree_position || '';
+            }
             const stance = pvpYourStance || d.your_stance;
             pvpYourStance = stance;
-            const meLabel = stance === 'agree' ? '賛成' : '反対';
-            document.getElementById('pvpPlayerA').textContent = d.player_a + '（賛成）';
-            document.getElementById('pvpPlayerB').textContent = (d.player_b || '待機中') + '（反対）';
-
+            document.getElementById('pvpPlayerA').textContent = escHtml(d.player_a) + '（賛成）';
+            document.getElementById('pvpPlayerB').textContent = escHtml(d.player_b || '待機中') + '（反対）';
             const msgs = d.messages || [];
             if (msgs.length !== pvpMessages.length) {
                 pvpMessages = msgs;
-                renderPvpChat(msgs, stance, d.debate);
+                renderPvpChat(msgs, stance);
             }
-
             if (d.status === 'ended') {
                 clearInterval(pvpPollInterval);
                 showPvpResult(d.winner, stance);
@@ -339,19 +440,21 @@ export const battlePage = (user: any) => `
         } catch(e) {}
     }
 
-    function renderPvpChat(msgs, myStance, debate) {
+    function renderPvpChat(msgs, myStance) {
         const log = document.getElementById('chatLog');
-        log.innerHTML = msgs.length === 0
-            ? '<div class="text-center text-gray-500 text-sm py-8">まだメッセージはありません。最初の一手を打ちましょう！</div>'
-            : msgs.map(m => {
-                const isMe = m.user_id === CURRENT_USER;
-                const stanceLabel = m.stance === 'agree' ? '<span class="text-green-400">賛成</span>' : '<span class="text-red-400">反対</span>';
-                const cls = m.stance === 'agree' ? 'chat-bubble-agree' : 'chat-bubble-disagree';
-                return \`<div class="\${cls}">
-                    <div class="text-xs text-gray-400 mb-1">\${escHtml(m.username)} [\${stanceLabel}] \${isMe ? '(あなた)' : ''}</div>
-                    <p class="text-sm text-white">\${escHtml(m.content)}</p>
-                </div>\`;
-            }).join('');
+        if (msgs.length === 0) {
+            log.innerHTML = '<div class="text-center text-gray-500 text-sm py-8">まだメッセージはありません。最初の一手を打ちましょう！</div>';
+            return;
+        }
+        log.innerHTML = msgs.map(function(m) {
+            var isMe = m.user_id === CURRENT_USER;
+            var stanceLabel = m.stance === 'agree' ? '<span class="text-green-400">賛成</span>' : '<span class="text-red-400">反対</span>';
+            var cls = m.stance === 'agree' ? 'chat-bubble-agree' : 'chat-bubble-disagree';
+            return '<div class="' + cls + '">' +
+                '<div class="text-xs text-gray-400 mb-1">' + escHtml(m.username || m.user_id) + ' [' + stanceLabel + '] ' + (isMe ? '<span class="text-cyan-400">(あなた)</span>' : '') + '</div>' +
+                '<p class="text-sm text-white">' + escHtml(m.content) + '</p>' +
+                '</div>';
+        }).join('');
         log.scrollTop = log.scrollHeight;
     }
 
@@ -362,7 +465,9 @@ export const battlePage = (user: any) => `
         input.value = '';
         try {
             const r = await fetch('/api/battle/room/' + pvpRoomId + '/message', {
-                method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ content })
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({content: content})
             });
             const d = await r.json();
             if (!d.success) showToast('送信失敗: ' + (d.error||''), 'error');
@@ -370,15 +475,20 @@ export const battlePage = (user: any) => `
         } catch(e) { showToast('通信エラー', 'error'); }
     }
 
-    function pvpEnterSend(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendPvpMessage(); } }
+    function pvpEnterSend(e) {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendPvpMessage(); }
+    }
 
     async function endPvpBattle() {
         if (!confirm('降参しますか？')) return;
         clearInterval(pvpPollInterval);
-        await fetch('/api/battle/room/' + pvpRoomId + '/end', {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ winner: pvpYourStance === 'agree' ? 'disagree' : 'agree' })
-        });
+        try {
+            await fetch('/api/battle/room/' + pvpRoomId + '/end', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({winner: pvpYourStance === 'agree' ? 'disagree' : 'agree'})
+            });
+        } catch(e) {}
         showPvpResult(pvpYourStance === 'agree' ? 'disagree' : 'agree', pvpYourStance);
     }
 
@@ -387,13 +497,14 @@ export const battlePage = (user: any) => `
         document.getElementById('pvpResultCard').style.display = 'block';
         const won = winner === myStance;
         document.getElementById('pvpResultText').innerHTML = won
-            ? '<span class="text-yellow-400 font-black text-2xl">🏆 あなたの勝利！</span>'
-            : '<span class="text-gray-400">敗北... 次は頑張ろう</span>';
+            ? '<span class="text-yellow-400 font-black text-2xl">🏆 あなたの勝利！</span><p class="text-gray-400 text-sm mt-2">素晴らしいディベートでした！</p>'
+            : '<span class="text-gray-400 text-xl font-bold">敗北... 次は頑張ろう</span><p class="text-gray-500 text-sm mt-2">練習して再挑戦しよう</p>';
     }
 
     function resetPvp() {
         clearInterval(pvpPollInterval);
-        pvpRoomId = null; pvpYourStance = null; pvpStance = null; pvpMessages = [];
+        clearInterval(pvpWaitTimer);
+        pvpRoomId = null; pvpYourStance = null; pvpStance = null; pvpMessages = []; pvpWaitingSeconds = 0;
         document.getElementById('pvpRoom').style.display = 'none';
         document.getElementById('pvpResultCard').style.display = 'none';
         document.getElementById('pvpInputArea').style.display = 'flex';
@@ -401,6 +512,7 @@ export const battlePage = (user: any) => `
         document.getElementById('pvpDisagreeBtn').classList.remove('selected');
         document.getElementById('pvpJoinBtn').disabled = true;
         document.getElementById('pvpLobby').style.display = 'block';
+        initPvpLobby();
     }
 
     // ─── AI Battle ───
@@ -410,30 +522,61 @@ export const battlePage = (user: any) => `
     let aiHistory = [];
     let aiTurnCount = 0;
     const MAX_AI_TURNS = 10;
-    const DIFFICULTY_TEMPS = { easy: 0.5, normal: 0.75, hard: 1.0 };
 
     async function loadAiThemes() {
         try {
+            // まずライブディベートを優先表示
+            const liveDebate = await fetchLiveDebate();
             const r = await fetch('/api/dev/themes');
             const d = await r.json();
-            const themes = (d.themes || []).filter(t => t.status === 'active').slice(0, 8);
+            const themes = (d.themes || []).filter(function(t) { return t.status === 'active'; }).slice(0, 6);
             const el = document.getElementById('aiThemeList');
-            if (!themes.length) { el.innerHTML = '<div class="text-gray-500 text-sm text-center py-3">テーマが見つかりません</div>'; return; }
-            el.innerHTML = themes.map(t => \`
-                <div class="theme-option" onclick="selectAiTheme(this, \${JSON.stringify(escHtml(t.title))}, \${JSON.stringify(escHtml(t.agree_opinion||''))}, \${JSON.stringify(escHtml(t.disagree_opinion||''))})">
-                    <p class="text-sm font-bold text-white">\${escHtml(t.title)}</p>
-                    <p class="text-xs text-green-300 mt-1"><i class="fas fa-check mr-1"></i>\${escHtml(t.agree_opinion||'')}</p>
-                    <p class="text-xs text-red-300"><i class="fas fa-times mr-1"></i>\${escHtml(t.disagree_opinion||'')}</p>
-                </div>
-            \`).join('');
-        } catch(e) { document.getElementById('aiThemeList').innerHTML = '<div class="text-gray-500 text-sm">読み込み失敗</div>'; }
+            let html = '';
+            // ライブ中ディベートを最上部に表示
+            if (liveDebate && liveDebate.title) {
+                html += '<div class="theme-option selected" style="border-color:rgba(34,197,94,0.6);background:rgba(34,197,94,0.1);" onclick="selectAiThemeEl(this,' +
+                    JSON.stringify(JSON.stringify(liveDebate.title)) + ',' +
+                    JSON.stringify(JSON.stringify(liveDebate.agree_position||'')) + ',' +
+                    JSON.stringify(JSON.stringify(liveDebate.disagree_position||'')) +
+                    ')">' +
+                    '<div class="flex items-center gap-2 mb-1"><div class="pulse-dot"></div><span class="text-green-400 text-xs font-bold">ライブ中</span></div>' +
+                    '<p class="text-sm font-bold text-white">' + escHtml(liveDebate.title) + '</p>' +
+                    '<p class="text-xs text-green-300 mt-1"><i class="fas fa-check mr-1"></i>' + escHtml(liveDebate.agree_position||'') + '</p>' +
+                    '<p class="text-xs text-red-300"><i class="fas fa-times mr-1"></i>' + escHtml(liveDebate.disagree_position||'') + '</p>' +
+                    '</div>';
+                // デフォルトでライブディベートを選択
+                aiTheme = { title: liveDebate.title, agree_opinion: liveDebate.agree_position||'', disagree_opinion: liveDebate.disagree_position||'' };
+            }
+            if (themes.length > 0) {
+                html += themes.map(function(t) {
+                    return '<div class="theme-option" onclick="selectAiThemeEl(this,' +
+                        JSON.stringify(JSON.stringify(t.title)) + ',' +
+                        JSON.stringify(JSON.stringify(t.agree_opinion||'')) + ',' +
+                        JSON.stringify(JSON.stringify(t.disagree_opinion||'')) +
+                        ')">' +
+                        '<p class="text-sm font-bold text-white">' + escHtml(t.title) + '</p>' +
+                        '<p class="text-xs text-green-300 mt-1"><i class="fas fa-check mr-1"></i>' + escHtml(t.agree_opinion||'') + '</p>' +
+                        '<p class="text-xs text-red-300"><i class="fas fa-times mr-1"></i>' + escHtml(t.disagree_opinion||'') + '</p>' +
+                        '</div>';
+                }).join('');
+            }
+            if (!html) html = '<div class="text-gray-500 text-sm text-center py-3">テーマが見つかりません</div>';
+            el.innerHTML = html;
+            updateAiStartBtn();
+        } catch(e) {
+            document.getElementById('aiThemeList').innerHTML = '<div class="text-gray-500 text-sm text-center">読み込み失敗</div>';
+        }
     }
 
-    function selectAiTheme(el, title, agree, disagree) {
-        document.querySelectorAll('#aiThemeList .theme-option').forEach(e => e.classList.remove('selected'));
+    function selectAiThemeEl(el, titleJson, agreeJson, disagreeJson) {
+        document.querySelectorAll('#aiThemeList .theme-option').forEach(function(e) { e.classList.remove('selected'); });
         document.getElementById('customThemeOption').classList.remove('selected');
         el.classList.add('selected');
-        aiTheme = { title, agree_opinion: agree, disagree_opinion: disagree };
+        try {
+            aiTheme = { title: JSON.parse(titleJson), agree_opinion: JSON.parse(agreeJson), disagree_opinion: JSON.parse(disagreeJson) };
+        } catch(e) {
+            aiTheme = { title: titleJson, agree_opinion: agreeJson, disagree_opinion: disagreeJson };
+        }
         document.getElementById('customThemeInputs').style.display = 'none';
         updateAiStartBtn();
     }
@@ -442,7 +585,7 @@ export const battlePage = (user: any) => `
         const inp = document.getElementById('customThemeInputs');
         const showing = inp.style.display !== 'none';
         inp.style.display = showing ? 'none' : 'block';
-        document.querySelectorAll('#aiThemeList .theme-option').forEach(e => e.classList.remove('selected'));
+        document.querySelectorAll('#aiThemeList .theme-option').forEach(function(e) { e.classList.remove('selected'); });
         document.getElementById('customThemeOption').classList.toggle('selected', !showing);
         if (showing) { aiTheme = null; updateAiStartBtn(); }
     }
@@ -456,7 +599,10 @@ export const battlePage = (user: any) => `
 
     function selectDifficulty(d) {
         aiDifficulty = d;
-        ['easy','normal','hard'].forEach(x => document.getElementById('diff' + x.charAt(0).toUpperCase() + x.slice(1)).classList.toggle('selected', x === d));
+        ['easy','normal','hard'].forEach(function(x) {
+            var id = 'diff' + x.charAt(0).toUpperCase() + x.slice(1);
+            document.getElementById(id).classList.toggle('selected', x === d);
+        });
     }
 
     function updateAiStartBtn() {
@@ -465,12 +611,11 @@ export const battlePage = (user: any) => `
     }
 
     async function startAiBattle() {
-        // Handle custom theme
         const customShowing = document.getElementById('customThemeInputs').style.display !== 'none';
         if (customShowing) {
-            const t = document.getElementById('aiCustomTheme').value.trim();
-            const a = document.getElementById('aiCustomAgree').value.trim();
-            const b = document.getElementById('aiCustomDisagree').value.trim();
+            var t = document.getElementById('aiCustomTheme').value.trim();
+            var a = document.getElementById('aiCustomAgree').value.trim();
+            var b = document.getElementById('aiCustomDisagree').value.trim();
             if (!t) { showToast('テーマを入力してください', 'error'); return; }
             aiTheme = { title: t, agree_opinion: a || '賛成の立場', disagree_opinion: b || '反対の立場' };
         }
@@ -481,9 +626,13 @@ export const battlePage = (user: any) => `
         document.getElementById('aiSetup').style.display = 'none';
         document.getElementById('aiBattleRoom').style.display = 'block';
         document.getElementById('aiRoomTheme').textContent = aiTheme.title;
-        const myStanceLabel = aiStance === 'agree' ? '賛成（' + (aiTheme.agree_opinion||'賛成') + '）' : '反対（' + (aiTheme.disagree_opinion||'反対') + '）';
-        document.getElementById('aiHumanLabel').textContent = 'あなた ' + myStanceLabel;
-        document.getElementById('aiChatLog').innerHTML = '<div class="text-center text-gray-500 text-sm py-4">ディベートを開始！あなたの主張を入力してください。</div>';
+        const agreeEl = document.getElementById('aiRoomAgree');
+        const disagreeEl = document.getElementById('aiRoomDisagree');
+        if (agreeEl) agreeEl.textContent = aiTheme.agree_opinion || '';
+        if (disagreeEl) disagreeEl.textContent = aiTheme.disagree_opinion || '';
+        var stanceLabel = aiStance === 'agree' ? '賛成' : '反対';
+        document.getElementById('aiHumanLabel').textContent = 'あなた（' + stanceLabel + '）';
+        document.getElementById('aiChatLog').innerHTML = '<div class="text-center text-gray-500 text-sm py-4"><i class="fas fa-play-circle mr-2"></i>ディベート開始！あなたの主張を入力してください。</div>';
         updateAiTurnCount();
     }
 
@@ -498,8 +647,8 @@ export const battlePage = (user: any) => `
         input.value = '';
         input.disabled = true;
 
-        const aiStanceStr = aiStance === 'agree' ? 'disagree' : 'agree';
-        aiHistory.push({ content, is_ai: false, stance: aiStance, username: 'あなた' });
+        var aiStanceStr = aiStance === 'agree' ? 'disagree' : 'agree';
+        aiHistory.push({content: content, is_ai: false, stance: aiStance, username: CURRENT_USERNAME || 'あなた'});
         aiTurnCount++;
         renderAiChat();
         updateAiTurnCount();
@@ -508,10 +657,13 @@ export const battlePage = (user: any) => `
 
         document.getElementById('aiThinking').style.display = 'block';
         try {
-            const r = await fetch('/api/battle/ai/message', {
-                method:'POST', headers:{'Content-Type':'application/json'},
+            var r = await fetch('/api/battle/ai/message', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
                     theme: aiTheme.title,
+                    agree_opinion: aiTheme.agree_opinion,
+                    disagree_opinion: aiTheme.disagree_opinion,
                     ai_stance: aiStanceStr,
                     human_stance: aiStance,
                     difficulty: aiDifficulty,
@@ -519,32 +671,35 @@ export const battlePage = (user: any) => `
                     human_message: content
                 })
             });
-            const d = await r.json();
+            var d = await r.json();
             document.getElementById('aiThinking').style.display = 'none';
             if (d.error) { showToast('AI エラー: ' + d.error, 'error'); input.disabled = false; return; }
-            aiHistory.push({ content: d.message, is_ai: true, stance: aiStanceStr, username: 'AI' });
+            aiHistory.push({content: d.message, is_ai: true, stance: aiStanceStr, username: 'AI'});
             aiTurnCount++;
             updateAiTurnCount();
             renderAiChat();
             if (aiTurnCount >= MAX_AI_TURNS) { endAiBattle('max_turns'); }
         } catch(e) {
             document.getElementById('aiThinking').style.display = 'none';
-            showToast('通信エラー', 'error');
+            showToast('通信エラーが発生しました', 'error');
         }
         input.disabled = false;
     }
 
-    function aiEnterSend(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAiMessage(); } }
+    function aiEnterSend(e) {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAiMessage(); }
+    }
 
     function renderAiChat() {
         const log = document.getElementById('aiChatLog');
-        log.innerHTML = aiHistory.map(m => {
-            const cls = m.is_ai ? 'chat-bubble-ai' : (m.stance === 'agree' ? 'chat-bubble-agree' : 'chat-bubble-disagree');
-            const stanceLabel = m.stance === 'agree' ? '<span class="text-green-400">賛成</span>' : '<span class="text-red-400">反対</span>';
-            return \`<div class="\${cls}">
-                <div class="text-xs text-gray-400 mb-1">\${m.is_ai ? '<i class="fas fa-robot mr-1"></i>AI' : 'あなた'} [\${stanceLabel}]</div>
-                <p class="text-sm text-white">\${escHtml(m.content)}</p>
-            </div>\`;
+        log.innerHTML = aiHistory.map(function(m) {
+            var cls = m.is_ai ? 'chat-bubble-ai' : (m.stance === 'agree' ? 'chat-bubble-agree' : 'chat-bubble-disagree');
+            var stanceLabel = m.stance === 'agree' ? '<span class="text-green-400">賛成</span>' : '<span class="text-red-400">反対</span>';
+            var nameLabel = m.is_ai ? '<i class="fas fa-robot mr-1"></i>AI' : escHtml(m.username || 'あなた');
+            return '<div class="' + cls + '">' +
+                '<div class="text-xs text-gray-400 mb-1">' + nameLabel + ' [' + stanceLabel + ']</div>' +
+                '<p class="text-sm text-white">' + escHtml(m.content) + '</p>' +
+                '</div>';
         }).join('');
         log.scrollTop = log.scrollHeight;
     }
@@ -553,13 +708,13 @@ export const battlePage = (user: any) => `
         document.getElementById('aiInputArea').style.display = 'none';
         document.getElementById('aiThinking').style.display = 'none';
         document.getElementById('aiResultCard').style.display = 'block';
-        let resultHtml = '';
+        var resultHtml = '';
         if (reason === 'human_surrender') {
-            resultHtml = '<span class="text-red-400 font-bold">降参 — AIの勝利</span><p class="text-gray-400 text-sm mt-2">次は頑張ろう！</p>';
+            resultHtml = '<span class="text-red-400 font-bold text-xl">🏴 降参 — AIの勝利</span><p class="text-gray-400 text-sm mt-2">次は頑張ろう！</p>';
         } else if (reason === 'max_turns') {
-            resultHtml = '<span class="text-yellow-400 font-bold">⏱ 制限ターン到達！</span><p class="text-gray-400 text-sm mt-2">引き分けです。観客の投票で勝敗が決まります。</p>';
+            resultHtml = '<span class="text-yellow-400 font-bold text-xl">⏱ ' + MAX_AI_TURNS + 'ターン終了！</span><p class="text-gray-400 text-sm mt-2">引き分けです。素晴らしいディベートでした！</p>';
         } else {
-            resultHtml = '<span class="text-gray-300">対戦終了</span>';
+            resultHtml = '<span class="text-gray-300 text-xl">対戦終了</span>';
         }
         document.getElementById('aiResultText').innerHTML = resultHtml;
     }
@@ -575,7 +730,13 @@ export const battlePage = (user: any) => `
         document.getElementById('aiStartBtn').disabled = true;
         loadAiThemes();
     }
+
+    // ─── 初期化 ───
+    document.addEventListener('DOMContentLoaded', function() {
+        initPvpLobby();
+    });
     </script>
 </body>
 </html>
 `;
+};

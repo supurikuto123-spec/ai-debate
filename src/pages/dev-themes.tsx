@@ -130,6 +130,19 @@ export const devThemesPage = (user: any) => `
                                 <input type="datetime-local" id="schedDateTime" class="dev-input">
                             </div>
                         </div>
+                        <div>
+                            <label class="text-xs text-gray-400 mb-1 block"><i class="fas fa-clock mr-1"></i>ディベート時間（分）</label>
+                            <div class="flex gap-2 items-center">
+                                <input type="number" id="schedDuration" class="dev-input" value="5" min="1" max="120" style="width:100px;">
+                                <span class="text-gray-400 text-sm">分（デフォルト: 5分）</span>
+                                <div class="flex gap-1 ml-2">
+                                    <button class="dev-btn btn-cyan px-2 py-1 text-xs" onclick="document.getElementById('schedDuration').value=3">3分</button>
+                                    <button class="dev-btn btn-cyan px-2 py-1 text-xs" onclick="document.getElementById('schedDuration').value=5">5分</button>
+                                    <button class="dev-btn btn-cyan px-2 py-1 text-xs" onclick="document.getElementById('schedDuration').value=10">10分</button>
+                                    <button class="dev-btn btn-cyan px-2 py-1 text-xs" onclick="document.getElementById('schedDuration').value=30">30分</button>
+                                </div>
+                            </div>
+                        </div>
                         <button class="dev-btn btn-cyan w-full" onclick="scheduleDebate()">
                             <i class="fas fa-rocket mr-1"></i>スケジュール登録
                         </button>
@@ -228,6 +241,7 @@ export const devThemesPage = (user: any) => `
                     <p class="text-sm font-bold text-white truncate">\${escHtml(d.title||d.topic||'')}</p>
                     <p class="text-xs text-green-300"><i class="fas fa-check mr-1"></i>\${escHtml(d.agree_position||'')}</p>
                     <p class="text-xs text-red-300"><i class="fas fa-times mr-1"></i>\${escHtml(d.disagree_position||'')}</p>
+                    \${d.duration_seconds ? \`<p class="text-xs text-yellow-400 mt-1"><i class="fas fa-hourglass mr-1"></i>\${Math.round(d.duration_seconds/60)}分</p>\` : ''}
                 </div>
                 <div class="flex flex-col gap-2 shrink-0">
                     \${d.status !== 'live' ? \`<button class="dev-btn btn-green px-3 py-1 text-xs" onclick="setDebateStatus('\${d.id}','live')"><i class="fas fa-play mr-1"></i>開始</button>\` : ''}
@@ -320,8 +334,9 @@ export const devThemesPage = (user: any) => `
 
         if (!title) { showToast('タイトルを入力またはテーマを選択してください', 'error'); return; }
         const start_at = mode === 'schedule' && dt ? new Date(dt).toISOString().replace('T',' ').substring(0,19) : 'now';
+        const duration_minutes = parseInt(document.getElementById('schedDuration').value) || 5;
 
-        const payload = { theme_id: themeId || null, title, agree_opinion: agree, disagree_opinion: disagree, start_at };
+        const payload = { theme_id: themeId || null, title, agree_opinion: agree, disagree_opinion: disagree, start_at, duration_minutes };
         const r = await fetch('/api/dev/debates/schedule', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
         const d = await r.json();
         if (d.success) {
