@@ -43,7 +43,7 @@ let lastMessageCount = 0;
 let lastCommentCount = 0;
 
 // Current AI model name (fetched from API)
-let AI_MODEL_DISPLAY = 'gpt-4.1-nano';
+let AI_MODEL_DISPLAY = 'gpt-5.1';
 
 // ===== Load debate theme from DB =====
 async function loadDebateTheme() {
@@ -87,7 +87,7 @@ async function loadModelInfo() {
         if (!response.ok) return;
         const data = await response.json();
         if (data.success) {
-            AI_MODEL_DISPLAY = data.display_name || data.model || 'gpt-4.1-nano';
+            AI_MODEL_DISPLAY = data.display_name || data.model || 'gpt-5.1';
             const modelLabelA = document.getElementById('modelLabelA');
             const modelLabelB = document.getElementById('modelLabelB');
             const modelInfo = document.getElementById('debateModelInfo');
@@ -434,11 +434,11 @@ async function performAIJudging() {
             '[' + (msg.side === 'agree' ? 'A' : 'B') + ']: ' + msg.content
         ).join('\n');
 
-        // 審判AI: gpt-4.1-nano シングル1体（コスト削減 + 安定性向上）
+        // 審判AI: gpt-5.1 シングル1体（コスト削減 + 安定性向上）
         const judgment = await getAIJudgment(fullDebate, 0.1);
 
         if (judgment && judgment.winner) {
-            // シングル審判（gpt-4.1-nano x1）
+            // シングル審判（gpt-5.1 x1）
             aiJudgeStances['judge1'] = judgment.winner;
         }
 
@@ -919,7 +919,7 @@ async function generateAIResponse(side) {
                 side: side
             });
 
-            const actualModel = data.model || 'gpt-4.1-nano';
+            const actualModel = data.model || 'gpt-5.1';
             await addDebateMessageWithTyping(side, data.message, actualModel);
 
             setTimeout(() => {

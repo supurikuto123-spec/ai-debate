@@ -1747,8 +1747,8 @@ app.post('/api/user/privacy', async (c) => {
 app.get('/api/debate/model-info', async (c) => {
   return c.json({
     success: true,
-    model: 'gpt-4.1-nano',
-    display_name: 'GPT-4.1-nano'
+    model: 'gpt-5.1',
+    display_name: 'GPT-5.1'
   })
 })
 
@@ -1763,7 +1763,7 @@ app.get('/api/ai-profiles', async (c) => {
         icon: 'fas fa-brain',
         color: '#34d399',
         gradient: 'from-green-500 to-emerald-500',
-        model: 'gpt-4.1-nano',
+        model: 'gpt-5.1',
         trait: '論理的・データ重視',
         style: '構造的に根拠を積み上げる',
         description: '客観的データと論理的推論を重視し、体系的に議論を構築するAI。根拠の明確さと一貫性が特徴。'
@@ -1774,7 +1774,7 @@ app.get('/api/ai-profiles', async (c) => {
         icon: 'fas fa-fire',
         color: '#f87171',
         gradient: 'from-red-500 to-rose-500',
-        model: 'gpt-4.1-nano',
+        model: 'gpt-5.1',
         trait: '批判的・反証重視',
         style: '矛盾を鋭く突く',
         description: '相手の論点の弱点を鋭く指摘し、反証を提示するAI。批判的思考と反論力が特徴。'
@@ -1879,7 +1879,7 @@ app.get('/api/archive/watched', async (c) => {
     // Get all debates the user has purchased/watched from archive_views
     const watched = await c.env.DB.prepare(`
       SELECT av.debate_id, av.created_at as watched_at,
-             ad.theme, ad.opinion_a, ad.opinion_b, ad.agree_votes, ad.disagree_votes, ad.winner, ad.id as archive_id
+             ad.topic AS theme, ad.agree_position AS opinion_a, ad.disagree_position AS opinion_b, ad.agree_votes, ad.disagree_votes, ad.winner, ad.id as archive_id
       FROM archive_views av
       LEFT JOIN archived_debates ad ON av.debate_id = ad.debate_id
       WHERE av.user_id = ?
@@ -2243,11 +2243,11 @@ app.post('/api/debate/generate', async (c) => {
       })
     }
 
-    // モデル優先順位: 環境変数 > gpt-4.1-nano (gpt-5.1はAPIキーによりアクセス不可の場合あり)
-    const GENERATE_MODELS = ['gpt-4.1-nano', 'gpt-4.1-mini']
+    // GPT-5.1を使用 (max_completion_tokensを使用すること)
+    const GENERATE_MODELS = ['gpt-5.1']
     let response: Response | null = null
     let lastError = ''
-    let usedModel = 'gpt-4.1-nano'
+    let usedModel = 'gpt-5.1'
 
     for (const modelId of GENERATE_MODELS) {
       try {
@@ -2260,7 +2260,7 @@ app.post('/api/debate/generate', async (c) => {
           body: JSON.stringify({
             model: modelId,
             messages: messages,
-            max_tokens: maxTokens || 340,
+            max_completion_tokens: maxTokens || 340,
             temperature: temperature || 0.7
           })
         })
@@ -2272,8 +2272,8 @@ app.post('/api/debate/generate', async (c) => {
         const errText = await res.text()
         console.error(`OpenAI API error (${modelId}):`, errText)
         lastError = errText
-        // model_not_found や 404 以外は即失敗
-        if (res.status !== 404 && res.status !== 400) break
+        // 失敗時は即終了（フォールバックなし）
+        break
       } catch (fetchErr) {
         console.error(`Fetch error (${modelId}):`, fetchErr)
         lastError = String(fetchErr)
@@ -2408,11 +2408,11 @@ OUTPUT: JSON only. {"winner":"agree"} or {"winner":"disagree"}
 No other text.`
 
     const systemContent = (mode === 'judge') ? SYSTEM_JUDGE : SYSTEM_SYMBOL
-    // judgeは再現性重視でmax_tokens=30、symbolは内部思考余裕でmax_tokens=60
+    // judgeは再現性重視でmax_completion_tokens=30、symbolは内部思考余裕でmax_completion_tokens=60
     const maxTok = (mode === 'judge') ? 30 : 60
 
-    // モデル優先順位: gpt-4.1-nano → gpt-4.1-mini (フォールバック)
-    const EVAL_MODELS = ['gpt-4.1-nano', 'gpt-4.1-mini']
+    // GPT-5.1を使用
+    const EVAL_MODELS = ['gpt-5.1']
     let evalResponse: Response | null = null
     let evalLastError = ''
 
@@ -2430,7 +2430,7 @@ No other text.`
               { role: 'system', content: systemContent },
               { role: 'user', content: prompt }
             ],
-            max_tokens: maxTok,
+            max_completion_tokens: maxTok,
             temperature: 0.1,
             response_format: { type: 'json_object' }
           })
@@ -2442,7 +2442,8 @@ No other text.`
         const errText = await res.text()
         console.error(`OpenAI API error (${modelId}):`, errText)
         evalLastError = errText
-        if (res.status !== 404 && res.status !== 400) break
+        // 失敗時は即終了
+        break
       } catch (fetchErr) {
         console.error(`Fetch error (${modelId}):`, fetchErr)
         evalLastError = String(fetchErr)
