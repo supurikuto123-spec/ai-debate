@@ -832,38 +832,61 @@ async function generateAIResponse(side) {
         '[' + (m.side === 'agree' ? 'Aether' : 'Nova') + ']: ' + m.content
     ).join('\n');
 
-    // systemPromptの固定部分を最大化してキャッシュヒット率を上げる
-    // 可変部分（テーマ・立場・履歴）を末尾に集約
+    // 相手の直前発言を取得（反論必須化のため）
+    const opponentSide = side === 'agree' ? 'disagree' : 'agree';
+    const opponentMsgs = conversationHistory.filter(m => m.side === opponentSide);
+    const lastOpponentMsg = opponentMsgs.length > 0 ? opponentMsgs[opponentMsgs.length - 1].content : null;
+
+    // 自分側の過去発言の要点リストを構築（抽象論ループ抑制）
+    const myMsgs = conversationHistory.filter(m => m.side === side);
+    const myArgCount = myMsgs.length;
+
+    // ── systemPrompt ──────────────────────────────────────────────────────
+    // 固定部分を先頭に置き、可変部分（テーマ・立場・履歴）を末尾に集約
     const systemPrompt =
         'あなたはプロのAIディベーターです。\n' +
-        '【ルール】\n' +
-        '1. 自分の立場を最後まで一貫して主張する。立場変更は失格。\n' +
-        '2. 相手の立場を支持・肯定する結論は禁止。相手論点への部分的言及は構わない。\n' +
-        '3. 完全に同一の文・コピペ繰り返しは禁止。既出論点の深掘り・補強・別角度再構成は可。\n' +
-        '4. 300文字以内・句点（。）で終える。\n' +
-        '5. 冒頭に記号・括弧・ラベル（[意見A]等）を付けない。\n' +
+        '【絶対ルール（全ターン共通）】\n' +
+        '1. あなたの結論は常に自分の立場で終える。これは絶対条件。立場変更・相手側への同調は失格。\n' +
+        '2. 【必須】相手の直前発言の具体的な弱点を1つ以上指摘してから、自分の主張を述べること。\n' +
+        '3. 同一文のコピペ繰り返しは禁止。ただし既出論点の深掘り・補強・別角度再構成は積極的に行うこと。\n' +
+        '4. 抽象語（「内面が大事」「心の豊かさ」等）だけで終わらせない。なぜそう言えるか、相手のどこが弱いかを必ず示す。\n' +
+        '5. 300文字以内・句点（。）で終える。冒頭にラベル・記号不要。\n' +
         '【あなたの名前】' + myName + '\n' +
         '【ディベートテーマ】' + DEBATE_THEME + '\n' +
-        '【あなたの立場】' + myOpinion + '\n' +
+        '【あなたの固定立場（変更禁止）】' + myOpinion + '\n' +
         '【相手の立場】' + opponentOpinion + '\n' +
         '【全ディベート履歴】\n' + (allHistory || '（ディベート開始）');
 
-    // messagesは全履歴をrole変換して送信
+    // ── messagesを構築 ────────────────────────────────────────────────────
     let messagesToSend;
     if (conversationHistory.length === 0) {
+        // 初回: 立場宣言 + 最初の論拠
         messagesToSend = [{
             role: 'user',
-            content: 'テーマ「' + DEBATE_THEME + '」について立場「' + myOpinion + '」で最初の主張を述べてください。300文字以内・句点で終えること。'
+            content: 'テーマ「' + DEBATE_THEME + '」について立場「' + myOpinion + '」で最初の主張を述べてください。' +
+                '自分の立場を明確に宣言し、その根拠を具体的に示してください。300文字以内・句点で終えること。'
         }];
     } else {
-        // 全履歴をrole変換（自分=assistant、相手=user）
+        // 継続ターン: 全履歴をrole変換（自分=assistant、相手=user）
         messagesToSend = conversationHistory.map(m => ({
             role: m.side === side ? 'assistant' : 'user',
             content: m.content
         }));
+
+        // 継続ターン用の指示（毎回立場を再固定 + 相手直前発言への反論必須）
+        let turnInstruction = '【立場再確認】あなたの立場は「' + myOpinion + '」です。この立場は絶対に変えないこと。\n';
+        if (lastOpponentMsg) {
+            turnInstruction += '【必須反論】相手の直前発言：「' + lastOpponentMsg.substring(0, 80) + (lastOpponentMsg.length > 80 ? '…' : '') + '」\n' +
+                'この発言の具体的な弱点を指摘したうえで、立場「' + myOpinion + '」を強化する主張を続けてください。\n';
+        }
+        if (myArgCount >= 2) {
+            turnInstruction += '【深掘り指示】既出論点（' + myArgCount + '回発言済）を別角度・具体例・比較で補強すること。抽象論の単純反復は不可。\n';
+        }
+        turnInstruction += '300文字以内・句点で終えること。結論は必ず「' + myOpinion + '」側で締めること。';
+
         messagesToSend.push({
             role: 'user',
-            content: '次の発言を生成してください。立場「' + myOpinion + '」を守り、300文字以内・句点で終えること。前回と完全同一の文は避け、論点の深掘りまたは新角度での主張を行うこと。'
+            content: turnInstruction
         });
     }
 

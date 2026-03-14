@@ -2323,12 +2323,62 @@ app.post('/api/debate/evaluate', async (c) => {
     if (!user) {
       return c.json({ error: 'Not authenticated' }, 401)
     }
-    const { prompt } = await c.req.json()
+    const { prompt, mode } = await c.req.json()
     const apiKey = c.env.OPENAI_API_KEY
 
     if (!apiKey) {
       return c.json({ error: 'OpenAI API key not configured' }, 500)
     }
+
+    // ── システムプロンプトをmodeで分岐 ──────────────────────────────────
+    // ※ system部分を固定化してOpenAIプロンプトキャッシュヒット率を最大化する
+    // ── 発言評価モード (symbol) ──────────────────────────────────────────
+    const SYSTEM_SYMBOL = `You are a strict debate evaluator. Evaluate the TARGET statement on 4 axes, then output ONE symbol.
+
+AXES (evaluate in this priority order):
+1. Stance consistency [HIGHEST PRIORITY]: Does the speaker's FINAL CONCLUSION support their own assigned position?
+   - "??" if the conclusion ends up supporting the opponent's side, even without explicit concession words.
+   - "??" if the speaker's main conclusion is semantically equivalent to the opponent's position.
+   - Partial acknowledgment mid-argument is OK ONLY if the final conclusion clearly returns to own side.
+2. Rebuttal quality: Does it identify and attack a specific weakness in the opponent's argument?
+   - Abstract repetition ("inner richness matters") without targeting opponent's specific point = lower score.
+3. Reasoning specificity: Is there a concrete comparison, causal link, or example? (Do not reward vague abstractions.)
+4. Logical coherence: No self-contradiction within the statement.
+
+SYMBOL RULES:
+!! : Axes 1-4 all strong. Stance firm, targeted rebuttal, concrete reasoning.
+!  : Axis 1 firm, at least axis 2 or 3 solid.
+?  : Stance held but rebuttal is vague or purely abstract (no specific attack on opponent).
+?? : Final conclusion drifts toward opponent's position — regardless of wording used.
+
+OUTPUT: JSON only. {"symbol":"!!"} or {"symbol":"!"} or {"symbol":"?"} or {"symbol":"??"}
+No other text.`
+
+    // ── 審判モード (judge) ───────────────────────────────────────────────
+    const SYSTEM_JUDGE = `You are an impartial debate judge. Evaluate the full debate transcript and determine the winner.
+
+CRITERIA (in strict priority order):
+1. Stance consistency [MOST IMPORTANT — can override all other criteria]:
+   - Did each side maintain their assigned conclusion throughout ALL turns?
+   - Stance-drift = speaker's conclusion semantically supports the opponent's position, even without explicit concession words.
+   - Example of drift: a "agree" side saying "money alone doesn't guarantee happiness, inner richness matters most" is drifting toward the "disagree" position.
+   - A side with clear stance-drift LOSES, regardless of argument quality.
+2. Rebuttal quality: Did the speaker directly attack specific weaknesses in the opponent's arguments?
+   - Merely restating one's own position without engaging opponent's points = low rebuttal quality.
+3. Reasoning specificity: Concrete comparisons, causal chains, examples score higher than abstract claims.
+4. Logical coherence: No self-contradiction across turns.
+
+WINNER DECISION:
+- If one side shows stance-drift and the other does not → the non-drifting side wins.
+- If both sides maintain stance → judge by criteria 2-4.
+- If both sides drift → judge by which side stayed closer to their assigned position.
+
+OUTPUT: JSON only. {"winner":"agree"} or {"winner":"disagree"}
+No other text.`
+
+    const systemContent = (mode === 'judge') ? SYSTEM_JUDGE : SYSTEM_SYMBOL
+    // judgeは再現性重視でmax_tokens=20、symbolは判定余裕でmax_tokens=25
+    const maxTok = (mode === 'judge') ? 20 : 25
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -2339,36 +2389,12 @@ app.post('/api/debate/evaluate', async (c) => {
       body: JSON.stringify({
         model: 'gpt-4.1-nano',
         messages: [
-          {
-            role: 'system',
-            content: `あなたは公平・厳格なディベート審査員AI（審査官）です。
-以下の4基準で厳密に評価し、必ずJSON形式 {"winner": "agree" または "disagree"} のみ返してください。
-他のテキストは一切禁止です。
-
-【評価基準（優先度順）】
-1. 立場の一貫性（最重要）: 自分の立場（賛成/反対）を最後まで一貫して守ったか。
-   - NG例: 「確かにそれも一理あります」「相手の意見にも納得できます」などは即座に減点。
-   - 「！！」は強い主張、「！」は普通の主張、「？」は疑問・弱い主張として評価に影響する。
-2. 論拠の強さ: 具体的事実・データ・事例があるか。記号的な表現（！！等）だけでなく実質的な内容か。
-3. 反論の質: 相手の主張の弱点を的確に突けているか。
-4. 論理の一貫性: 矛盾・自己否定がないか。
-
-【立場変更の検出（自動失格）】
-以下のパターンを含む主張は立場変更とみなし、即座に相手方を勝者とする:
-- 「確かに」「おっしゃる通り」「それも正しい」「一理あります」等の譲歩表現
-- 「でも相手の言う通り」等の同調表現
-- 自分の立場と矛盾する主張
-
-必ず {"winner": "agree"} または {"winner": "disagree"} のみ返す。`
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
+          { role: 'system', content: systemContent },
+          { role: 'user', content: prompt }
         ],
-        max_tokens: 30,
-        temperature: 0.1,
-        response_format: { type: 'json_object' }  // JSON形式を強制
+        max_tokens: maxTok,
+        temperature: 0.1,  // 全modeで低温固定（安定性・再現性重視）
+        response_format: { type: 'json_object' }
       })
     })
 
@@ -2381,13 +2407,38 @@ app.post('/api/debate/evaluate', async (c) => {
     const data = await response.json()
     let message = data.choices[0].message.content.trim()
 
-    // トークン使用量をログ出力
+    // ── サーバー側でJSONバリデーション ──────────────────────────────────
+    try {
+      const parsed = JSON.parse(message)
+      if (mode === 'judge') {
+        // judgeは winner のみ返す
+        if (parsed.winner === 'agree' || parsed.winner === 'disagree') {
+          // OK
+        } else {
+          console.warn('[evaluate/judge] unexpected JSON:', message)
+        }
+        // comment等の余分なキーを除去
+        message = JSON.stringify({ winner: parsed.winner === 'agree' ? 'agree' : 'disagree' })
+      } else {
+        // symbolモードはsymbolのみ返す（comment削除）
+        const validSymbols = ['!!', '!', '?', '??']
+        if (parsed.symbol && validSymbols.includes(parsed.symbol)) {
+          message = JSON.stringify({ symbol: parsed.symbol })
+        } else {
+          console.warn('[evaluate/symbol] unexpected JSON:', message)
+        }
+      }
+    } catch(e) {
+      console.warn('[evaluate] JSON parse failed, raw:', message)
+    }
+
+    // トークン使用量をログ出力（キャッシュヒット率確認）
     if (data.usage) {
       const cached = data.usage.prompt_tokens_details?.cached_tokens || 0
       const cacheRate = data.usage.prompt_tokens > 0
         ? ((cached / data.usage.prompt_tokens) * 100).toFixed(1)
         : '0.0'
-      console.log(`[AI評価] Tokens - Input: ${data.usage.prompt_tokens}, Cached: ${cached} (${cacheRate}%), Output: ${data.usage.completion_tokens}`)
+      console.log(`[AI評価/${mode||'symbol'}] Tokens - Input: ${data.usage.prompt_tokens}, Cached: ${cached} (${cacheRate}%), Output: ${data.usage.completion_tokens}`)
     }
 
     return c.json({ message })
