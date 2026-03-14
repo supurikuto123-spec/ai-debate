@@ -353,41 +353,38 @@ async function updateStats() {
     try {
         // Fetch online connection count
         const onlineResponse = await fetch('/api/stats/online');
-        const onlineData = await onlineResponse.json();
-        
-        const onlineElement = document.getElementById('online-count');
-        if (onlineElement) {
-            onlineElement.textContent = onlineData.count;
-            onlineElement.style.animation = 'none';
-            setTimeout(() => {
-                onlineElement.style.animation = 'meterPulse 2s ease-in-out infinite';
-            }, 10);
+        if (onlineResponse.ok) {
+            const onlineData = await onlineResponse.json();
+            const onlineElement = document.getElementById('online-count');
+            if (onlineElement) {
+                onlineElement.textContent = Number(onlineData.count || 0).toLocaleString();
+                onlineElement.style.animation = 'none';
+                setTimeout(() => { onlineElement.style.animation = 'meterPulse 2s ease-in-out infinite'; }, 10);
+            }
         }
-        
+
         // Fetch total visitor count
         const visitorResponse = await fetch('/api/stats/visitors');
-        const visitorData = await visitorResponse.json();
-        
-        const visitorElement = document.getElementById('visitor-count');
-        if (visitorElement) {
-            visitorElement.textContent = visitorData.count;
-            visitorElement.style.animation = 'none';
-            setTimeout(() => {
-                visitorElement.style.animation = 'meterPulse 2s ease-in-out infinite';
-            }, 10);
+        if (visitorResponse.ok) {
+            const visitorData = await visitorResponse.json();
+            const visitorElement = document.getElementById('visitor-count');
+            if (visitorElement) {
+                visitorElement.textContent = Number(visitorData.count || 0).toLocaleString();
+                visitorElement.style.animation = 'none';
+                setTimeout(() => { visitorElement.style.animation = 'meterPulse 2s ease-in-out infinite'; }, 10);
+            }
         }
-        
+
         // Fetch total registered user count
         const userResponse = await fetch('/api/stats/users');
-        const userData = await userResponse.json();
-        
-        const userElement = document.getElementById('user-count');
-        if (userElement) {
-            userElement.textContent = userData.count;
-            userElement.style.animation = 'none';
-            setTimeout(() => {
-                userElement.style.animation = 'meterPulse 2s ease-in-out infinite';
-            }, 10);
+        if (userResponse.ok) {
+            const userData = await userResponse.json();
+            const userElement = document.getElementById('user-count');
+            if (userElement) {
+                userElement.textContent = Number(userData.count || 0).toLocaleString();
+                userElement.style.animation = 'none';
+                setTimeout(() => { userElement.style.animation = 'meterPulse 2s ease-in-out infinite'; }, 10);
+            }
         }
     } catch (error) {
         console.error('Failed to update stats:', error);

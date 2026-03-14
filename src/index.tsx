@@ -464,9 +464,20 @@ app.get('/main', async (c) => {
     const isDevUser = user.user_id === 'dev' && getDevAdminEmails(c.env).includes((user.email||'').toLowerCase())
 
     // Get fresh credits + restriction flags from DB
-    const freshUser = await c.env.DB.prepare(
-      'SELECT credits, is_dev, is_banned, credit_freeze FROM users WHERE user_id = ?'
-    ).bind(user.user_id).first() as any
+    // Use try/catch for new columns (credit_freeze etc.) in case migration not yet applied on production
+    let freshUser: any = null
+    try {
+      freshUser = await c.env.DB.prepare(
+        'SELECT credits, is_dev, is_banned, credit_freeze FROM users WHERE user_id = ?'
+      ).bind(user.user_id).first() as any
+    } catch(e) {
+      // Fallback if credit_freeze column doesn't exist yet
+      try {
+        freshUser = await c.env.DB.prepare(
+          'SELECT credits, is_dev, is_banned FROM users WHERE user_id = ?'
+        ).bind(user.user_id).first() as any
+      } catch(e2) {}
+    }
     if (freshUser) {
       user.credits = freshUser.credits
       user.is_dev = freshUser.is_dev || 0
@@ -484,7 +495,7 @@ app.get('/main', async (c) => {
       if (!firstAccess || Number(firstAccess.count) === 0) {
         // First time accessing /main - charge 100 credits
         // Skip charge if credit_freeze is active (allow access but record as free)
-        const isCreditFrozen = freshUser?.credit_freeze === 1
+        const isCreditFrozen = freshUser?.credit_freeze === 1 || false
         if (!isCreditFrozen && user.credits < 100) {
           return c.html(`
           <!DOCTYPE html>
@@ -597,14 +608,21 @@ app.get('/watch/:debateId', async (c) => {
   const debateId = c.req.param('debateId')
 
   // Get fresh credits and restriction flags from DB
-  const freshUser = await c.env.DB.prepare(
-    'SELECT credits, is_banned, debate_ban FROM users WHERE user_id = ?'
-  ).bind(user.user_id).first() as any
-  if (freshUser) {
-    user.credits = freshUser.credits
+  let watchFreshUser: any = null
+  try {
+    watchFreshUser = await c.env.DB.prepare(
+      'SELECT credits, is_banned, debate_ban FROM users WHERE user_id = ?'
+    ).bind(user.user_id).first() as any
+  } catch(e) {
+    watchFreshUser = await c.env.DB.prepare(
+      'SELECT credits, is_banned FROM users WHERE user_id = ?'
+    ).bind(user.user_id).first() as any
+  }
+  if (watchFreshUser) {
+    user.credits = watchFreshUser.credits
     // BAN/debate_ban check
-    if (freshUser.is_banned) return c.redirect('/?banned=1')
-    if (freshUser.debate_ban) return c.redirect('/main?debate_ban=1')
+    if (watchFreshUser.is_banned) return c.redirect('/?banned=1')
+    if (watchFreshUser.debate_ban) return c.redirect('/main?debate_ban=1')
   }
   // Update last_access_at
   try { await c.env.DB.prepare('UPDATE users SET last_access_at = CURRENT_TIMESTAMP WHERE user_id = ?').bind(user.user_id).run() } catch(e) {}
@@ -627,13 +645,20 @@ app.get('/watch', async (c) => {
   }
 
   // Get fresh credits + restriction from DB
-  const freshUser = await c.env.DB.prepare(
-    'SELECT credits, is_banned, debate_ban FROM users WHERE user_id = ?'
-  ).bind(user.user_id).first() as any
-  if (freshUser) {
-    user.credits = freshUser.credits
-    if (freshUser.is_banned) return c.redirect('/?banned=1')
-    if (freshUser.debate_ban) return c.redirect('/main?debate_ban=1')
+  let watchFreshUser2: any = null
+  try {
+    watchFreshUser2 = await c.env.DB.prepare(
+      'SELECT credits, is_banned, debate_ban FROM users WHERE user_id = ?'
+    ).bind(user.user_id).first() as any
+  } catch(e) {
+    watchFreshUser2 = await c.env.DB.prepare(
+      'SELECT credits, is_banned FROM users WHERE user_id = ?'
+    ).bind(user.user_id).first() as any
+  }
+  if (watchFreshUser2) {
+    user.credits = watchFreshUser2.credits
+    if (watchFreshUser2.is_banned) return c.redirect('/?banned=1')
+    if (watchFreshUser2.debate_ban) return c.redirect('/main?debate_ban=1')
   }
   // Update last_access_at
   try { await c.env.DB.prepare('UPDATE users SET last_access_at = CURRENT_TIMESTAMP WHERE user_id = ?').bind(user.user_id).run() } catch(e) {}
@@ -1894,12 +1919,19 @@ app.post('/api/archive/purchase', async (c) => {
     }
 
     if (!isDevUser) {
-      const userData = await c.env.DB.prepare(
-        'SELECT credits, credit_freeze FROM users WHERE user_id = ?'
-      ).bind(user.user_id).first() as any
+      let userData: any = null
+      try {
+        userData = await c.env.DB.prepare(
+          'SELECT credits, credit_freeze FROM users WHERE user_id = ?'
+        ).bind(user.user_id).first() as any
+      } catch(e) {
+        userData = await c.env.DB.prepare(
+          'SELECT credits FROM users WHERE user_id = ?'
+        ).bind(user.user_id).first() as any
+      }
 
       const currentCredits = userData?.credits || 0
-      const isCreditFrozen = userData?.credit_freeze === 1
+      const isCreditFrozen = userData?.credit_freeze === 1 || false
 
       if (!isCreditFrozen && currentCredits < 50) {
         return c.json({ success: false, error: 'クレジットが不足しています（必要: 50クレジット）' })
@@ -2940,16 +2972,23 @@ app.post('/api/theme-votes/propose', async (c) => {
     const isDevUser = user.user_id === 'dev' && getDevAdminEmails(c.env).includes((user.email||'').toLowerCase())
 
     // Always get fresh user data from DB
-    const freshUserData = await c.env.DB.prepare(
-      'SELECT user_id, credits, credit_freeze FROM users WHERE user_id = ?'
-    ).bind(user.user_id).first() as any
+    let freshUserData: any = null
+    try {
+      freshUserData = await c.env.DB.prepare(
+        'SELECT user_id, credits, credit_freeze FROM users WHERE user_id = ?'
+      ).bind(user.user_id).first() as any
+    } catch(e) {
+      freshUserData = await c.env.DB.prepare(
+        'SELECT user_id, credits FROM users WHERE user_id = ?'
+      ).bind(user.user_id).first() as any
+    }
 
     if (!freshUserData) {
       return c.json({ success: false, error: 'ユーザーが見つかりません' }, 404)
     }
 
     const currentCredits = freshUserData.credits as number
-    const isCreditFrozen = freshUserData.credit_freeze === 1
+    const isCreditFrozen = freshUserData.credit_freeze === 1 || false
 
     // Check credit_freeze
     if (isCreditFrozen) {
@@ -3166,12 +3205,22 @@ app.get('/api/admin/users', async (c) => {
     const userCookie = getCookie(c, 'user')
     const user = safeParseUserCookie(userCookie)
     if (!user || !(await isDevAdminDB(user, c.env))) return c.json({ success: false, error: 'Permission denied' }, 403)
-    const result = await c.env.DB.prepare(
-      `SELECT user_id, username, email, credits, is_dev, is_banned, ban_reason,
-              post_ban, debate_ban, credit_freeze, restriction_reason,
-              last_access_at, created_at
-       FROM users ORDER BY created_at DESC LIMIT 200`
-    ).all()
+    let result: any
+    try {
+      result = await c.env.DB.prepare(
+        `SELECT user_id, username, email, credits, is_dev, is_banned, ban_reason,
+                post_ban, debate_ban, credit_freeze, restriction_reason,
+                last_access_at, created_at
+         FROM users ORDER BY created_at DESC LIMIT 200`
+      ).all()
+    } catch(e) {
+      // Fallback: new columns not yet migrated on production
+      result = await c.env.DB.prepare(
+        `SELECT user_id, username, email, credits, is_dev, is_banned, ban_reason,
+                last_access_at, created_at
+         FROM users ORDER BY created_at DESC LIMIT 200`
+      ).all()
+    }
     return c.json({ success: true, users: result.results || [] })
   } catch(e) { return c.json({ success: false, error: String(e) }, 500) }
 })
@@ -3726,12 +3775,21 @@ app.get('/api/admin/users/full', async (c) => {
     const userCookie = getCookie(c, 'user')
     const user = safeParseUserCookie(userCookie)
     if (!user || !(await isDevAdminDB(user, c.env))) return c.json({ success: false, error: 'Permission denied' }, 403)
-    const result = await c.env.DB.prepare(
-      `SELECT user_id, username, email, credits, is_dev, is_banned, ban_reason,
-              post_ban, debate_ban, credit_freeze, restriction_reason,
-              last_access_at, created_at
-       FROM users ORDER BY created_at DESC LIMIT 200`
-    ).all()
+    let result: any
+    try {
+      result = await c.env.DB.prepare(
+        `SELECT user_id, username, email, credits, is_dev, is_banned, ban_reason,
+                post_ban, debate_ban, credit_freeze, restriction_reason,
+                last_access_at, created_at
+         FROM users ORDER BY created_at DESC LIMIT 200`
+      ).all()
+    } catch(e) {
+      result = await c.env.DB.prepare(
+        `SELECT user_id, username, email, credits, is_dev, is_banned, ban_reason,
+                last_access_at, created_at
+         FROM users ORDER BY created_at DESC LIMIT 200`
+      ).all()
+    }
     return c.json({ success: true, users: result.results || [] })
   } catch(e) { return c.json({ success: false, error: String(e) }, 500) }
 })

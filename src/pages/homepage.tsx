@@ -548,25 +548,31 @@ export const homepage = (user: any) => `
         (function() {
           async function loadStats() {
             try {
-              const [onlineRes, visitorRes, userRes] = await Promise.all([
-                fetch('/api/stats/online').catch(()=>null),
-                fetch('/api/stats/visitors').catch(()=>null),
-                fetch('/api/stats/users').catch(()=>null)
+              const [onlineRes, visitorRes, userRes] = await Promise.allSettled([
+                fetch('/api/stats/online'),
+                fetch('/api/stats/visitors'),
+                fetch('/api/stats/users')
               ]);
-              if (onlineRes && onlineRes.ok) {
-                const d = await onlineRes.json();
-                const el = document.getElementById('online-count');
-                if (el) el.textContent = Number(d.count || 0).toLocaleString();
+              if (onlineRes.status === 'fulfilled' && onlineRes.value.ok) {
+                try {
+                  const d = await onlineRes.value.json();
+                  const el = document.getElementById('online-count');
+                  if (el) el.textContent = Number(d.count || 0).toLocaleString();
+                } catch(e) {}
               }
-              if (visitorRes && visitorRes.ok) {
-                const d = await visitorRes.json();
-                const el = document.getElementById('visitor-count');
-                if (el) el.textContent = Number(d.count || 0).toLocaleString();
+              if (visitorRes.status === 'fulfilled' && visitorRes.value.ok) {
+                try {
+                  const d = await visitorRes.value.json();
+                  const el = document.getElementById('visitor-count');
+                  if (el) el.textContent = Number(d.count || 0).toLocaleString();
+                } catch(e) {}
               }
-              if (userRes && userRes.ok) {
-                const d = await userRes.json();
-                const el = document.getElementById('user-count');
-                if (el) el.textContent = Number(d.count || 0).toLocaleString();
+              if (userRes.status === 'fulfilled' && userRes.value.ok) {
+                try {
+                  const d = await userRes.value.json();
+                  const el = document.getElementById('user-count');
+                  if (el) el.textContent = Number(d.count || 0).toLocaleString();
+                } catch(e) {}
               }
             } catch(e) {}
           }
