@@ -136,10 +136,58 @@ exec_sql "CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notificatio
 exec_sql "CREATE INDEX IF NOT EXISTS idx_archived_debates_archived_at ON archived_debates(archived_at)" "idx_archived_debates_at"
 exec_sql "CREATE INDEX IF NOT EXISTS idx_archived_debates_debate_id ON archived_debates(debate_id)" "idx_archived_debates_id"
 
+# ── 制限期限カラム追加（日数指定機能） ──────────────────────────────
+echo ""
+echo "── restriction expiry columns ──"
+exec_sql "ALTER TABLE users ADD COLUMN ban_expires_at DATETIME"                   "ban_expires_at"
+exec_sql "ALTER TABLE users ADD COLUMN post_ban_expires_at DATETIME"              "post_ban_expires_at"
+exec_sql "ALTER TABLE users ADD COLUMN debate_ban_expires_at DATETIME"            "debate_ban_expires_at"
+exec_sql "ALTER TABLE users ADD COLUMN credit_freeze_expires_at DATETIME"         "credit_freeze_expires_at"
+
+# ── match_queue テーブル（User vs User マッチング） ───────────────────
+echo ""
+echo "── match_queue table ──"
+exec_sql "CREATE TABLE IF NOT EXISTS match_queue (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id TEXT NOT NULL,
+  username TEXT NOT NULL,
+  mode TEXT NOT NULL DEFAULT 'pvp',
+  stance TEXT,
+  debate_id TEXT,
+  status TEXT NOT NULL DEFAULT 'waiting',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  matched_at DATETIME
+)" "match_queue"
+
+exec_sql "CREATE INDEX IF NOT EXISTS idx_match_queue_status ON match_queue(status)" "idx_match_queue_status"
+exec_sql "CREATE INDEX IF NOT EXISTS idx_match_queue_created_at ON match_queue(created_at)" "idx_match_queue_created_at"
+
+# ── pvp_rooms テーブル（PvP対戦部屋） ────────────────────────────────
+echo ""
+echo "── pvp_rooms table ──"
+exec_sql "CREATE TABLE IF NOT EXISTS pvp_rooms (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  room_id TEXT UNIQUE NOT NULL,
+  debate_id TEXT NOT NULL,
+  player_a TEXT NOT NULL,
+  player_b TEXT,
+  player_a_stance TEXT NOT NULL DEFAULT 'agree',
+  player_b_stance TEXT NOT NULL DEFAULT 'disagree',
+  status TEXT NOT NULL DEFAULT 'waiting',
+  messages TEXT DEFAULT '[]',
+  winner TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  started_at DATETIME,
+  ended_at DATETIME
+)" "pvp_rooms"
+
+exec_sql "CREATE INDEX IF NOT EXISTS idx_pvp_rooms_room_id ON pvp_rooms(room_id)" "idx_pvp_rooms_room_id"
+exec_sql "CREATE INDEX IF NOT EXISTS idx_pvp_rooms_status ON pvp_rooms(status)" "idx_pvp_rooms_status"
+
 # ── 確認 ─────────────────────────────────────────────────────────────
 echo ""
 echo "── users table structure ──"
-npx wrangler d1 execute "$DB" --local --command="PRAGMA table_info(users)" 2>&1 | grep -E "credit_freeze|is_banned|post_ban|debate_ban|is_dev|restriction_reason" || echo "  (no matching columns found — check manually)"
+npx wrangler d1 execute "$DB" --local --command="PRAGMA table_info(users)" 2>&1 | grep -E "credit_freeze|is_banned|post_ban|debate_ban|is_dev|restriction_reason|expires_at" || echo "  (no matching columns found — check manually)"
 
 echo ""
 echo "═══════════════════════════════════════════"

@@ -22,6 +22,8 @@ import { adminTicketsPage } from './pages/admin-tickets'
 import { battlePage } from './pages/battle'
 import { adminDashboardPage } from './pages/admin-dashboard'
 import { notificationsPage } from './pages/notifications'
+import { devThemesPage } from './pages/dev-themes'
+import { creditsPage } from './pages/credits'
 
 type Bindings = {
   DB: D1Database
@@ -479,6 +481,10 @@ app.get('/main', async (c) => {
       } catch(e2) {}
     }
     if (freshUser) {
+      // 制限期限切れ自動解除
+      await autoExpireRestrictions(c.env.DB, user.user_id)
+      // 再取得
+      try { freshUser = await c.env.DB.prepare('SELECT credits, is_dev, is_banned, credit_freeze FROM users WHERE user_id = ?').bind(user.user_id).first() as any } catch(e) {}
       user.credits = freshUser.credits
       user.is_dev = freshUser.is_dev || 0
       // Full BAN check
@@ -880,9 +886,279 @@ app.get('/battle', async (c) => {
   return c.html(battlePage(user))
 })
 
-// API: Battle Start - DISABLED (battles are not yet available)
+// Credits Page
+app.get('/credits', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  const user = safeParseUserCookie(userCookie)
+  if (!user) {
+    deleteCookie(c, 'user')
+    return c.redirect('/')
+  }
+  try {
+    const freshUser = await c.env.DB.prepare('SELECT credits, is_dev FROM users WHERE user_id = ?').bind(user.user_id).first()
+    if (freshUser) { user.credits = (freshUser as any).credits; user.is_dev = (freshUser as any).is_dev || 0 }
+    await c.env.DB.prepare('UPDATE users SET last_access_at = CURRENT_TIMESTAMP WHERE user_id = ?').bind(user.user_id).run()
+  } catch(e) {}
+  return c.html(creditsPage(user))
+})
+
+
+// ============================================================
+// BATTLE / PvP APIs
+// ============================================================
+
+// POST /api/battle/queue/join — マッチングキューに参加
+app.post('/api/battle/queue/join', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  const user = safeParseUserCookie(userCookie)
+  if (!user) return c.json({ error: 'Not authenticated' }, 401)
+  try {
+    await autoExpireRestrictions(c.env.DB, user.user_id)
+    const freshUser = await c.env.DB.prepare('SELECT credits, is_banned, debate_ban FROM users WHERE user_id = ?').bind(user.user_id).first() as any
+    if (freshUser?.is_banned) return c.json({ error: 'アカウントが停止されています' }, 403)
+    if (freshUser?.debate_ban) return c.json({ error: 'ディベートが制限されています' }, 403)
+
+    const { mode, stance } = await c.req.json()
+    // 既存エントリを削除してから追加
+    await c.env.DB.prepare('DELETE FROM match_queue WHERE user_id = ?').bind(user.user_id).run()
+    await c.env.DB.prepare(`
+      INSERT INTO match_queue (user_id, username, mode, stance, status, created_at)
+      VALUES (?, ?, ?, ?, 'waiting', CURRENT_TIMESTAMP)
+    `).bind(user.user_id, user.username || user.user_id, mode || 'pvp', stance || null).run()
+    return c.json({ success: true })
+  } catch(e) { return c.json({ error: String(e) }, 500) }
+})
+
+// DELETE /api/battle/queue/leave — キューから離脱
+app.delete('/api/battle/queue/leave', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  const user = safeParseUserCookie(userCookie)
+  if (!user) return c.json({ error: 'Not authenticated' }, 401)
+  try {
+    await c.env.DB.prepare('DELETE FROM match_queue WHERE user_id = ?').bind(user.user_id).run()
+    return c.json({ success: true })
+  } catch(e) { return c.json({ error: String(e) }, 500) }
+})
+
+// GET /api/battle/queue/status — キュー状態確認 & マッチング処理
+app.get('/api/battle/queue/status', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  const user = safeParseUserCookie(userCookie)
+  if (!user) return c.json({ error: 'Not authenticated' }, 401)
+  try {
+    const myEntry = await c.env.DB.prepare(
+      'SELECT * FROM match_queue WHERE user_id = ?'
+    ).bind(user.user_id).first() as any
+    if (!myEntry) return c.json({ status: 'not_queued' })
+
+    // マッチング試行: 自分以外のwaitingユーザーを探す
+    if (myEntry.status === 'waiting') {
+      const opponent = await c.env.DB.prepare(`
+        SELECT * FROM match_queue 
+        WHERE user_id != ? AND status = 'waiting' AND mode = ?
+        ORDER BY created_at ASC LIMIT 1
+      `).bind(user.user_id, myEntry.mode).first() as any
+
+      if (opponent) {
+        // マッチ成立 — roomを作成
+        const roomId = crypto.randomUUID()
+        const debate = await c.env.DB.prepare(
+          "SELECT id,title,agree_position,disagree_position FROM debates WHERE status='live' LIMIT 1"
+        ).first() as any
+        const debateId = debate?.id || 'default'
+
+        await c.env.DB.prepare(`
+          INSERT INTO pvp_rooms (room_id, debate_id, player_a, player_b, player_a_stance, player_b_stance, status, created_at, started_at)
+          VALUES (?, ?, ?, ?, 'agree', 'disagree', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        `).bind(roomId, debateId, user.user_id, opponent.user_id).run()
+
+        // 両者のキューエントリを matched に更新
+        await c.env.DB.prepare(
+          "UPDATE match_queue SET status='matched', debate_id=?, matched_at=CURRENT_TIMESTAMP WHERE user_id IN (?,?)"
+        ).bind(roomId, user.user_id, opponent.user_id).run()
+
+        return c.json({ status: 'matched', room_id: roomId, your_stance: 'agree', opponent: opponent.username })
+      }
+      return c.json({ status: 'waiting', queued_at: myEntry.created_at })
+    }
+
+    if (myEntry.status === 'matched') {
+      const room = await c.env.DB.prepare(
+        'SELECT * FROM pvp_rooms WHERE room_id = ?'
+      ).bind(myEntry.debate_id).first() as any
+      const yourStance = room?.player_a === user.user_id ? 'agree' : 'disagree'
+      const opponentId = room?.player_a === user.user_id ? room?.player_b : room?.player_a
+      const opp = await c.env.DB.prepare('SELECT username FROM users WHERE user_id = ?').bind(opponentId).first() as any
+      return c.json({ status: 'matched', room_id: myEntry.debate_id, your_stance: yourStance, opponent: opp?.username || opponentId })
+    }
+
+    return c.json({ status: myEntry.status })
+  } catch(e) { return c.json({ error: String(e) }, 500) }
+})
+
+// GET /api/battle/room/:roomId — 部屋の状態取得
+app.get('/api/battle/room/:roomId', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  const user = safeParseUserCookie(userCookie)
+  if (!user) return c.json({ error: 'Not authenticated' }, 401)
+  try {
+    const roomId = c.req.param('roomId')
+    const room = await c.env.DB.prepare('SELECT * FROM pvp_rooms WHERE room_id = ?').bind(roomId).first() as any
+    if (!room) return c.json({ error: 'Room not found' }, 404)
+    if (room.player_a !== user.user_id && room.player_b !== user.user_id) {
+      return c.json({ error: 'Not a participant' }, 403)
+    }
+    const messages = JSON.parse(room.messages || '[]')
+    const yourStance = room.player_a === user.user_id ? 'agree' : 'disagree'
+    const debate = await c.env.DB.prepare('SELECT title,agree_position,disagree_position FROM debates WHERE id=?').bind(room.debate_id).first() as any
+    const playerAInfo = await c.env.DB.prepare('SELECT username FROM users WHERE user_id=?').bind(room.player_a).first() as any
+    const playerBInfo = room.player_b ? await c.env.DB.prepare('SELECT username FROM users WHERE user_id=?').bind(room.player_b).first() as any : null
+    return c.json({
+      room_id: roomId, status: room.status, your_stance: yourStance,
+      messages, winner: room.winner,
+      debate: { title: debate?.title, agree_position: debate?.agree_position, disagree_position: debate?.disagree_position },
+      player_a: playerAInfo?.username || room.player_a,
+      player_b: playerBInfo?.username || room.player_b || '待機中'
+    })
+  } catch(e) { return c.json({ error: String(e) }, 500) }
+})
+
+// POST /api/battle/room/:roomId/message — メッセージ送信
+app.post('/api/battle/room/:roomId/message', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  const user = safeParseUserCookie(userCookie)
+  if (!user) return c.json({ error: 'Not authenticated' }, 401)
+  try {
+    const roomId = c.req.param('roomId')
+    const { content } = await c.req.json()
+    if (!content || content.trim().length === 0) return c.json({ error: 'Empty message' }, 400)
+    if (content.length > 300) return c.json({ error: '300文字以内で入力してください' }, 400)
+
+    const room = await c.env.DB.prepare('SELECT * FROM pvp_rooms WHERE room_id = ?').bind(roomId).first() as any
+    if (!room) return c.json({ error: 'Room not found' }, 404)
+    if (room.player_a !== user.user_id && room.player_b !== user.user_id) return c.json({ error: 'Not a participant' }, 403)
+    if (room.status !== 'active') return c.json({ error: 'Room is not active' }, 400)
+
+    const messages = JSON.parse(room.messages || '[]')
+    const yourStance = room.player_a === user.user_id ? 'agree' : 'disagree'
+    messages.push({ user_id: user.user_id, username: user.username || user.user_id, stance: yourStance, content: content.trim(), ts: Date.now() })
+
+    await c.env.DB.prepare('UPDATE pvp_rooms SET messages=? WHERE room_id=?').bind(JSON.stringify(messages), roomId).run()
+    return c.json({ success: true, message_count: messages.length })
+  } catch(e) { return c.json({ error: String(e) }, 500) }
+})
+
+// POST /api/battle/room/:roomId/end — 対戦終了
+app.post('/api/battle/room/:roomId/end', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  const user = safeParseUserCookie(userCookie)
+  if (!user) return c.json({ error: 'Not authenticated' }, 401)
+  try {
+    const roomId = c.req.param('roomId')
+    const { winner } = await c.req.json()
+    const room = await c.env.DB.prepare('SELECT * FROM pvp_rooms WHERE room_id = ?').bind(roomId).first() as any
+    if (!room) return c.json({ error: 'Room not found' }, 404)
+    if (room.player_a !== user.user_id && room.player_b !== user.user_id) return c.json({ error: 'Not a participant' }, 403)
+    await c.env.DB.prepare(
+      "UPDATE pvp_rooms SET status='ended', winner=?, ended_at=CURRENT_TIMESTAMP WHERE room_id=?"
+    ).bind(winner || null, roomId).run()
+    await c.env.DB.prepare('DELETE FROM match_queue WHERE user_id IN (?,?)').bind(room.player_a, room.player_b || '').run()
+    return c.json({ success: true })
+  } catch(e) { return c.json({ error: String(e) }, 500) }
+})
+
+// POST /api/battle/ai/message — AI vs Human: AIの返答生成
+app.post('/api/battle/ai/message', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  const user = safeParseUserCookie(userCookie)
+  if (!user) return c.json({ error: 'Not authenticated' }, 401)
+  try {
+    const apiKey = c.env.OPENAI_API_KEY
+    if (!apiKey) return c.json({ error: 'API key not configured' }, 500)
+
+    const { theme, ai_stance, human_stance, conversation_history, human_message } = await c.req.json()
+
+    const systemPrompt = `あなたはAIディベーターです。テーマ「${theme}」について「${ai_stance === 'agree' ? '賛成' : '反対'}」の立場でディベートします。
+相手（人間）は「${human_stance === 'agree' ? '賛成' : '反対'}」の立場です。
+ルール:
+- 必ず${ai_stance === 'agree' ? '賛成' : '反対'}の立場を守る
+- 相手の直前発言に具体的に反論する
+- 100〜200文字で簡潔に回答
+- 句点（。）で終わること
+- ラベルや名前は付けない`
+
+    const messages: any[] = [{ role: 'system', content: systemPrompt }]
+    if (conversation_history?.length > 0) {
+      for (const msg of conversation_history.slice(-6)) {
+        messages.push({ role: msg.is_ai ? 'assistant' : 'user', content: msg.content })
+      }
+    }
+    if (human_message) messages.push({ role: 'user', content: human_message })
+
+    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      body: JSON.stringify({ model: 'gpt-5.1', messages, max_completion_tokens: 200, temperature: 0.8 })
+    })
+    if (!resp.ok) { const e = await resp.text(); console.error('AI battle error:', e); return c.json({ error: 'AI error' }, 500) }
+    const data: any = await resp.json()
+    let aiMessage = data.choices[0].message.content.trim()
+    if (!aiMessage.endsWith('。') && !aiMessage.endsWith('！') && !aiMessage.endsWith('？')) aiMessage += '。'
+    return c.json({ message: aiMessage, model: data.model || 'gpt-5.1' })
+  } catch(e) { return c.json({ error: String(e) }, 500) }
+})
+
+// GET /api/credits/packages — クレジットパッケージ一覧
+app.get('/api/credits/packages', async (c) => {
+  return c.json({
+    packages: [
+      { id: 'pack_100',  credits: 100,   price: 100,  label: '100クレジット', bonus: 0 },
+      { id: 'pack_500',  credits: 550,   price: 500,  label: '500円パック', bonus: 50 },
+      { id: 'pack_1000', credits: 1200,  price: 1000, label: '1000円パック', bonus: 200 },
+      { id: 'pack_3000', credits: 4000,  price: 3000, label: '3000円パック', bonus: 1000 },
+    ]
+  })
+})
+
+// GET /api/user/credits/history — クレジット取引履歴
+app.get('/api/user/credits/history', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  const user = safeParseUserCookie(userCookie)
+  if (!user) return c.json({ error: 'Not authenticated' }, 401)
+  try {
+    const result = await c.env.DB.prepare(
+      'SELECT amount, type, reason, created_at FROM credit_transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 50'
+    ).bind(user.user_id).all()
+    return c.json({ transactions: result.results || [] })
+  } catch(e) { return c.json({ transactions: [] }) }
+})
+
+// POST /api/credits/purchase — クレジット購入（テスト: 無料で付与）
+app.post('/api/credits/purchase', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  const user = safeParseUserCookie(userCookie)
+  if (!user) return c.json({ error: 'Not authenticated' }, 401)
+  try {
+    const { package_id } = await c.req.json()
+    const packages: Record<string, number> = {
+      pack_100: 100, pack_500: 550, pack_1000: 1200, pack_3000: 4000
+    }
+    const amount = packages[package_id]
+    if (!amount) return c.json({ error: 'Invalid package' }, 400)
+
+    await c.env.DB.prepare('UPDATE users SET credits = credits + ? WHERE user_id = ?').bind(amount, user.user_id).run()
+    await c.env.DB.prepare(`
+      INSERT INTO credit_transactions (id, user_id, amount, type, reason, created_at)
+      VALUES (?, ?, ?, 'earn', ?, CURRENT_TIMESTAMP)
+    `).bind(crypto.randomUUID(), user.user_id, amount, `購入(${package_id})[TEST]`).run()
+
+    const updated = await c.env.DB.prepare('SELECT credits FROM users WHERE user_id = ?').bind(user.user_id).first() as any
+    return c.json({ success: true, credits_added: amount, new_balance: updated?.credits || 0, note: 'TEST MODE: 実際の課金は発生していません' })
+  } catch(e) { return c.json({ error: String(e) }, 500) }
+})
+
+// Legacy: Battle Start redirect
 app.post('/api/battle/start', async (c) => {
-  return c.json({ success: false, error: '対戦機能は現在開発中です。リリースまでお待ちください。' }, 403)
+  return c.json({ success: false, error: 'このAPIは廃止されました。/api/battle/queue/join を使用してください。' }, 410)
 })
 
 // Theme Vote Page
@@ -906,6 +1182,35 @@ app.get('/tickets', async (c) => {
   }
   return c.html(ticketsPage(user))
 })
+
+// ── 制限期限切れ自動解除ヘルパー ──────────────────────────────────────
+async function autoExpireRestrictions(db: D1Database, userId: string) {
+  try {
+    const now = new Date().toISOString().replace('T', ' ').substring(0, 19)
+    await db.prepare(`
+      UPDATE users SET
+        is_banned        = CASE WHEN ban_expires_at IS NOT NULL AND ban_expires_at <= ? THEN 0 ELSE is_banned END,
+        ban_expires_at   = CASE WHEN ban_expires_at IS NOT NULL AND ban_expires_at <= ? THEN NULL ELSE ban_expires_at END,
+        post_ban         = CASE WHEN post_ban_expires_at IS NOT NULL AND post_ban_expires_at <= ? THEN 0 ELSE post_ban END,
+        post_ban_expires_at = CASE WHEN post_ban_expires_at IS NOT NULL AND post_ban_expires_at <= ? THEN NULL ELSE post_ban_expires_at END,
+        debate_ban       = CASE WHEN debate_ban_expires_at IS NOT NULL AND debate_ban_expires_at <= ? THEN 0 ELSE debate_ban END,
+        debate_ban_expires_at = CASE WHEN debate_ban_expires_at IS NOT NULL AND debate_ban_expires_at <= ? THEN NULL ELSE debate_ban_expires_at END,
+        credit_freeze    = CASE WHEN credit_freeze_expires_at IS NOT NULL AND credit_freeze_expires_at <= ? THEN 0 ELSE credit_freeze END,
+        credit_freeze_expires_at = CASE WHEN credit_freeze_expires_at IS NOT NULL AND credit_freeze_expires_at <= ? THEN NULL ELSE credit_freeze_expires_at END
+      WHERE user_id = ?
+    `).bind(now,now,now,now,now,now,now,now, userId).run()
+  } catch(e) {}
+}
+
+// ── 残り日数テキスト生成ヘルパー ──────────────────────────────────────
+function restrictionRemainingText(expiresAt: string | null): string {
+  if (!expiresAt) return '永久'
+  const diff = new Date(expiresAt).getTime() - Date.now()
+  if (diff <= 0) return '解除済み'
+  const days = Math.ceil(diff / 86400000)
+  if (days === 1) return '残り1日'
+  return `残り${days}日`
+}
 
 // Admin tickets page (dev only)
 // Admin Dashboard (dev only)
@@ -1543,156 +1848,166 @@ app.post('/api/debate/:debateId/status', async (c) => {
   }
 })
 
-// API: Execute command (ONLY for authenticated dev admins)
-app.post('/api/commands/execute', async (c) => {
+
+// ============================================================
+// DEV THEME MANAGEMENT API
+// ============================================================
+
+// GET /dev/themes — テーマ管理ページ (Dev専用)
+app.get('/dev/themes', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  const user = safeParseUserCookie(userCookie)
+  if (!user) return c.redirect('/')
+  if (!(await isDevAdminDB(user, c.env))) return c.redirect('/main')
+  if (user) try { await c.env.DB.prepare('UPDATE users SET last_access_at = CURRENT_TIMESTAMP WHERE user_id = ?').bind(user.user_id).run() } catch(e) {}
+  return c.html(devThemesPage(user))
+})
+
+// GET /api/dev/themes — テーマ一覧取得
+app.get('/api/dev/themes', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  const user = safeParseUserCookie(userCookie)
+  if (!user || !(await isDevAdminDB(user, c.env))) return c.json({ error: 'Permission denied' }, 403)
+  try {
+    const themes = await c.env.DB.prepare(`
+      SELECT id, title, agree_opinion, disagree_opinion, status, vote_count, created_at
+      FROM theme_proposals ORDER BY created_at DESC LIMIT 100
+    `).all()
+    const debates = await c.env.DB.prepare(`
+      SELECT id, title, topic, agree_position, disagree_position, status, scheduled_at, created_at
+      FROM debates ORDER BY created_at DESC LIMIT 20
+    `).all()
+    return c.json({ themes: themes.results || [], debates: debates.results || [] })
+  } catch(e) { return c.json({ error: String(e) }, 500) }
+})
+
+// POST /api/dev/themes — テーマ追加
+app.post('/api/dev/themes', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  const user = safeParseUserCookie(userCookie)
+  if (!user || !(await isDevAdminDB(user, c.env))) return c.json({ error: 'Permission denied' }, 403)
+  try {
+    const { title, agree_opinion, disagree_opinion } = await c.req.json()
+    if (!title || !agree_opinion || !disagree_opinion) return c.json({ error: '全項目必須' }, 400)
+    await c.env.DB.prepare(`
+      INSERT INTO theme_proposals (user_id, title, agree_opinion, disagree_opinion, status, proposed_by, created_at)
+      VALUES (?, ?, ?, ?, 'active', ?, CURRENT_TIMESTAMP)
+    `).bind(user.user_id, title, agree_opinion, disagree_opinion, user.username || 'dev').run()
+    return c.json({ success: true })
+  } catch(e) { return c.json({ error: String(e) }, 500) }
+})
+
+// PUT /api/dev/themes/:id — テーマ編集
+app.put('/api/dev/themes/:id', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  const user = safeParseUserCookie(userCookie)
+  if (!user || !(await isDevAdminDB(user, c.env))) return c.json({ error: 'Permission denied' }, 403)
+  try {
+    const id = c.req.param('id')
+    const { title, agree_opinion, disagree_opinion, status } = await c.req.json()
+    await c.env.DB.prepare(`
+      UPDATE theme_proposals SET title=?, agree_opinion=?, disagree_opinion=?, status=? WHERE id=?
+    `).bind(title, agree_opinion, disagree_opinion, status || 'active', id).run()
+    return c.json({ success: true })
+  } catch(e) { return c.json({ error: String(e) }, 500) }
+})
+
+// DELETE /api/dev/themes/:id — テーマ削除
+app.delete('/api/dev/themes/:id', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  const user = safeParseUserCookie(userCookie)
+  if (!user || !(await isDevAdminDB(user, c.env))) return c.json({ error: 'Permission denied' }, 403)
+  try {
+    const id = c.req.param('id')
+    await c.env.DB.prepare('DELETE FROM theme_proposals WHERE id=?').bind(id).run()
+    return c.json({ success: true })
+  } catch(e) { return c.json({ error: String(e) }, 500) }
+})
+
+// POST /api/dev/debates/schedule — ディベートをスケジュール/即開始
+app.post('/api/dev/debates/schedule', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  const user = safeParseUserCookie(userCookie)
+  if (!user || !(await isDevAdminDB(user, c.env))) return c.json({ error: 'Permission denied' }, 403)
+  try {
+    const { theme_id, title, agree_opinion, disagree_opinion, start_at } = await c.req.json()
+    // 既存liveディベートを完了にする
+    await c.env.DB.prepare("UPDATE debates SET status='completed' WHERE status IN ('live','upcoming','pending')").run()
+
+    let themeData: any = { title, agree_opinion, disagree_opinion }
+    if (theme_id) {
+      const t = await c.env.DB.prepare('SELECT title,agree_opinion,disagree_opinion FROM theme_proposals WHERE id=?').bind(theme_id).first() as any
+      if (t) themeData = { title: t.title, agree_opinion: t.agree_opinion, disagree_opinion: t.disagree_opinion }
+    }
+    if (!themeData.title) return c.json({ error: 'テーマ情報が必要です' }, 400)
+
+    const debateId = crypto.randomUUID()
+    const now = new Date().toISOString().replace('T',' ').substring(0,19)
+    const isNow = !start_at || start_at === 'now'
+    const scheduledAt = isNow ? null : start_at
+    const status = isNow ? 'live' : 'upcoming'
+
+    await c.env.DB.prepare(`
+      INSERT INTO debates (id, title, topic, agree_position, disagree_position, status, scheduled_at, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(debateId, themeData.title, themeData.title, themeData.agree_opinion, themeData.disagree_opinion, status, scheduledAt, now).run()
+
+    return c.json({ success: true, debate_id: debateId, status, scheduled_at: scheduledAt })
+  } catch(e) { return c.json({ error: String(e) }, 500) }
+})
+
+// PUT /api/dev/debates/:id — ディベート状態変更
+app.put('/api/dev/debates/:id', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  const user = safeParseUserCookie(userCookie)
+  if (!user || !(await isDevAdminDB(user, c.env))) return c.json({ error: 'Permission denied' }, 403)
+  try {
+    const id = c.req.param('id')
+    const { status, scheduled_at } = await c.req.json()
+    await c.env.DB.prepare('UPDATE debates SET status=?, scheduled_at=? WHERE id=?').bind(status, scheduled_at || null, id).run()
+    return c.json({ success: true })
+  } catch(e) { return c.json({ error: String(e) }, 500) }
+})
+
+// API: Get user restriction status with remaining days
+app.get('/api/user/restrictions', async (c) => {
   try {
     const userCookie = getCookie(c, 'user')
     const user = safeParseUserCookie(userCookie)
-    if (!user) {
-      return c.json({ success: false, error: 'Not authenticated' }, 401)
-    }
+    if (!user) return c.json({ error: 'Not authenticated' }, 401)
 
-    // SECURITY: Only authenticated dev admin can execute commands
-    // source field from client is informational only - NOT used for auth
-    if (!isDevAdmin(user, c.env)) {
-      return c.json({ success: false, error: 'Permission denied' }, 403)
-    }
+    // 自動解除してから取得
+    await autoExpireRestrictions(c.env.DB, user.user_id)
 
-    const { command, debateId } = await c.req.json()
+    const u = await c.env.DB.prepare(`
+      SELECT is_banned, ban_reason, ban_expires_at,
+             post_ban, post_ban_expires_at,
+             debate_ban, debate_ban_expires_at,
+             credit_freeze, credit_freeze_expires_at,
+             restriction_reason
+      FROM users WHERE user_id = ?
+    `).bind(user.user_id).first() as any
 
-    if (!command) {
-      return c.json({ success: false, error: 'コマンドが空です' }, 400)
-    }
+    if (!u) return c.json({ error: 'User not found' }, 404)
 
-    const cmd = command.trim()
-
-    // !s-x - Schedule debate (x minutes later, 0 = immediate then auto-archive)
-    const scheduleMatch = cmd.match(/^!s-(\d+)$/)
-    if (scheduleMatch) {
-      const minutes = parseInt(scheduleMatch[1])
-
-      // Ensure a debate exists with a random theme
-      let targetDebateId = debateId
-      if (!targetDebateId || targetDebateId === 'default') {
-        targetDebateId = crypto.randomUUID()
-      }
-
-      // Check if debate exists in DB, if not create with random theme
-      const existingDebate = await c.env.DB.prepare('SELECT id FROM debates WHERE id = ?').bind(targetDebateId).first()
-      if (!existingDebate) {
-        // Get random theme from adopted themes or defaults
-        let randomTheme: any = null
-        try {
-          randomTheme = await c.env.DB.prepare(`
-            SELECT title, agree_opinion, disagree_opinion FROM theme_proposals 
-            WHERE status = 'active' AND adopted = 1 ORDER BY RANDOM() LIMIT 1
-          `).first()
-        } catch (e) { }
-        if (!randomTheme) {
-          try {
-            randomTheme = await c.env.DB.prepare(`
-              SELECT title, agree_opinion, disagree_opinion FROM theme_proposals 
-              WHERE status = 'active' ORDER BY RANDOM() LIMIT 1
-            `).first()
-          } catch (e) { }
-        }
-        if (!randomTheme) {
-          const defaultThemes = [
-            { title: 'AIは人間の仕事を奪うか？', agree_opinion: 'AIの進化により多くの職種が自動化される', disagree_opinion: '新しい職種が生まれ、人間の仕事は変わるが消えない' },
-            { title: 'リモートワークは生産性を上げるか？', agree_opinion: '通勤時間の削減と自由な環境が集中力を高める', disagree_opinion: '対面コミュニケーション不足がチームワークを損なう' },
-            { title: 'SNSは社会に良い影響を与えるか？', agree_opinion: '情報の民主化と社会運動の推進に貢献', disagree_opinion: 'フェイクニュースと精神的健康への悪影響が深刻' },
-            { title: '宇宙開発に巨額投資すべきか？', agree_opinion: '人類の生存と科学技術発展のため不可欠', disagree_opinion: '地球上の問題解決に資源を集中すべき' },
-            { title: '学校教育にAIを導入すべきか？', agree_opinion: '個別最適化された学習体験が可能になる', disagree_opinion: '人間教師による情操教育が失われる' },
-          ]
-          randomTheme = defaultThemes[Math.floor(Math.random() * defaultThemes.length)]
-        }
-        try {
-          // Clear existing active debates if user wants a clean slate
-          await c.env.DB.prepare("UPDATE debates SET status = 'completed' WHERE status IN ('live', 'upcoming', 'pending')").run()
-
-          await c.env.DB.prepare(`
-            INSERT INTO debates (id, title, topic, agree_position, disagree_position, status, created_at)
-            VALUES (?, ?, ?, ?, ?, 'pending', datetime('now'))
-          `).bind(targetDebateId, randomTheme.title, randomTheme.title, randomTheme.agree_opinion, randomTheme.disagree_opinion).run()
-        } catch (e2: any) { console.error('Failed to INSERT debate:', e2?.message || e2) }
-      }
-
-      if (minutes === 0) {
-        // Immediate start: set debate status to 'live' in DB
-        try {
-          await c.env.DB.prepare(
-            "UPDATE debates SET status = 'live', started_at = datetime('now') WHERE id = ?"
-          ).bind(targetDebateId).run()
-        } catch (e) {
-          try {
-            await c.env.DB.prepare("ALTER TABLE debates ADD COLUMN started_at TEXT").run()
-            await c.env.DB.prepare(
-              "UPDATE debates SET status = 'live', started_at = datetime('now') WHERE id = ?"
-            ).bind(targetDebateId).run()
-          } catch (e2: any) {
-            console.error('Failed to ALTER+UPDATE debate to live:', e2?.message || e2)
-            try { await c.env.DB.prepare("UPDATE debates SET status = 'live' WHERE id = ?").bind(targetDebateId).run() } catch (e3: any) { console.error('Final fallback UPDATE to live failed:', e3?.message || e3) }
-          }
-        }
-        return c.json({ success: true, action: 'start_debate_archive', schedule_minutes: 0, debateId: targetDebateId })
-      }
-
-      // Scheduled start: set debate status to 'upcoming' with scheduled time
-      try {
-        const scheduledAt = new Date(Date.now() + minutes * 60 * 1000).toISOString()
-        try {
-          await c.env.DB.prepare(
-            "UPDATE debates SET status = 'upcoming', scheduled_at = ? WHERE id = ?"
-          ).bind(scheduledAt, targetDebateId).run()
-        } catch (e) {
-          try {
-            await c.env.DB.prepare("ALTER TABLE debates ADD COLUMN scheduled_at TEXT").run()
-            await c.env.DB.prepare(
-              "UPDATE debates SET status = 'upcoming', scheduled_at = ? WHERE id = ?"
-            ).bind(scheduledAt, targetDebateId).run()
-          } catch (e2: any) {
-            console.error('Failed to ALTER+UPDATE debate to upcoming:', e2?.message || e2)
-            try { await c.env.DB.prepare("UPDATE debates SET status = 'upcoming' WHERE id = ?").bind(targetDebateId).run() } catch (e3: any) { console.error('Final fallback UPDATE to upcoming failed:', e3?.message || e3) }
-          }
-        }
-      } catch (e) {
-        console.error('Schedule debate DB error:', e)
-      }
-      return c.json({ success: true, action: 'schedule_debate', schedule_minutes: minutes, debateId: targetDebateId })
-    }
-
-    // !@xxx+coiny - Grant y coins to user xxx
-    const coinMatch = cmd.match(/^!@(\w+)\+coin(\d+)$/)
-    if (coinMatch) {
-      const targetUserId = coinMatch[1]
-      const coinAmount = parseInt(coinMatch[2])
-
-      if (coinAmount <= 0 || coinAmount > 100000) {
-        return c.json({ success: false, error: '付与額は1〜100000の範囲で指定してください' }, 400)
-      }
-
-      // Check target user exists
-      const targetUser = await c.env.DB.prepare('SELECT user_id, credits FROM users WHERE user_id = ?').bind(targetUserId).first()
-      if (!targetUser) {
-        return c.json({ success: false, error: `ユーザー @${targetUserId} が見つかりません` }, 404)
-      }
-
-      // Grant credits
-      await c.env.DB.prepare('UPDATE users SET credits = credits + ? WHERE user_id = ?').bind(coinAmount, targetUserId).run()
-
-      // Record transaction
-      await c.env.DB.prepare(`
-        INSERT INTO credit_transactions (id, user_id, amount, type, reason, created_at)
-        VALUES (?, ?, ?, 'earn', ?, datetime('now'))
-      `).bind(crypto.randomUUID(), targetUserId, coinAmount, `${user.user_id}からの付与`).run()
-
-      return c.json({ success: true, action: 'grant_coins', target: targetUserId, amount: coinAmount })
-    }
-
-    // All unrecognized commands are errors - only !s-x and !@xxx+coiny are allowed\n    return c.json({ success: false, error: 'エラー: 不明なコマンド「' + cmd + '」。使用可能: !s-数字（開始予約）, !@ユーザー+coin数字（コイン付与）' }, 400)
-  } catch (error) {
-    console.error('Command execution error:', error)
-    return c.json({ success: false, error: 'コマンド実行エラー' }, 500)
+    return c.json({
+      is_banned:       u.is_banned || 0,
+      ban_reason:      u.ban_reason || null,
+      ban_expires_at:  u.ban_expires_at || null,
+      ban_remaining:   restrictionRemainingText(u.ban_expires_at),
+      post_ban:        u.post_ban || 0,
+      post_ban_expires_at: u.post_ban_expires_at || null,
+      post_ban_remaining:  restrictionRemainingText(u.post_ban_expires_at),
+      debate_ban:      u.debate_ban || 0,
+      debate_ban_expires_at: u.debate_ban_expires_at || null,
+      debate_ban_remaining:  restrictionRemainingText(u.debate_ban_expires_at),
+      credit_freeze:   u.credit_freeze || 0,
+      credit_freeze_expires_at: u.credit_freeze_expires_at || null,
+      credit_freeze_remaining:  restrictionRemainingText(u.credit_freeze_expires_at),
+      restriction_reason: u.restriction_reason || null
+    })
+  } catch(e) {
+    return c.json({ error: String(e) }, 500)
   }
 })
 
@@ -2959,6 +3274,8 @@ app.get('/api/user', async (c) => {
 
   try {
     const cookieUser = safeParseUserCookie(userCookie)
+    // 制限期限切れ自動解除してから取得
+    await autoExpireRestrictions(c.env.DB, cookieUser.user_id)
     // Always get fresh data from DB
     const dbUser = await c.env.DB.prepare(
       'SELECT user_id, username, email, credits, nickname, avatar_type, avatar_value, avatar_url, rating, rank FROM users WHERE user_id = ?'
@@ -3824,13 +4141,14 @@ app.post('/api/notifications/read/:id', async (c) => {
 
 // POST /api/admin/ban - ban/unban/restrict a user
 // action: 'ban' | 'unban' | 'post_ban' | 'post_unban' | 'debate_ban' | 'debate_unban' | 'credit_freeze' | 'credit_unfreeze'
+// days: number (0 = permanent, >0 = N days from now)
 app.post('/api/admin/ban', async (c) => {
   try {
     const userCookie = getCookie(c, 'user')
     const user = safeParseUserCookie(userCookie)
     if (!user || !(await isDevAdminDB(user, c.env))) return c.json({ success: false, error: 'Permission denied' }, 403)
     
-    const { target_user_id, action, reason } = await c.req.json()
+    const { target_user_id, action, reason, days } = await c.req.json()
     const validActions = ['ban','unban','post_ban','post_unban','debate_ban','debate_unban','credit_freeze','credit_unfreeze']
     if (!target_user_id || !validActions.includes(action)) return c.json({ success: false, error: 'Invalid params' }, 400)
     if (target_user_id === 'dev') return c.json({ success: false, error: 'devユーザーは制限できません' }, 403)
@@ -3841,58 +4159,65 @@ app.post('/api/admin/ban', async (c) => {
       return c.json({ success: false, error: 'dev権限ユーザーは制限できません' }, 403)
     }
     
+    // 期限計算: days=0またはundefined→永久, days>0→N日後
+    const daysNum = typeof days === 'number' ? days : 0
+    const expiresAt = daysNum > 0
+      ? new Date(Date.now() + daysNum * 86400000).toISOString().replace('T', ' ').substring(0, 19)
+      : null
+
     let notifTitle = ''
     let notifBody = ''
     let notifType = 'warning'
+    const durationText = daysNum > 0 ? `（${daysNum}日間）` : '（永久）'
 
     if (action === 'ban') {
       await c.env.DB.prepare(
-        `UPDATE users SET is_banned = 1, ban_reason = ? WHERE user_id = ?`
-      ).bind(reason || 'Admin ban', target_user_id).run()
+        `UPDATE users SET is_banned = 1, ban_reason = ?, ban_expires_at = ? WHERE user_id = ?`
+      ).bind(reason || 'Admin ban', expiresAt, target_user_id).run()
       notifTitle = 'アカウント停止のお知らせ'
-      notifBody = `あなたのアカウントは停止されました。理由: ${reason || '規約違反'}。詳細はサポートにお問い合わせください。`
+      notifBody = `あなたのアカウントは停止されました${durationText}。理由: ${reason || '規約違反'}。詳細はサポートにお問い合わせください。`
     } else if (action === 'unban') {
       await c.env.DB.prepare(
-        `UPDATE users SET is_banned = 0, ban_reason = NULL WHERE user_id = ?`
+        `UPDATE users SET is_banned = 0, ban_reason = NULL, ban_expires_at = NULL WHERE user_id = ?`
       ).bind(target_user_id).run()
       notifTitle = 'アカウント停止の解除'
       notifBody = 'アカウント停止が解除されました。通常通りご利用いただけます。'
       notifType = 'info'
     } else if (action === 'post_ban') {
       await c.env.DB.prepare(
-        `UPDATE users SET post_ban = 1, restriction_reason = ? WHERE user_id = ?`
-      ).bind(reason || '投稿禁止', target_user_id).run()
+        `UPDATE users SET post_ban = 1, restriction_reason = ?, post_ban_expires_at = ? WHERE user_id = ?`
+      ).bind(reason || '投稿禁止', expiresAt, target_user_id).run()
       notifTitle = '投稿機能の制限'
-      notifBody = `コミュニティへの投稿が制限されました。理由: ${reason || '規約違反'}。`
+      notifBody = `コミュニティへの投稿が制限されました${durationText}。理由: ${reason || '規約違反'}。`
     } else if (action === 'post_unban') {
       await c.env.DB.prepare(
-        `UPDATE users SET post_ban = 0 WHERE user_id = ?`
+        `UPDATE users SET post_ban = 0, post_ban_expires_at = NULL WHERE user_id = ?`
       ).bind(target_user_id).run()
       notifTitle = '投稿制限の解除'
       notifBody = 'コミュニティへの投稿制限が解除されました。'
       notifType = 'info'
     } else if (action === 'debate_ban') {
       await c.env.DB.prepare(
-        `UPDATE users SET debate_ban = 1, restriction_reason = ? WHERE user_id = ?`
-      ).bind(reason || 'ディベート禁止', target_user_id).run()
+        `UPDATE users SET debate_ban = 1, restriction_reason = ?, debate_ban_expires_at = ? WHERE user_id = ?`
+      ).bind(reason || 'ディベート禁止', expiresAt, target_user_id).run()
       notifTitle = 'ディベート機能の制限'
-      notifBody = `ディベートへの参加が制限されました。理由: ${reason || '規約違反'}。`
+      notifBody = `ディベートへの参加が制限されました${durationText}。理由: ${reason || '規約違反'}。`
     } else if (action === 'debate_unban') {
       await c.env.DB.prepare(
-        `UPDATE users SET debate_ban = 0 WHERE user_id = ?`
+        `UPDATE users SET debate_ban = 0, debate_ban_expires_at = NULL WHERE user_id = ?`
       ).bind(target_user_id).run()
       notifTitle = 'ディベート制限の解除'
       notifBody = 'ディベートへの参加制限が解除されました。'
       notifType = 'info'
     } else if (action === 'credit_freeze') {
       await c.env.DB.prepare(
-        `UPDATE users SET credit_freeze = 1, restriction_reason = ? WHERE user_id = ?`
-      ).bind(reason || 'クレジット凍結', target_user_id).run()
+        `UPDATE users SET credit_freeze = 1, restriction_reason = ?, credit_freeze_expires_at = ? WHERE user_id = ?`
+      ).bind(reason || 'クレジット凍結', expiresAt, target_user_id).run()
       notifTitle = 'クレジット凍結のお知らせ'
-      notifBody = `クレジットの使用が凍結されました。理由: ${reason || '規約違反'}。詳細はサポートにお問い合わせください。`
+      notifBody = `クレジットの使用が凍結されました${durationText}。理由: ${reason || '規約違反'}。詳細はサポートにお問い合わせください。`
     } else if (action === 'credit_unfreeze') {
       await c.env.DB.prepare(
-        `UPDATE users SET credit_freeze = 0 WHERE user_id = ?`
+        `UPDATE users SET credit_freeze = 0, credit_freeze_expires_at = NULL WHERE user_id = ?`
       ).bind(target_user_id).run()
       notifTitle = 'クレジット凍結の解除'
       notifBody = 'クレジットの使用凍結が解除されました。'
@@ -3906,8 +4231,8 @@ app.post('/api/admin/ban', async (c) => {
       ).bind(crypto.randomUUID(), target_user_id, notifType, notifTitle, notifBody).run()
     } catch(e) {}
     
-    console.log(`[Admin RESTRICT] ${action} user ${target_user_id} by ${user.user_id}`)
-    return c.json({ success: true })
+    console.log(`[Admin RESTRICT] ${action} user ${target_user_id} by ${user.user_id} (days=${daysNum})`)
+    return c.json({ success: true, expires_at: expiresAt })
   } catch(e) {
     return c.json({ success: false, error: String(e) }, 500)
   }

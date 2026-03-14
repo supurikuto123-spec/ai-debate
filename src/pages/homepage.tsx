@@ -114,10 +114,24 @@ export const homepage = (user: any) => `
 
         ${user ? globalNav(user) : `
         <!-- Guest top bar (not logged in) -->
-        <header style="position:fixed;top:0;left:0;width:100%;height:60px;background:rgba(0,0,0,0.8);backdrop-filter:blur(10px);border-bottom:1px solid rgba(0,255,255,0.3);display:flex;justify-content:space-between;align-items:center;padding:0 20px;z-index:9997;">
-          <span style="color:#00ffff;font-size:1.2rem;font-weight:900;letter-spacing:2px;text-shadow:0 0 10px rgba(0,255,255,0.5);">
-            <i class="fas fa-robot" style="margin-right:8px;"></i>AI DEBATE
-          </span>
+        <header style="position:fixed;top:0;left:0;width:100%;height:60px;background:rgba(0,0,0,0.85);backdrop-filter:blur(10px);border-bottom:1px solid rgba(0,255,255,0.3);display:flex;justify-content:space-between;align-items:center;padding:0 20px;z-index:9997;">
+          <a href="/" style="text-decoration:none;display:flex;align-items:center;gap:10px;">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" style="width:34px;height:34px;flex-shrink:0;">
+              <defs>
+                <linearGradient id="hp-bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#03050f"/><stop offset="100%" stop-color="#080018"/></linearGradient>
+                <linearGradient id="hp-logo" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00e5ff"/><stop offset="50%" stop-color="#8800ff"/><stop offset="100%" stop-color="#ff00cc"/></linearGradient>
+              </defs>
+              <rect width="64" height="64" rx="14" fill="url(#hp-bg)"/>
+              <path d="M 32 8 A 24 24 0 0 0 32 56" fill="none" stroke="#00e5ff" stroke-width="2.5" stroke-linecap="round" opacity="0.9"/>
+              <path d="M 32 8 A 24 24 0 0 1 32 56" fill="none" stroke="#ff00cc" stroke-width="2.5" stroke-linecap="round" opacity="0.9"/>
+              <path d="M 20 22 L 14 22 L 14 42 L 20 42" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>
+              <path d="M 44 22 L 50 22 L 50 42 L 44 42" fill="none" stroke="#ff00cc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>
+              <text x="32" y="37" text-anchor="middle" font-size="16" font-weight="900" font-family="Arial Black,Arial,sans-serif" fill="url(#hp-logo)" letter-spacing="-0.5">AI</text>
+              <circle cx="10" cy="10" r="2" fill="#00e5ff" opacity="0.5"/>
+              <circle cx="54" cy="10" r="2" fill="#ff00cc" opacity="0.5"/>
+            </svg>
+            <span style="font-family:'Orbitron',sans-serif;font-size:1.05rem;font-weight:900;letter-spacing:2px;background:linear-gradient(135deg,#00e5ff,#8800ff,#ff00cc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">AI DEBATE</span>
+          </a>
           <a href="/auth/google" style="background:linear-gradient(135deg,rgba(0,255,255,0.3),rgba(0,128,255,0.3));border:1px solid #00ffff;color:#00ffff;padding:8px 18px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:0.9rem;">
             <i class="fas fa-sign-in-alt" style="margin-right:6px;"></i>ログイン
           </a>
