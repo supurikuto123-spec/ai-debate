@@ -1747,8 +1747,8 @@ app.post('/api/user/privacy', async (c) => {
 app.get('/api/debate/model-info', async (c) => {
   return c.json({
     success: true,
-    model: 'gpt-5.1',
-    display_name: 'GPT-5.1'
+    model: 'gpt-4.1-nano',
+    display_name: 'GPT-4.1-nano'
   })
 })
 
@@ -1763,7 +1763,7 @@ app.get('/api/ai-profiles', async (c) => {
         icon: 'fas fa-brain',
         color: '#34d399',
         gradient: 'from-green-500 to-emerald-500',
-        model: 'gpt-5.1',
+        model: 'gpt-4.1-nano',
         trait: '論理的・データ重視',
         style: '構造的に根拠を積み上げる',
         description: '客観的データと論理的推論を重視し、体系的に議論を構築するAI。根拠の明確さと一貫性が特徴。'
@@ -1774,7 +1774,7 @@ app.get('/api/ai-profiles', async (c) => {
         icon: 'fas fa-fire',
         color: '#f87171',
         gradient: 'from-red-500 to-rose-500',
-        model: 'gpt-5.1',
+        model: 'gpt-4.1-nano',
         trait: '批判的・反証重視',
         style: '矛盾を鋭く突く',
         description: '相手の論点の弱点を鋭く指摘し、反証を提示するAI。批判的思考と反論力が特徴。'
@@ -2243,31 +2243,53 @@ app.post('/api/debate/generate', async (c) => {
       })
     }
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-5.1',  // gpt-5.1: 発言生成モデル
-        messages: messages,
-        max_tokens: maxTokens || 340,  // 300文字（日本語）≈ 340トークン
-        temperature: temperature || 0.7
-      })
-    })
+    // モデル優先順位: 環境変数 > gpt-4.1-nano (gpt-5.1はAPIキーによりアクセス不可の場合あり)
+    const GENERATE_MODELS = ['gpt-4.1-nano', 'gpt-4.1-mini']
+    let response: Response | null = null
+    let lastError = ''
+    let usedModel = 'gpt-4.1-nano'
 
-    if (!response.ok) {
-      const error = await response.text()
-      console.error('OpenAI API error:', error)
+    for (const modelId of GENERATE_MODELS) {
+      try {
+        const res = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: modelId,
+            messages: messages,
+            max_tokens: maxTokens || 340,
+            temperature: temperature || 0.7
+          })
+        })
+        if (res.ok) {
+          response = res
+          usedModel = modelId
+          break
+        }
+        const errText = await res.text()
+        console.error(`OpenAI API error (${modelId}):`, errText)
+        lastError = errText
+        // model_not_found や 404 以外は即失敗
+        if (res.status !== 404 && res.status !== 400) break
+      } catch (fetchErr) {
+        console.error(`Fetch error (${modelId}):`, fetchErr)
+        lastError = String(fetchErr)
+      }
+    }
+
+    if (!response || !response.ok) {
+      console.error('All models failed. Last error:', lastError)
       return c.json({ error: 'AI generation failed' }, 500)
     }
 
-    const data = await response.json()
+    const data: any = await response.json()
     let message = data.choices[0].message.content.trim()
 
     // 実際に使用されたモデル情報を取得
-    const usedModel = data.model || 'gpt-5.1'
+    usedModel = data.model || usedModel
 
     // トークン使用量をログ出力（キャッシュヒット率確認）
     // gpt-5.1:
@@ -2389,31 +2411,50 @@ No other text.`
     // judgeは再現性重視でmax_tokens=30、symbolは内部思考余裕でmax_tokens=60
     const maxTok = (mode === 'judge') ? 30 : 60
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-5.1',  // gpt-5.1: 評価AI（意味ベース立場ドリフト検出）
-        messages: [
-          { role: 'system', content: systemContent },
-          { role: 'user', content: prompt }
-        ],
-        max_tokens: maxTok,
-        temperature: 0.1,  // 全modeで低温固定（安定性・再現性重視）
-        response_format: { type: 'json_object' }
-      })
-    })
+    // モデル優先順位: gpt-4.1-nano → gpt-4.1-mini (フォールバック)
+    const EVAL_MODELS = ['gpt-4.1-nano', 'gpt-4.1-mini']
+    let evalResponse: Response | null = null
+    let evalLastError = ''
 
-    if (!response.ok) {
-      const error = await response.text()
-      console.error('OpenAI API error:', error)
+    for (const modelId of EVAL_MODELS) {
+      try {
+        const res = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: modelId,
+            messages: [
+              { role: 'system', content: systemContent },
+              { role: 'user', content: prompt }
+            ],
+            max_tokens: maxTok,
+            temperature: 0.1,
+            response_format: { type: 'json_object' }
+          })
+        })
+        if (res.ok) {
+          evalResponse = res
+          break
+        }
+        const errText = await res.text()
+        console.error(`OpenAI API error (${modelId}):`, errText)
+        evalLastError = errText
+        if (res.status !== 404 && res.status !== 400) break
+      } catch (fetchErr) {
+        console.error(`Fetch error (${modelId}):`, fetchErr)
+        evalLastError = String(fetchErr)
+      }
+    }
+
+    if (!evalResponse || !evalResponse.ok) {
+      console.error('All eval models failed. Last error:', evalLastError)
       return c.json({ error: 'AI evaluation failed' }, 500)
     }
 
-    const data = await response.json()
+    const data: any = await evalResponse.json()
     let message = data.choices[0].message.content.trim()
 
     // ── サーバー側でJSONバリデーション ──────────────────────────────────
