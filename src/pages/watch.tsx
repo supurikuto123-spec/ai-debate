@@ -305,16 +305,8 @@ export const watchPage = (user: any, debateId: string) => `
                     </h3>
                     <div class="space-y-3">
                         <div class="flex items-center justify-between bg-gray-900/50 p-3 rounded">
-                            <span class="text-sm font-bold">AI-Judge-1:</span>
+                            <span class="text-sm font-bold">AI-Judge:</span>
                             <span id="judge1-eval" class="text-sm text-gray-400">評価中...</span>
-                        </div>
-                        <div class="flex items-center justify-between bg-gray-900/50 p-3 rounded">
-                            <span class="text-sm font-bold">AI-Judge-2:</span>
-                            <span id="judge2-eval" class="text-sm text-gray-400">評価中...</span>
-                        </div>
-                        <div class="flex items-center justify-between bg-gray-900/50 p-3 rounded">
-                            <span class="text-sm font-bold">AI-Judge-3:</span>
-                            <span id="judge3-eval" class="text-sm text-gray-400">評価中...</span>
                         </div>
                     </div>
                 </div>

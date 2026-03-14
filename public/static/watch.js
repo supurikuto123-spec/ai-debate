@@ -30,7 +30,7 @@ let voteData = { agree: 0, disagree: 0, total: 0 };
 // Fog mode & AI judges
 let fogMode = false;
 let finalVotingMode = false;
-let aiJudgeStances = { judge1: null, judge2: null, judge3: null };
+let aiJudgeStances = { judge1: null };
 
 // Debate state
 let debateActive = false;
@@ -219,27 +219,20 @@ function updateVoteDisplay() {
 }
 
 function updateJudgeDisplay() {
-    const judges = [
-        { id: 'judge1-eval', stance: aiJudgeStances.judge1 },
-        { id: 'judge2-eval', stance: aiJudgeStances.judge2 },
-        { id: 'judge3-eval', stance: aiJudgeStances.judge3 }
-    ];
+    const elem = document.getElementById('judge1-eval');
+    if (!elem) return;
 
-    judges.forEach(judge => {
-        const elem = document.getElementById(judge.id);
-        if (!elem) return;
-
-        if (judge.stance) {
-            const winner = judge.stance === 'agree' ? 'Aether' : 'Nova';
-            const color = judge.stance === 'agree' ? 'text-green-400' : 'text-red-400';
-            const icon = judge.stance === 'agree' ? 'fa-check-circle' : 'fa-times-circle';
-            elem.className = 'text-sm font-bold ' + color;
-            elem.innerHTML = '<i class="fas ' + icon + ' mr-1"></i>' + winner + ' 優勢';
-        } else {
-            elem.className = 'text-sm text-gray-400';
-            elem.textContent = '評価中...';
-        }
-    });
+    const stance = aiJudgeStances.judge1;
+    if (stance) {
+        const winner = stance === 'agree' ? 'Aether' : 'Nova';
+        const color = stance === 'agree' ? 'text-green-400' : 'text-red-400';
+        const icon = stance === 'agree' ? 'fa-check-circle' : 'fa-times-circle';
+        elem.className = 'text-sm font-bold ' + color;
+        elem.innerHTML = '<i class="fas ' + icon + ' mr-1"></i>' + winner + ' 優勢';
+    } else {
+        elem.className = 'text-sm text-gray-400';
+        elem.textContent = '評価中...';
+    }
 }
 
 function updateViewerCount() {
@@ -445,10 +438,8 @@ async function performAIJudging() {
         const judgment = await getAIJudgment(fullDebate, 0.1);
 
         if (judgment && judgment.winner) {
-            // 3審判から1審判に変更。judge1のみ使用（judge2/3はnullのまま）
+            // シングル審判（gpt-5.1 x1）
             aiJudgeStances['judge1'] = judgment.winner;
-            aiJudgeStances['judge2'] = judgment.winner; // 表示の互換性のため同値を設定
-            aiJudgeStances['judge3'] = judgment.winner;
         }
 
         if (!fogMode) {
@@ -566,7 +557,7 @@ async function startDebate() {
     debateActive = true;
     debateStartTime = Date.now();
     conversationHistory = [];
-    aiJudgeStances = { judge1: null, judge2: null, judge3: null };
+    aiJudgeStances = { judge1: null };
 
     const startTimeElement = document.getElementById('debateStartTime');
     if (startTimeElement) {
@@ -724,15 +715,14 @@ async function showFinalResults() {
         winnerReason = '投票多数';
     } else {
         // Tie: use AI judges
-        const judgeVotes = { agree: 0, disagree: 0 };
-        ['judge1', 'judge2', 'judge3'].forEach(key => {
-            if (aiJudgeStances[key] === 'agree') judgeVotes.agree++;
-            else if (aiJudgeStances[key] === 'disagree') judgeVotes.disagree++;
-        });
-        if (judgeVotes.agree >= judgeVotes.disagree) {
+        // シングル審判（1体）
+        if (aiJudgeStances.judge1 === 'agree') {
             winnerSide = 'agree';
-        } else {
+        } else if (aiJudgeStances.judge1 === 'disagree') {
             winnerSide = 'disagree';
+        } else {
+            // 審判未確定の場合は投票多数に戻す
+            winnerSide = 'agree';
         }
         winnerReason = 'AI審査員判定（投票同数）';
     }
@@ -740,13 +730,11 @@ async function showFinalResults() {
     const winner = winnerSide === 'agree' ? 'Aether' : 'Nova';
     const winnerColor = winnerSide === 'agree' ? 'text-green-400' : 'text-red-400';
 
-    let judgeHTML = '';
-    ['judge1', 'judge2', 'judge3'].forEach((key, i) => {
-        const stance = aiJudgeStances[key];
-        const judgeWinner = stance ? (stance === 'agree' ? 'Aether支持' : 'Nova支持') : '判定なし';
-        const judgeColor = stance ? (stance === 'agree' ? 'text-green-400' : 'text-red-400') : 'text-gray-400';
-        judgeHTML += '<div class="mb-2"><span class="text-cyan-400 font-bold">AI-Judge-' + (i + 1) + ':</span> <span class="' + judgeColor + '">' + judgeWinner + '</span></div>';
-    });
+    // 審判結果表示（1体）
+    const judgeStance = aiJudgeStances.judge1;
+    const judgeWinner = judgeStance ? (judgeStance === 'agree' ? 'Aether支持' : 'Nova支持') : '判定なし';
+    const judgeColor = judgeStance ? (judgeStance === 'agree' ? 'text-green-400' : 'text-red-400') : 'text-gray-400';
+    const judgeHTML = '<div class="mb-2"><span class="text-cyan-400 font-bold">AI-Judge:</span> <span class="' + judgeColor + '">' + judgeWinner + '</span></div>';
 
     const reasonHtml = winnerReason ? '<p class="text-sm text-gray-400 mt-2">決定理由: ' + winnerReason + '</p>' : '';
 
