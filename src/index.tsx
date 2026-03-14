@@ -1747,8 +1747,8 @@ app.post('/api/user/privacy', async (c) => {
 app.get('/api/debate/model-info', async (c) => {
   return c.json({
     success: true,
-    model: 'gpt-4.1-nano',
-    display_name: 'GPT-4.1 Nano'
+    model: 'gpt-5.1',
+    display_name: 'GPT-5.1'
   })
 })
 
@@ -1763,7 +1763,7 @@ app.get('/api/ai-profiles', async (c) => {
         icon: 'fas fa-brain',
         color: '#34d399',
         gradient: 'from-green-500 to-emerald-500',
-        model: 'gpt-4.1-nano',
+        model: 'gpt-5.1',
         trait: '論理的・データ重視',
         style: '構造的に根拠を積み上げる',
         description: '客観的データと論理的推論を重視し、体系的に議論を構築するAI。根拠の明確さと一貫性が特徴。'
@@ -1774,7 +1774,7 @@ app.get('/api/ai-profiles', async (c) => {
         icon: 'fas fa-fire',
         color: '#f87171',
         gradient: 'from-red-500 to-rose-500',
-        model: 'gpt-4.1-nano',
+        model: 'gpt-5.1',
         trait: '批判的・反証重視',
         style: '矛盾を鋭く突く',
         description: '相手の論点の弱点を鋭く指摘し、反証を提示するAI。批判的思考と反論力が特徴。'
@@ -2250,7 +2250,7 @@ app.post('/api/debate/generate', async (c) => {
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-nano',  // gpt-4.1-nano: $0.05/$0.005/$0.40
+        model: 'gpt-5.1',  // gpt-5.1: 発言生成モデル
         messages: messages,
         max_tokens: maxTokens || 340,  // 300文字（日本語）≈ 340トークン
         temperature: temperature || 0.7
@@ -2267,10 +2267,10 @@ app.post('/api/debate/generate', async (c) => {
     let message = data.choices[0].message.content.trim()
 
     // 実際に使用されたモデル情報を取得
-    const usedModel = data.model || 'gpt-4.1-nano'
+    const usedModel = data.model || 'gpt-5.1'
 
     // トークン使用量をログ出力（キャッシュヒット率確認）
-    // gpt-4.1-nano: $0.05/$0.005/$0.40
+    // gpt-5.1:
     if (data.usage) {
       const cached = data.usage.prompt_tokens_details?.cached_tokens || 0
       const cacheRate = data.usage.prompt_tokens > 0
@@ -2284,6 +2284,7 @@ app.post('/api/debate/generate', async (c) => {
     message = message.replace(/^(Aether|Nova):\s*/g, '')
     message = message.replace(/^【[^】]*】:\s*/g, '')
 
+    // ── サーバー側バリデーション ────────────────────────────────────────
     // 300文字制限を厳格に実施（必ず句読点で終わるように調整）
     if (message.length > 300) {
       message = message.substring(0, 300)
@@ -2333,57 +2334,60 @@ app.post('/api/debate/evaluate', async (c) => {
     // ── システムプロンプトをmodeで分岐 ──────────────────────────────────
     // ※ system部分を固定化してOpenAIプロンプトキャッシュヒット率を最大化する
     // ── 発言評価モード (symbol) ──────────────────────────────────────────
-    const SYSTEM_SYMBOL = `You are a strict debate evaluator. Your PRIMARY task is to detect whether the speaker is actually reinforcing their own side or drifting toward the opponent's side — based on MEANING, not wording.
+    const SYSTEM_SYMBOL = `You are a strict debate evaluator. Before choosing a symbol, you MUST internally determine which side this statement actually strengthens.
 
-STEP 1 — STANCE SIDE CHECK (do this first, always):
-Ask: "Does this statement ultimately strengthen the speaker's assigned position, or does it strengthen the opponent's position?"
-- If the statement's CONCLUSION effectively argues FOR the opponent's side → symbol is "??" immediately. No exceptions.
-- Example of drift (agree side): Ending with "wealth doesn't guarantee happiness; inner growth is what truly matters" → this is a disagree conclusion. Assign "??".
-- Example of no drift (agree side): Acknowledging opponent's point mid-statement but ending with "therefore, wealth is a key factor in happiness" → stance held.
+INTERNAL CHECK (mandatory, before any scoring):
+Q1: "strengthen_side" — Does this statement's OVERALL ARGUMENT (not just its final sentence) primarily strengthen "agree", "disagree", or "neither"?
+Q2: "stance_match" — Does strengthen_side match the speaker's assigned side (given in TARGET line)?
+- If stance_match = NO → symbol is "??" immediately. No exceptions.
+- If strengthen_side = "neither" → symbol is "?" at best.
 
-STEP 2 — QUALITY AXES (only if stance is held):
-2a. Rebuttal quality: Did it attack a SPECIFIC weakness in the opponent's last argument? (Not just restating own view.)
-    - Vague abstractions with no opponent-targeting ("inner richness matters", "human connections are important") = low quality.
-2b. Reasoning specificity: Concrete comparison, causal chain, or real example present?
-2c. Logical coherence: No self-contradiction within the statement?
+CRITICAL RULES for Q1:
+- Ignore self-declaration labels ("I support agree", "therefore I agree"). Judge the BODY of the argument.
+- A statement that argues "wealth doesn't guarantee happiness / inner growth matters more" is a DISAGREE argument, even if the speaker says "I am agree side" at the end.
+- A statement that argues "wealth provides safety, freedom, and options that enable happiness" is an AGREE argument.
+- Abstract claims with no side-specific conclusion ("relationships matter", "inner richness is important") = "neither".
+
+QUALITY AXES (apply only when stance_match = YES):
+1. [Priority 1] Rebuttal quality: Did it attack a SPECIFIC weakness of the opponent's last argument? Vague abstractions with no opponent-targeting = low quality.
+2. [Priority 2] Reasoning specificity: Concrete comparison, causal chain, or example present?
+3. [Priority 3] Logical coherence: No self-contradiction?
 
 SYMBOL RULES:
-!! : Stance firmly held AND targeted rebuttal to opponent's specific point AND concrete reasoning. ALL must be true.
-!  : Stance firmly held AND at least one of (2a or 2b) is solid.
-?  : Stance held but no specific rebuttal (only self-assertion or abstract repetition).
-?? : Statement's conclusion strengthens the opponent's position — regardless of any words used.
-
-CRITICAL: Abstract-only statements like "inner richness matters most" or "human relationships determine happiness" without defending the speaker's own position = assign "?" or "??" depending on which side they favor.
+!! : stance_match=YES AND targeted opponent rebuttal AND concrete reasoning. ALL THREE required.
+!  : stance_match=YES AND at least Priority 1 OR Priority 2 is solid.
+?  : stance_match=YES BUT only abstract self-assertion, no specific opponent attack.
+?? : stance_match=NO (argument body strengthens opponent's side or is "neither").
 
 OUTPUT: JSON only. {"symbol":"!!"} or {"symbol":"!"} or {"symbol":"?"} or {"symbol":"??"}
 No other text.`
 
     // ── 審判モード (judge) ───────────────────────────────────────────────
-    const SYSTEM_JUDGE = `You are an impartial debate judge. Your PRIMARY task is to detect stance-drift by MEANING — not by words used.
+    const SYSTEM_JUDGE = `You are an impartial debate judge. Your PRIMARY task is to detect stance-drift by analyzing argument BODY — not by labels or self-declarations.
 
-STEP 1 — STANCE CONSISTENCY CHECK PER SIDE (most important):
-For each side, read ALL their statements and ask: "Did their conclusions consistently strengthen their own assigned position, or did they drift toward the opponent's position?"
+MANDATORY INTERNAL ANALYSIS per side:
+For each statement by each side, determine "strengthen_side": does its body argument strengthen "agree", "disagree", or "neither"?
+Ignore phrases like "I am agree side" or "therefore I agree" — judge only by what the argument actually claims.
 
-Stance-drift definition: The speaker's conclusion in one or more turns SEMANTICALLY argues for the opponent's position.
-- agree side drift example: "Wealth doesn't guarantee happiness; what truly matters is inner growth and relationships." → This IS the disagree argument. Drift = YES.
-- disagree side no-drift example: "Even with wealth, mental emptiness persists — therefore wealth alone doesn't ensure happiness." → Consistently disagree. Drift = NO.
+Drift detection:
+- agree side drift: body argument supports the DISAGREE position (e.g., "wealth doesn't ensure happiness; inner growth matters more" → DISAGREE body → drift).
+- disagree side no-drift: body argument supports the DISAGREE position (e.g., "wealth creates pressure and loneliness" → DISAGREE body → consistent).
 
-STEP 2 — WINNER DETERMINATION:
-Rule A: If exactly one side has clear stance-drift → that side LOSES. Other side wins.
-Rule B: If both sides maintained their stance → judge by rebuttal quality (did they attack specific points, not just restate own view?), then by reasoning specificity.
-Rule C: If both sides drifted → the side that stayed closer to their original position wins.
+WINNER DETERMINATION:
+Rule A: One side drifted, other did not → non-drifting side WINS.
+Rule B: Neither side drifted → judge by: (1) rebuttal quality — did they attack opponent's specific points? (2) reasoning specificity — concrete > abstract.
+Rule C: Both sides drifted → the side whose body arguments stayed closer to their assigned position wins.
 
-ADDITIONAL CRITERIA (apply only after stance check):
-- Rebuttal quality: Did the speaker directly counter the opponent's specific claims, or just repeat their own position?
-- Reasoning specificity: Concrete comparisons, causal explanations, examples > vague abstractions.
-- Abstract-only repetition ("inner richness matters", "human relationships are key") with no opponent engagement = low quality, does not improve standing.
+DO NOT reward:
+- Abstract-only statements with no opponent engagement ("relationships matter", "inner richness is key").
+- Self-declarations that contradict the argument body.
 
 OUTPUT: JSON only. {"winner":"agree"} or {"winner":"disagree"}
 No other text.`
 
     const systemContent = (mode === 'judge') ? SYSTEM_JUDGE : SYSTEM_SYMBOL
-    // judgeは再現性重視でmax_tokens=20、symbolは判定余裕でmax_tokens=25
-    const maxTok = (mode === 'judge') ? 20 : 25
+    // judgeは再現性重視でmax_tokens=30、symbolは内部思考余裕でmax_tokens=60
+    const maxTok = (mode === 'judge') ? 30 : 60
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -2392,7 +2396,7 @@ No other text.`
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-nano',
+        model: 'gpt-5.1',  // gpt-5.1: 評価AI（意味ベース立場ドリフト検出）
         messages: [
           { role: 'system', content: systemContent },
           { role: 'user', content: prompt }

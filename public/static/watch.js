@@ -43,7 +43,7 @@ let lastMessageCount = 0;
 let lastCommentCount = 0;
 
 // Current AI model name (fetched from API)
-let AI_MODEL_DISPLAY = 'gpt-5-nano';
+let AI_MODEL_DISPLAY = 'gpt-5.1';
 
 // ===== Load debate theme from DB =====
 async function loadDebateTheme() {
@@ -87,7 +87,7 @@ async function loadModelInfo() {
         if (!response.ok) return;
         const data = await response.json();
         if (data.success) {
-            AI_MODEL_DISPLAY = data.display_name || data.model || 'gpt-5-nano';
+            AI_MODEL_DISPLAY = data.display_name || data.model || 'gpt-5.1';
             const modelLabelA = document.getElementById('modelLabelA');
             const modelLabelB = document.getElementById('modelLabelB');
             const modelInfo = document.getElementById('debateModelInfo');
@@ -441,18 +441,15 @@ async function performAIJudging() {
             '[' + (msg.side === 'agree' ? 'A' : 'B') + ']: ' + msg.content
         ).join('\n');
 
-        // 審判3名：全員低temperature固定（安定性重視）、差異は内部重み設定で対応
-        const judgments = await Promise.all([
-            getAIJudgment(fullDebate, 0.1),
-            getAIJudgment(fullDebate, 0.1),
-            getAIJudgment(fullDebate, 0.1)
-        ]);
+        // 審判AI: gpt-5.1 シングル1体（コスト削減 + 安定性向上）
+        const judgment = await getAIJudgment(fullDebate, 0.1);
 
-        judgments.forEach((judgment, index) => {
-            if (judgment && judgment.winner) {
-                aiJudgeStances['judge' + (index + 1)] = judgment.winner;
-            }
-        });
+        if (judgment && judgment.winner) {
+            // 3審判から1審判に変更。judge1のみ使用（judge2/3はnullのまま）
+            aiJudgeStances['judge1'] = judgment.winner;
+            aiJudgeStances['judge2'] = judgment.winner; // 表示の互換性のため同値を設定
+            aiJudgeStances['judge3'] = judgment.winner;
+        }
 
         if (!fogMode) {
             updateJudgeDisplay();
@@ -934,7 +931,7 @@ async function generateAIResponse(side) {
                 side: side
             });
 
-            const actualModel = data.model || 'gpt-4.1-nano';
+            const actualModel = data.model || 'gpt-5.1';
             await addDebateMessageWithTyping(side, data.message, actualModel);
 
             setTimeout(() => {
