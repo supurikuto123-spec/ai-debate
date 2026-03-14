@@ -348,54 +348,40 @@ function formatCountDisplay(count) {
     return '100000+';
 }
 
+// Safe JSON fetch helper - handles empty/invalid responses
+async function safeFetchJson(url) {
+    try {
+        const res = await fetch(url);
+        if (!res.ok) return null;
+        const text = await res.text();
+        if (!text || text.trim() === '') return null;
+        return JSON.parse(text);
+    } catch (e) {
+        return null;
+    }
+}
+
+// Update a single stat element
+function setStatValue(id, value) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = Number(value || 0).toLocaleString();
+    el.style.animation = 'none';
+    setTimeout(() => { el.style.animation = 'meterPulse 2s ease-in-out infinite'; }, 10);
+}
+
 // Fetch and update visitor/user stats
 async function updateStats() {
-    try {
-        // Fetch online connection count
-        const onlineResponse = await fetch('/api/stats/online');
-        if (onlineResponse.ok) {
-            const onlineData = await onlineResponse.json();
-            const onlineElement = document.getElementById('online-count');
-            if (onlineElement) {
-                onlineElement.textContent = Number(onlineData.count || 0).toLocaleString();
-                onlineElement.style.animation = 'none';
-                setTimeout(() => { onlineElement.style.animation = 'meterPulse 2s ease-in-out infinite'; }, 10);
-            }
-        }
+    // Each API called independently so one failure doesn't block others
+    const [onlineData, visitorData, userData] = await Promise.all([
+        safeFetchJson('/api/stats/online'),
+        safeFetchJson('/api/stats/visitors'),
+        safeFetchJson('/api/stats/users')
+    ]);
 
-        // Fetch total visitor count
-        const visitorResponse = await fetch('/api/stats/visitors');
-        if (visitorResponse.ok) {
-            const visitorData = await visitorResponse.json();
-            const visitorElement = document.getElementById('visitor-count');
-            if (visitorElement) {
-                visitorElement.textContent = Number(visitorData.count || 0).toLocaleString();
-                visitorElement.style.animation = 'none';
-                setTimeout(() => { visitorElement.style.animation = 'meterPulse 2s ease-in-out infinite'; }, 10);
-            }
-        }
-
-        // Fetch total registered user count
-        const userResponse = await fetch('/api/stats/users');
-        if (userResponse.ok) {
-            const userData = await userResponse.json();
-            const userElement = document.getElementById('user-count');
-            if (userElement) {
-                userElement.textContent = Number(userData.count || 0).toLocaleString();
-                userElement.style.animation = 'none';
-                setTimeout(() => { userElement.style.animation = 'meterPulse 2s ease-in-out infinite'; }, 10);
-            }
-        }
-    } catch (error) {
-        console.error('Failed to update stats:', error);
-        // Show placeholder on error
-        const onlineElement = document.getElementById('online-count');
-        const visitorElement = document.getElementById('visitor-count');
-        const userElement = document.getElementById('user-count');
-        if (onlineElement) onlineElement.textContent = '--';
-        if (visitorElement) visitorElement.textContent = '--';
-        if (userElement) userElement.textContent = '--';
-    }
+    if (onlineData !== null) setStatValue('online-count', onlineData.count);
+    if (visitorData !== null) setStatValue('visitor-count', visitorData.count);
+    if (userData !== null) setStatValue('user-count', userData.count);
 }
 
 // Update stats on page load
