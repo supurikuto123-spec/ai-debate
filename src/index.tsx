@@ -2333,45 +2333,50 @@ app.post('/api/debate/evaluate', async (c) => {
     // ── システムプロンプトをmodeで分岐 ──────────────────────────────────
     // ※ system部分を固定化してOpenAIプロンプトキャッシュヒット率を最大化する
     // ── 発言評価モード (symbol) ──────────────────────────────────────────
-    const SYSTEM_SYMBOL = `You are a strict debate evaluator. Evaluate the TARGET statement on 4 axes, then output ONE symbol.
+    const SYSTEM_SYMBOL = `You are a strict debate evaluator. Your PRIMARY task is to detect whether the speaker is actually reinforcing their own side or drifting toward the opponent's side — based on MEANING, not wording.
 
-AXES (evaluate in this priority order):
-1. Stance consistency [HIGHEST PRIORITY]: Does the speaker's FINAL CONCLUSION support their own assigned position?
-   - "??" if the conclusion ends up supporting the opponent's side, even without explicit concession words.
-   - "??" if the speaker's main conclusion is semantically equivalent to the opponent's position.
-   - Partial acknowledgment mid-argument is OK ONLY if the final conclusion clearly returns to own side.
-2. Rebuttal quality: Does it identify and attack a specific weakness in the opponent's argument?
-   - Abstract repetition ("inner richness matters") without targeting opponent's specific point = lower score.
-3. Reasoning specificity: Is there a concrete comparison, causal link, or example? (Do not reward vague abstractions.)
-4. Logical coherence: No self-contradiction within the statement.
+STEP 1 — STANCE SIDE CHECK (do this first, always):
+Ask: "Does this statement ultimately strengthen the speaker's assigned position, or does it strengthen the opponent's position?"
+- If the statement's CONCLUSION effectively argues FOR the opponent's side → symbol is "??" immediately. No exceptions.
+- Example of drift (agree side): Ending with "wealth doesn't guarantee happiness; inner growth is what truly matters" → this is a disagree conclusion. Assign "??".
+- Example of no drift (agree side): Acknowledging opponent's point mid-statement but ending with "therefore, wealth is a key factor in happiness" → stance held.
+
+STEP 2 — QUALITY AXES (only if stance is held):
+2a. Rebuttal quality: Did it attack a SPECIFIC weakness in the opponent's last argument? (Not just restating own view.)
+    - Vague abstractions with no opponent-targeting ("inner richness matters", "human connections are important") = low quality.
+2b. Reasoning specificity: Concrete comparison, causal chain, or real example present?
+2c. Logical coherence: No self-contradiction within the statement?
 
 SYMBOL RULES:
-!! : Axes 1-4 all strong. Stance firm, targeted rebuttal, concrete reasoning.
-!  : Axis 1 firm, at least axis 2 or 3 solid.
-?  : Stance held but rebuttal is vague or purely abstract (no specific attack on opponent).
-?? : Final conclusion drifts toward opponent's position — regardless of wording used.
+!! : Stance firmly held AND targeted rebuttal to opponent's specific point AND concrete reasoning. ALL must be true.
+!  : Stance firmly held AND at least one of (2a or 2b) is solid.
+?  : Stance held but no specific rebuttal (only self-assertion or abstract repetition).
+?? : Statement's conclusion strengthens the opponent's position — regardless of any words used.
+
+CRITICAL: Abstract-only statements like "inner richness matters most" or "human relationships determine happiness" without defending the speaker's own position = assign "?" or "??" depending on which side they favor.
 
 OUTPUT: JSON only. {"symbol":"!!"} or {"symbol":"!"} or {"symbol":"?"} or {"symbol":"??"}
 No other text.`
 
     // ── 審判モード (judge) ───────────────────────────────────────────────
-    const SYSTEM_JUDGE = `You are an impartial debate judge. Evaluate the full debate transcript and determine the winner.
+    const SYSTEM_JUDGE = `You are an impartial debate judge. Your PRIMARY task is to detect stance-drift by MEANING — not by words used.
 
-CRITERIA (in strict priority order):
-1. Stance consistency [MOST IMPORTANT — can override all other criteria]:
-   - Did each side maintain their assigned conclusion throughout ALL turns?
-   - Stance-drift = speaker's conclusion semantically supports the opponent's position, even without explicit concession words.
-   - Example of drift: a "agree" side saying "money alone doesn't guarantee happiness, inner richness matters most" is drifting toward the "disagree" position.
-   - A side with clear stance-drift LOSES, regardless of argument quality.
-2. Rebuttal quality: Did the speaker directly attack specific weaknesses in the opponent's arguments?
-   - Merely restating one's own position without engaging opponent's points = low rebuttal quality.
-3. Reasoning specificity: Concrete comparisons, causal chains, examples score higher than abstract claims.
-4. Logical coherence: No self-contradiction across turns.
+STEP 1 — STANCE CONSISTENCY CHECK PER SIDE (most important):
+For each side, read ALL their statements and ask: "Did their conclusions consistently strengthen their own assigned position, or did they drift toward the opponent's position?"
 
-WINNER DECISION:
-- If one side shows stance-drift and the other does not → the non-drifting side wins.
-- If both sides maintain stance → judge by criteria 2-4.
-- If both sides drift → judge by which side stayed closer to their assigned position.
+Stance-drift definition: The speaker's conclusion in one or more turns SEMANTICALLY argues for the opponent's position.
+- agree side drift example: "Wealth doesn't guarantee happiness; what truly matters is inner growth and relationships." → This IS the disagree argument. Drift = YES.
+- disagree side no-drift example: "Even with wealth, mental emptiness persists — therefore wealth alone doesn't ensure happiness." → Consistently disagree. Drift = NO.
+
+STEP 2 — WINNER DETERMINATION:
+Rule A: If exactly one side has clear stance-drift → that side LOSES. Other side wins.
+Rule B: If both sides maintained their stance → judge by rebuttal quality (did they attack specific points, not just restate own view?), then by reasoning specificity.
+Rule C: If both sides drifted → the side that stayed closer to their original position wins.
+
+ADDITIONAL CRITERIA (apply only after stance check):
+- Rebuttal quality: Did the speaker directly counter the opponent's specific claims, or just repeat their own position?
+- Reasoning specificity: Concrete comparisons, causal explanations, examples > vague abstractions.
+- Abstract-only repetition ("inner richness matters", "human relationships are key") with no opponent engagement = low quality, does not improve standing.
 
 OUTPUT: JSON only. {"winner":"agree"} or {"winner":"disagree"}
 No other text.`

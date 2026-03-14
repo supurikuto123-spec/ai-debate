@@ -97,7 +97,7 @@ export const watchPage = (user: any, debateId: string) => `
         </style>
     </head>
     <body class="bg-black text-white overflow-x-hidden">
-        \${globalNav(user)}
+        ${globalNav(user)}
         
         <!-- Vote Modal -->
         <div id="voteModal" class="modal">
