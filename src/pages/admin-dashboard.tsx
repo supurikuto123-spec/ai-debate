@@ -609,10 +609,10 @@ export const adminDashboardPage = (userData: any) => `<!DOCTYPE html>
         const daysRow = document.getElementById('restrictDaysRow');
         const permanentRow = document.getElementById('restrictPermanentRow');
         title.textContent = \`@\${userId} を「\${info.label}」\`;
-        (document.getElementById('restrictReason') as HTMLInputElement).value = '';
-        (document.getElementById('restrictDays') as HTMLInputElement).value = '7';
-        (document.getElementById('restrictDaysNum') as HTMLInputElement).value = '7';
-        (document.getElementById('restrictPermanent') as HTMLInputElement).checked = false;
+        (document.getElementById('restrictReason')).value = '';
+        (document.getElementById('restrictDays')).value = '7';
+        (document.getElementById('restrictDaysNum')).value = '7';
+        (document.getElementById('restrictPermanent')).checked = false;
         updateDaysDisplay();
         if (info.needReason) {
             reasonRow.style.display = 'block';
@@ -628,8 +628,8 @@ export const adminDashboardPage = (userData: any) => `<!DOCTYPE html>
 
     function updateDaysDisplay() {
         const isPerm = document.getElementById('restrictPermanent').checked;
-        const daysInput = document.getElementById('restrictDays') as HTMLInputElement;
-        const daysNumInput = document.getElementById('restrictDaysNum') as HTMLInputElement;
+        const daysInput = document.getElementById('restrictDays');
+        const daysNumInput = document.getElementById('restrictDaysNum');
         const daysLabel = document.getElementById('restrictDaysLabel');
         daysInput.disabled = isPerm;
         daysNumInput.disabled = isPerm;
@@ -645,26 +645,26 @@ export const adminDashboardPage = (userData: any) => `<!DOCTYPE html>
     }
 
     function syncSliderFromNum() {
-        const num = parseInt((document.getElementById('restrictDaysNum') as HTMLInputElement).value) || 1;
+        const num = parseInt((document.getElementById('restrictDaysNum')).value) || 1;
         const clamped = Math.min(365, Math.max(1, num));
-        (document.getElementById('restrictDays') as HTMLInputElement).value = String(clamped);
-        (document.getElementById('restrictDaysNum') as HTMLInputElement).value = String(clamped);
+        (document.getElementById('restrictDays')).value = String(clamped);
+        (document.getElementById('restrictDaysNum')).value = String(clamped);
         const daysLabel = document.getElementById('restrictDaysLabel');
         daysLabel.textContent = clamped + '日間';
         daysLabel.style.color = '#fbbf24';
     }
 
     function setDaysPreset(d) {
-        (document.getElementById('restrictDays') as HTMLInputElement).value = String(d);
-        (document.getElementById('restrictDaysNum') as HTMLInputElement).value = String(d);
+        (document.getElementById('restrictDays')).value = String(d);
+        (document.getElementById('restrictDaysNum')).value = String(d);
         updateDaysDisplay();
     }
 
     async function confirmRestriction() {
         const info = restrictionLabels[_restrictAction];
-        const reason = (document.getElementById('restrictReason') as HTMLInputElement).value.trim();
-        const isPerm = (document.getElementById('restrictPermanent') as HTMLInputElement).checked;
-        const days = isPerm ? 0 : (parseInt((document.getElementById('restrictDays') as HTMLInputElement).value) || 7);
+        const reason = (document.getElementById('restrictReason')).value.trim();
+        const isPerm = (document.getElementById('restrictPermanent')).checked;
+        const days = isPerm ? 0 : (parseInt((document.getElementById('restrictDays')).value) || 7);
         if (info.needReason && !reason) { showNotif('理由を入力してください', 'error'); return; }
         document.getElementById('restrictModal').style.display = 'none';
         try {

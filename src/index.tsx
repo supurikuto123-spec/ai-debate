@@ -755,13 +755,21 @@ app.get('/user/:user_id', async (c) => {
       return c.text('User not found', 404)
     }
 
-    // Get debate statistics (debates table doesn't have these columns yet, using dummy data)
-    const debateStats = {
-      total_debates: 0,
-      wins: 0,
-      losses: 0,
-      draws: 0
-    }
+    // Get debate statistics from user_ratings (PvP) + votes (live debate)
+    let debateStats = { total_debates: 0, wins: 0, losses: 0, draws: 0 }
+    try {
+      const ratingData = await c.env.DB.prepare(
+        'SELECT rating, wins, losses, draws FROM user_ratings WHERE user_id = ?'
+      ).bind(targetUserId).first() as any
+      if (ratingData) {
+        debateStats = {
+          total_debates: (ratingData.wins || 0) + (ratingData.losses || 0) + (ratingData.draws || 0),
+          wins: ratingData.wins || 0,
+          losses: ratingData.losses || 0,
+          draws: ratingData.draws || 0
+        }
+      }
+    } catch(e) {}
 
     // Get community post count
     const postCount = await c.env.DB.prepare(
@@ -1018,16 +1026,18 @@ app.get('/api/battle/queue/status', async (c) => {
     ).bind(user.user_id).first() as any
     if (!myEntry) return c.json({ status: 'not_queued' })
 
-    // マッチング試行: 自分以外のwaitingユーザーを探す
+    // マッチング試行: 自分以外のwaitingユーザーを探す（逆スタンスのみ）
     if (myEntry.status === 'waiting') {
+      // 自分が agree なら相手は disagree、逆も同様
+      const oppositeStance = myEntry.stance === 'agree' ? 'disagree' : 'agree'
       const opponent = await c.env.DB.prepare(`
         SELECT * FROM match_queue 
-        WHERE user_id != ? AND status = 'waiting' AND mode = ?
+        WHERE user_id != ? AND status = 'waiting' AND mode = ? AND stance = ?
         ORDER BY created_at ASC LIMIT 1
-      `).bind(user.user_id, myEntry.mode).first() as any
+      `).bind(user.user_id, myEntry.mode, oppositeStance).first() as any
 
       if (opponent) {
-        // マッチ成立 — roomを作成
+        // マッチ成立 — 必ず新規roomを作成（既存チャットを引き継がない）
         const roomId = crypto.randomUUID()
         const debate = await c.env.DB.prepare(
           "SELECT id,title,agree_position,disagree_position FROM debates WHERE status='live' LIMIT 1"
@@ -1042,17 +1052,21 @@ app.get('/api/battle/queue/status', async (c) => {
           await c.env.DB.prepare('ALTER TABLE pvp_rooms ADD COLUMN first_player TEXT').run()
         } catch(e) { /* already exists */ }
 
+        // player_a = agree側、player_b = disagree側
+        const agreePlayer = myEntry.stance === 'agree' ? user.user_id : opponent.user_id
+        const disagreePlayer = myEntry.stance === 'agree' ? opponent.user_id : user.user_id
+
         await c.env.DB.prepare(`
-          INSERT INTO pvp_rooms (room_id, debate_id, player_a, player_b, player_a_stance, player_b_stance, first_player, status, created_at, started_at)
-          VALUES (?, ?, ?, ?, 'agree', 'disagree', ?, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-        `).bind(roomId, debateId, user.user_id, opponent.user_id, firstPlayer).run()
+          INSERT INTO pvp_rooms (room_id, debate_id, player_a, player_b, player_a_stance, player_b_stance, first_player, status, messages, created_at, started_at)
+          VALUES (?, ?, ?, ?, 'agree', 'disagree', ?, 'active', '[]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        `).bind(roomId, debateId, agreePlayer, disagreePlayer, firstPlayer).run()
 
         // 両者のキューエントリを matched に更新
         await c.env.DB.prepare(
           "UPDATE match_queue SET status='matched', debate_id=?, matched_at=CURRENT_TIMESTAMP WHERE user_id IN (?,?)"
         ).bind(roomId, user.user_id, opponent.user_id).run()
 
-        const yourStance = 'agree'
+        const yourStance = myEntry.stance  // 自分のスタンスをそのまま返す
         return c.json({ status: 'matched', room_id: roomId, your_stance: yourStance, opponent: opponent.username, first_player: firstPlayer })
       }
       return c.json({ status: 'waiting', queued_at: myEntry.created_at })
@@ -1125,6 +1139,21 @@ app.post('/api/battle/room/:roomId/message', async (c) => {
     if (room.status !== 'active') return c.json({ error: 'Room is not active' }, 400)
 
     const messages = JSON.parse(room.messages || '[]')
+    // ターン数チェック: 各プレイヤー最大5ターン
+    const PVP_MAX_TURNS = 5
+    const myMsgCount = messages.filter((m: any) => m.user_id === user.user_id).length
+    if (myMsgCount >= PVP_MAX_TURNS) {
+      return c.json({ error: 'ターン上限（5ターン）に達しました' }, 400)
+    }
+    // ターン順チェック: first_playerベースで交互
+    const totalMsgs = messages.length
+    const fp = room.first_player || room.player_a
+    const isMyFirst = fp === user.user_id
+    const expectedIsFirstPlayer = totalMsgs % 2 === 0
+    const isMyTurn = isMyFirst ? expectedIsFirstPlayer : !expectedIsFirstPlayer
+    if (!isMyTurn) {
+      return c.json({ error: '相手のターンです' }, 400)
+    }
     const yourStance = room.player_a === user.user_id ? 'agree' : 'disagree'
     messages.push({ user_id: user.user_id, username: user.username || user.user_id, stance: yourStance, content: content.trim(), ts: Date.now() })
 
@@ -2441,18 +2470,42 @@ app.get('/api/user/stats', async (c) => {
       watchedDebates = (watchedCount?.total as number) || 0
     } catch (e) { }
 
+    // PvPレーティング統計を取得してマージ
+    let pvpRating = 1000, pvpWins = 0, pvpLosses = 0, pvpDraws = 0
+    try {
+      const ratingData = await c.env.DB.prepare(
+        'SELECT rating, wins, losses, draws FROM user_ratings WHERE user_id=?'
+      ).bind(user.user_id).first() as any
+      if (ratingData) {
+        pvpRating = ratingData.rating || 1000
+        pvpWins = ratingData.wins || 0
+        pvpLosses = ratingData.losses || 0
+        pvpDraws = ratingData.draws || 0
+      }
+    } catch(e) {}
+
+    // ライブディベート統計 + PvP統計を合算
+    const totalAllDebates = totalDebates + pvpWins + pvpLosses + pvpDraws
+    const totalAllWins = wins + pvpWins
+    const totalAllLosses = losses + pvpLosses
+    const totalAllDraws = draws + pvpDraws
+    const totalWinRate = totalAllDebates > 0 ? Math.round((totalAllWins / totalAllDebates) * 100) : 0
+
     const winRate = totalDebates > 0 ? Math.round((wins / totalDebates) * 100) : 0
 
     return c.json({
       success: true,
       stats: {
-        total_debates: totalDebates,
-        wins,
-        losses,
-        draws,
-        win_rate: winRate,
+        total_debates: totalAllDebates,
+        wins: totalAllWins,
+        losses: totalAllLosses,
+        draws: totalAllDraws,
+        win_rate: totalWinRate,
         total_posts: totalPosts,
-        watched_debates: watchedDebates
+        watched_debates: watchedDebates,
+        pvp_rating: pvpRating,
+        pvp_wins: pvpWins,
+        pvp_losses: pvpLosses
       }
     })
   } catch (error) {

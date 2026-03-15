@@ -44,8 +44,8 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
     <style>
       #nav-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); backdrop-filter: blur(10px); z-index: 9998; display: none; animation: fadeIn 0.3s ease; }
       #nav-overlay.active { display: block; }
-      #nav-toggle { background: transparent; border: none; cursor: pointer; position: relative; width: 44px; height: 44px; z-index: 10000; padding: 7px; flex-shrink: 0; }
-      #nav-toggle span { display: block; width: 30px; height: 3px; background: #00ffff; border-radius: 3px; position: absolute; left: 7px; transform-origin: center; transition: transform 0.4s cubic-bezier(0.23,1,0.32,1), opacity 0.3s ease, top 0.4s cubic-bezier(0.23,1,0.32,1), background 0.3s ease, width 0.3s ease; pointer-events: none; }
+      #nav-toggle { background: transparent; border: none; cursor: pointer; position: relative; width: 44px; height: 44px; z-index: 10003; padding: 7px; flex-shrink: 0; overflow: visible; isolation: isolate; }
+      #nav-toggle span { display: block; width: 30px; height: 3px; background: #00ffff; border-radius: 3px; position: absolute; left: 7px; transform-origin: center; transition: transform 0.4s cubic-bezier(0.23,1,0.32,1), opacity 0.3s ease, top 0.4s cubic-bezier(0.23,1,0.32,1), background 0.3s ease, width 0.3s ease; pointer-events: none; z-index: 10004; }
       #nav-toggle span:nth-child(1) { top: 11px; }
       #nav-toggle span:nth-child(2) { top: 21px; }
       #nav-toggle span:nth-child(3) { top: 31px; }
@@ -86,7 +86,7 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
     </style>
 
     <!-- Fixed Top Header -->
-    <header style="position: fixed; top: 0; left: 0; width: 100%; height: 60px; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(0,255,255,0.3); display: flex; justify-content: space-between; align-items: center; padding: 0 20px; z-index: 9997;">
+    <header style="position: fixed; top: 0; left: 0; width: 100%; height: 60px; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(0,255,255,0.3); display: flex; justify-content: space-between; align-items: center; padding: 0 20px; z-index: 10001; overflow: visible;">
       <a href="/main" style="text-decoration: none; display: flex; align-items: center; gap: 10px;">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" style="width:34px;height:34px;flex-shrink:0;">
           <defs>

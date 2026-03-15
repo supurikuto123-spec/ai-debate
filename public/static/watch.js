@@ -504,16 +504,8 @@ async function startDebate() {
 
     document.getElementById('debateMessages').innerHTML = '<div class="text-center text-cyan-300 p-4"><i class="fas fa-spinner fa-spin mr-2"></i>ディベート開始...</div>';
 
-    // Mark debate as active in DB
-    if (currentUser.user_id === 'dev') {
-        try {
-            await fetch('/api/debate/' + DEBATE_ID + '/status', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: 'active' })
-            });
-        } catch (e) { }
-    }
+    // ディベートDB記録: statusは変更しない（live/upcoming のまま維持）
+    // 'active'に変えると一覧から消えるため廃止
 
     updateDebateTimer();
 

@@ -327,7 +327,7 @@ export const myPage = (userData: any, stats?: any) => {
                     <h2 class="text-2xl font-bold text-cyan-400 mb-2 flex items-center">
                         <i class="fas fa-trophy mr-3"></i>対戦統計
                     </h2>
-                    <p class="text-gray-400 text-sm mb-6"><i class="fas fa-info-circle mr-1"></i>対戦時の成績のみ（観戦は含まれません）</p>
+                    <p class="text-gray-400 text-sm mb-6"><i class="fas fa-info-circle mr-1"></i>ライブ対戦＋PvP対戦の合算成績</p>
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-4" id="stats-grid">
                         <div class="text-center p-4 bg-black/40 rounded-lg border border-cyan-500/20">
                             <div class="text-3xl font-bold text-cyan-400" id="stat-total-debates">-</div>
@@ -351,6 +351,10 @@ export const myPage = (userData: any, stats?: any) => {
                             <div class="w-full h-2 bg-gray-800 rounded-full mt-2 overflow-hidden">
                                 <div class="h-full bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full" id="stat-win-bar" style="width:0%;transition:width 0.5s;"></div>
                             </div>
+                        </div>
+                        <div class="text-center p-4 bg-black/40 rounded-lg border border-amber-500/20">
+                            <div class="text-3xl font-bold text-amber-400" id="stat-pvp-rating">1000</div>
+                            <div class="text-sm text-gray-400 mt-1"><i class="fas fa-chart-line mr-1"></i>PvPレーティング</div>
                         </div>
                         <div class="text-center p-4 bg-black/40 rounded-lg border border-blue-500/20">
                             <div class="text-3xl font-bold text-blue-400" id="stat-posts">-</div>
@@ -522,6 +526,8 @@ export const myPage = (userData: any, stats?: any) => {
                             document.getElementById('stat-posts').textContent = data.stats.total_posts;
                             const watchedEl = document.getElementById('stat-watched');
                             if (watchedEl) watchedEl.textContent = data.stats.watched_debates || 0;
+                            const pvpRatingEl = document.getElementById('stat-pvp-rating');
+                            if (pvpRatingEl && data.stats.pvp_rating != null) pvpRatingEl.textContent = data.stats.pvp_rating;
                         }
                     }
                 } catch(e) { console.error('Stats load error:', e); }

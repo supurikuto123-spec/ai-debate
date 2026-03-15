@@ -140,7 +140,8 @@ export const battlePage = (user: any) => {
                             </div>
                             <div class="text-right shrink-0">
                                 <div id="pvpTurnBadge" class="turn-indicator mb-1"></div>
-                                <div class="text-xs text-gray-500">ターン <span id="pvpTurnNum">0</span>/5</div>
+                                <div class="text-xs text-gray-500">ターン <span id="pvpTurnNum">0</span>/10</div>
+                                <div id="pvpInputTimer" class="text-xs text-yellow-400 font-bold mt-1" style="display:none">⏱ <span id="pvpTimerSec">60</span>秒</div>
                             </div>
                         </div>
                         <div class="flex items-center gap-2 mb-3 text-xs">
@@ -381,11 +382,54 @@ export const battlePage = (user: any) => {
     // ─── PvP ───
     var pvpStance = null, pvpRoomId = null, pvpYourStance = null;
     var pvpMessages = [], pvpPollTimer = null, pvpWaitTimer = null, pvpWaitSec = 0;
-    var pvpMyTurnCount = 0; // 自分が送ったターン数
+    var pvpMyTurnCount = 0;
     var pvpTotalTurns = 0;
     var pvpJudging = false;
-    var pvpFirstPlayer = null; // 先攻プレイヤーID
+    var pvpFirstPlayer = null;
     var pvpPlayerAId = null, pvpPlayerBId = null;
+    var pvpInputTimer = null, pvpTimerSec = 60;
+    var PVP_TURNS_PER_PLAYER = 5;  // 各プレイヤー5ターン = 合計10
+    var PVP_INPUT_TIMEOUT = 60;    // 60秒入力タイムアウト
+
+    function startPvpInputTimer() {
+        stopPvpInputTimer();
+        pvpTimerSec = PVP_INPUT_TIMEOUT;
+        var timerEl = document.getElementById('pvpTimerSec');
+        var timerBox = document.getElementById('pvpInputTimer');
+        if (timerBox) timerBox.style.display = 'block';
+        if (timerEl) timerEl.textContent = pvpTimerSec;
+        pvpInputTimer = setInterval(function() {
+            pvpTimerSec--;
+            if (timerEl) timerEl.textContent = pvpTimerSec;
+            if (pvpTimerSec <= 10 && timerEl) timerEl.style.color = '#ef4444';
+            if (pvpTimerSec <= 0) {
+                // タイムアウト: 空メッセージを自動送信して相手ターンに移行
+                stopPvpInputTimer();
+                autoSendPvpTimeout();
+            }
+        }, 1000);
+    }
+
+    function stopPvpInputTimer() {
+        if (pvpInputTimer) { clearInterval(pvpInputTimer); pvpInputTimer = null; }
+        var timerBox = document.getElementById('pvpInputTimer');
+        var timerEl = document.getElementById('pvpTimerSec');
+        if (timerBox) timerBox.style.display = 'none';
+        if (timerEl) { timerEl.textContent = PVP_INPUT_TIMEOUT; timerEl.style.color = '#fbbf24'; }
+    }
+
+    async function autoSendPvpTimeout() {
+        // タイムアウト: 「（時間切れ）」として送信
+        if (!pvpRoomId) return;
+        try {
+            await fetch('/api/battle/room/' + pvpRoomId + '/message', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({content: '（時間切れ）'})
+            });
+        } catch(e) {}
+        showToast('⏰ 時間切れ！自動的に相手のターンへ', 'warning');
+        await loadPvpRoom();
+    }
 
     function selectPvpStance(s) {
         pvpStance = s;
@@ -515,27 +559,32 @@ export const battlePage = (user: any) => {
                     badge.className = 'turn-indicator your-turn';
                     document.getElementById('pvpInputArea').style.display = 'flex';
                     document.getElementById('pvpWaitMsg').style.display = 'none';
+                    startPvpInputTimer();
                 } else {
                     badge.textContent = '⏳ 相手のターン';
                     badge.className = 'turn-indicator opp-turn';
                     document.getElementById('pvpInputArea').style.display = 'none';
                     document.getElementById('pvpWaitMsg').style.display = 'block';
+                    stopPvpInputTimer();
                 }
             }
 
             // 各プレイヤーが5ターン（合計10）でAI審判 または ended
             var myMsgCount = msgs.filter(function(m){ return m.user_id === CU_ID; }).length;
             var oppMsgCount = msgs.filter(function(m){ return m.user_id !== CU_ID; }).length;
+            var totalMsgs = msgs.length;
 
             if (d.status === 'ended') {
                 clearInterval(pvpPollTimer);
+                stopPvpInputTimer();
                 if (d.winner && !pvpJudging) {
                     // 降参による終了
                     showPvpResult(d.winner, pvpYourStance || d.your_stance, null);
                 }
-            } else if (myMsgCount >= 5 && oppMsgCount >= 5 && !pvpJudging) {
+            } else if (totalMsgs >= PVP_TURNS_PER_PLAYER * 2 && !pvpJudging) {
                 // 両者5ターン完了 → AI審判
                 clearInterval(pvpPollTimer);
+                stopPvpInputTimer();
                 pvpJudging = true;
                 document.getElementById('pvpInputArea').style.display = 'none';
                 document.getElementById('pvpWaitMsg').style.display = 'none';
@@ -569,6 +618,9 @@ export const battlePage = (user: any) => {
         var content = input.value.trim();
         if (!content || !pvpRoomId) return;
         input.value = '';
+        stopPvpInputTimer();
+        // 送信中は入力不可
+        input.disabled = true;
         try {
             var r = await fetch('/api/battle/room/' + pvpRoomId + '/message', {
                 method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({content: content})
@@ -577,6 +629,7 @@ export const battlePage = (user: any) => {
             if (!d.success) showToast('送信失敗: ' + (d.error||''), 'error');
             else await loadPvpRoom();
         } catch(e) { showToast('通信エラー', 'error'); }
+        input.disabled = false;
     }
 
     function pvpEnterSend(e) { if (e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendPvpMessage();} }
@@ -670,6 +723,7 @@ export const battlePage = (user: any) => {
 
     function resetPvp() {
         clearInterval(pvpPollTimer); clearInterval(pvpWaitTimer);
+        stopPvpInputTimer();
         pvpRoomId=null; pvpYourStance=null; pvpStance=null; pvpMessages=[]; pvpWaitSec=0;
         pvpMyTurnCount=0; pvpTotalTurns=0; pvpJudging=false; pvpFirstPlayer=null;
         pvpPlayerAId=null; pvpPlayerBId=null;
@@ -707,7 +761,7 @@ export const battlePage = (user: any) => {
         var cost = base + Math.max(0, turns - 10) * 3;
         document.getElementById('aiCreditCost').textContent = cost + ' cr';
         var warn = document.getElementById('aiCreditWarn');
-        warn.style.display = cost > ${userCredits} ? 'block' : 'none';
+        warn.style.display = cost > userCredits ? 'block' : 'none';
     }
 
     function selectAiStance(s) {
@@ -795,7 +849,7 @@ export const battlePage = (user: any) => {
         var base = DIFF_CREDITS[aiDiff] || 50;
         var turns = aiMaxTurns;
         var cost = base + Math.max(0, turns - 10) * 3;
-        if (cost > ${userCredits}) { showToast('クレジットが不足しています（必要: ' + cost + ' cr）', 'error'); return; }
+        if (cost > userCredits) { showToast('クレジットが不足しています（必要: ' + cost + ' cr）', 'error'); return; }
 
         aiHistory = []; aiTurnCount = 0;
         document.getElementById('aiSetup').style.display = 'none';
