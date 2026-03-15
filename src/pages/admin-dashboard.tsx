@@ -594,26 +594,95 @@ export const adminDashboardPage = (userData: any) => `<!DOCTYPE html>
         credit_unfreeze: { label: 'クレジット凍結解除', msg: 'クレジット凍結を解除しますか？', done: 'クレジット凍結解除しました', needReason: false },
     };
 
-    async function applyRestriction(userId, action) {
+    // ── 制限モーダル ──
+    let _restrictTarget = null;
+    let _restrictAction = null;
+
+    function applyRestriction(userId, action) {
         const info = restrictionLabels[action];
         if (!info) return;
-        let reason = null;
+        _restrictTarget = userId;
+        _restrictAction = action;
+        const modal = document.getElementById('restrictModal');
+        const title = document.getElementById('restrictModalTitle');
+        const reasonRow = document.getElementById('restrictReasonRow');
+        const daysRow = document.getElementById('restrictDaysRow');
+        const permanentRow = document.getElementById('restrictPermanentRow');
+        title.textContent = \`@\${userId} を「\${info.label}」\`;
+        (document.getElementById('restrictReason') as HTMLInputElement).value = '';
+        (document.getElementById('restrictDays') as HTMLInputElement).value = '7';
+        (document.getElementById('restrictDaysNum') as HTMLInputElement).value = '7';
+        (document.getElementById('restrictPermanent') as HTMLInputElement).checked = false;
+        updateDaysDisplay();
         if (info.needReason) {
-            reason = prompt(\`@\${userId} の制限理由を入力してください（\${info.label}）:\`);
-            if (reason === null) return; // cancelled
+            reasonRow.style.display = 'block';
+            daysRow.style.display = 'block';
+            permanentRow.style.display = 'block';
+        } else {
+            reasonRow.style.display = 'none';
+            daysRow.style.display = 'none';
+            permanentRow.style.display = 'none';
         }
-        if (!confirm(\`@\${userId} を「\${info.label}」しますか？\`)) return;
+        modal.style.display = 'flex';
+    }
+
+    function updateDaysDisplay() {
+        const isPerm = document.getElementById('restrictPermanent').checked;
+        const daysInput = document.getElementById('restrictDays') as HTMLInputElement;
+        const daysNumInput = document.getElementById('restrictDaysNum') as HTMLInputElement;
+        const daysLabel = document.getElementById('restrictDaysLabel');
+        daysInput.disabled = isPerm;
+        daysNumInput.disabled = isPerm;
+        daysInput.style.opacity = isPerm ? '0.4' : '1';
+        daysNumInput.style.opacity = isPerm ? '0.4' : '1';
+        if (isPerm) { daysLabel.textContent = '永久制限'; daysLabel.style.color = '#f87171'; }
+        else {
+            const d = parseInt(daysInput.value) || 7;
+            daysNumInput.value = String(d);
+            daysLabel.textContent = d + '日間';
+            daysLabel.style.color = '#fbbf24';
+        }
+    }
+
+    function syncSliderFromNum() {
+        const num = parseInt((document.getElementById('restrictDaysNum') as HTMLInputElement).value) || 1;
+        const clamped = Math.min(365, Math.max(1, num));
+        (document.getElementById('restrictDays') as HTMLInputElement).value = String(clamped);
+        (document.getElementById('restrictDaysNum') as HTMLInputElement).value = String(clamped);
+        const daysLabel = document.getElementById('restrictDaysLabel');
+        daysLabel.textContent = clamped + '日間';
+        daysLabel.style.color = '#fbbf24';
+    }
+
+    function setDaysPreset(d) {
+        (document.getElementById('restrictDays') as HTMLInputElement).value = String(d);
+        (document.getElementById('restrictDaysNum') as HTMLInputElement).value = String(d);
+        updateDaysDisplay();
+    }
+
+    async function confirmRestriction() {
+        const info = restrictionLabels[_restrictAction];
+        const reason = (document.getElementById('restrictReason') as HTMLInputElement).value.trim();
+        const isPerm = (document.getElementById('restrictPermanent') as HTMLInputElement).checked;
+        const days = isPerm ? 0 : (parseInt((document.getElementById('restrictDays') as HTMLInputElement).value) || 7);
+        if (info.needReason && !reason) { showNotif('理由を入力してください', 'error'); return; }
+        document.getElementById('restrictModal').style.display = 'none';
         try {
             const res = await fetch('/api/admin/ban', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ target_user_id: userId, action, reason: reason || '' })
+                body: JSON.stringify({ target_user_id: _restrictTarget, action: _restrictAction, reason, days })
             });
             const data = await res.json();
-            if (data.success) { showNotif(\`✅ @\${userId} を\${info.done}\`); loadUsers(); }
-            else showNotif(data.error || '失敗', 'error');
+            if (data.success) {
+                const durationText = days === 0 ? '永久' : days + '日間';
+                showNotif(\`✅ @\${_restrictTarget} を\${info.done}（\${info.needReason ? durationText : ''}）\`);
+                loadUsers();
+            } else showNotif(data.error || '失敗', 'error');
         } catch(e) { showNotif('エラー', 'error'); }
     }
+
+    function closeRestrictModal() { document.getElementById('restrictModal').style.display = 'none'; }
 
     async function sendNotif(userId) {
         const title = prompt('通知タイトル:');
@@ -637,5 +706,50 @@ export const adminDashboardPage = (userData: any) => `<!DOCTYPE html>
     loadSystemStats();
     loadUsers();
     </script>
+
+    <!-- 制限モーダル -->
+    <div id="restrictModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:99999;align-items:center;justify-content:center;backdrop-filter:blur(6px);">
+        <div style="background:linear-gradient(135deg,rgba(0,20,40,0.98),rgba(30,0,50,0.98));border:2px solid rgba(239,68,68,0.6);border-radius:16px;padding:28px;width:90%;max-width:460px;box-shadow:0 0 40px rgba(239,68,68,0.3);">
+            <div class="flex items-center gap-3 mb-5">
+                <i class="fas fa-ban text-red-400 text-2xl"></i>
+                <h3 id="restrictModalTitle" class="text-lg font-bold text-white"></h3>
+            </div>
+            <div id="restrictReasonRow" class="mb-4">
+                <label class="text-xs text-gray-400 mb-1 block"><i class="fas fa-comment mr-1"></i>制限理由 <span class="text-red-400">*必須</span></label>
+                <textarea id="restrictReason" rows="2" placeholder="例: 規約違反（スパム行為）" style="width:100%;background:rgba(0,0,0,0.5);border:1px solid rgba(239,68,68,0.4);border-radius:8px;padding:10px;color:#fff;font-size:14px;resize:none;outline:none;"></textarea>
+            </div>
+            <div id="restrictPermanentRow" class="mb-3">
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                    <input type="checkbox" id="restrictPermanent" onchange="updateDaysDisplay()" style="width:18px;height:18px;accent-color:#ef4444;">
+                    <span class="text-sm font-bold text-red-300"><i class="fas fa-infinity mr-1"></i>永久制限</span>
+                </label>
+            </div>
+            <div id="restrictDaysRow" class="mb-5">
+                <label class="text-xs text-gray-400 mb-2 block"><i class="fas fa-calendar mr-1"></i>制限期間</label>
+                <div class="flex items-center gap-3 mb-2">
+                    <input type="range" id="restrictDays" min="1" max="365" value="7" oninput="(document.getElementById('restrictDaysNum').value=this.value,updateDaysDisplay())" style="flex:1;accent-color:#06b6d4;height:6px;">
+                    <input type="number" id="restrictDaysNum" min="1" max="365" value="7" onchange="syncSliderFromNum()" style="width:70px;background:rgba(0,0,0,0.5);border:1px solid rgba(6,182,212,0.4);border-radius:8px;padding:6px 8px;color:#fff;font-size:14px;font-weight:700;text-align:center;outline:none;">
+                    <span id="restrictDaysLabel" class="text-yellow-400 font-bold text-sm w-16 text-right">7日間</span>
+                </div>
+                <div class="flex gap-2 mt-2 flex-wrap">
+                    <button onclick="setDaysPreset(1)" style="padding:4px 10px;font-size:11px;border-radius:6px;background:rgba(6,182,212,0.15);border:1px solid rgba(6,182,212,0.4);color:#67e8f9;cursor:pointer;">1日</button>
+                    <button onclick="setDaysPreset(3)" style="padding:4px 10px;font-size:11px;border-radius:6px;background:rgba(6,182,212,0.15);border:1px solid rgba(6,182,212,0.4);color:#67e8f9;cursor:pointer;">3日</button>
+                    <button onclick="setDaysPreset(7)" style="padding:4px 10px;font-size:11px;border-radius:6px;background:rgba(6,182,212,0.15);border:1px solid rgba(6,182,212,0.4);color:#67e8f9;cursor:pointer;">1週</button>
+                    <button onclick="setDaysPreset(14)" style="padding:4px 10px;font-size:11px;border-radius:6px;background:rgba(6,182,212,0.15);border:1px solid rgba(6,182,212,0.4);color:#67e8f9;cursor:pointer;">2週</button>
+                    <button onclick="setDaysPreset(30)" style="padding:4px 10px;font-size:11px;border-radius:6px;background:rgba(234,179,8,0.15);border:1px solid rgba(234,179,8,0.4);color:#fde047;cursor:pointer;">30日</button>
+                    <button onclick="setDaysPreset(90)" style="padding:4px 10px;font-size:11px;border-radius:6px;background:rgba(234,179,8,0.15);border:1px solid rgba(234,179,8,0.4);color:#fde047;cursor:pointer;">90日</button>
+                    <button onclick="setDaysPreset(365)" style="padding:4px 10px;font-size:11px;border-radius:6px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:#fca5a5;cursor:pointer;">1年</button>
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="confirmRestriction()" style="flex:1;padding:12px;background:linear-gradient(135deg,rgba(239,68,68,0.3),rgba(220,38,38,0.3));border:2px solid #ef4444;border-radius:10px;color:#fca5a5;font-weight:700;font-size:15px;cursor:pointer;">
+                    <i class="fas fa-check mr-2"></i>制限を適用
+                </button>
+                <button onclick="closeRestrictModal()" style="padding:12px 20px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.2);border-radius:10px;color:#9ca3af;font-weight:700;cursor:pointer;">
+                    <i class="fas fa-times mr-1"></i>キャンセル
+                </button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>`;

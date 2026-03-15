@@ -44,12 +44,19 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
     <style>
       #nav-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); backdrop-filter: blur(10px); z-index: 9998; display: none; animation: fadeIn 0.3s ease; }
       #nav-overlay.active { display: block; }
-      #nav-toggle { background: transparent; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; z-index: 10000; padding: 10px; transition: all 0.3s ease; }
-      #nav-toggle:hover span { background: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.8); }
-      #nav-toggle span { width: 30px; height: 3px; background: #00ffff; border-radius: 3px; transition: all 0.3s ease; pointer-events: none; }
-      #nav-toggle.active span:nth-child(1) { transform: rotate(45deg) translate(6px, 6px); background: #ff0080; }
-      #nav-toggle.active span:nth-child(2) { opacity: 0; }
-      #nav-toggle.active span:nth-child(3) { transform: rotate(-45deg) translate(6px, -6px); background: #ff0080; }
+      #nav-toggle { background: transparent; border: none; cursor: pointer; position: relative; width: 44px; height: 44px; z-index: 10000; padding: 7px; flex-shrink: 0; }
+      #nav-toggle span { display: block; width: 30px; height: 3px; background: #00ffff; border-radius: 3px; position: absolute; left: 7px; transform-origin: center; transition: transform 0.4s cubic-bezier(0.23,1,0.32,1), opacity 0.3s ease, top 0.4s cubic-bezier(0.23,1,0.32,1), background 0.3s ease, width 0.3s ease; pointer-events: none; }
+      #nav-toggle span:nth-child(1) { top: 11px; }
+      #nav-toggle span:nth-child(2) { top: 21px; }
+      #nav-toggle span:nth-child(3) { top: 31px; }
+      #nav-toggle:hover span { background: #fff; }
+      /* 開く: span1が上に飛び出してフェードアウト→span2とspan3がXを形成 */
+      #nav-toggle.active span:nth-child(1) { top: -4px; opacity: 0; transform: translateY(-8px) scaleX(0.5); background: #ff0080; }
+      #nav-toggle.active span:nth-child(2) { top: 21px; transform: rotate(45deg); background: #ff0080; }
+      #nav-toggle.active span:nth-child(3) { top: 21px; transform: rotate(-45deg); background: #ff0080; }
+      /* 閉じる(closing): span1が上から降ってくる演出 */
+      #nav-toggle.closing span:nth-child(1) { animation: dropIn 0.45s cubic-bezier(0.23,1,0.32,1) both; }
+      @keyframes dropIn { 0%{top:-12px;opacity:0;transform:translateY(-16px) scaleX(0.5);} 60%{top:8px;opacity:1;transform:translateY(0) scaleX(1.1);} 100%{top:11px;opacity:1;transform:translateY(0) scaleX(1);} }
       #nav-menu { position: fixed; top: 0; right: -100%; width: 400px; max-width: 90%; height: 100vh; background: linear-gradient(135deg, rgba(0,20,40,0.95), rgba(20,0,40,0.95)); border-left: 2px solid #00ffff; z-index: 9999; transition: right 0.5s cubic-bezier(0.68,-0.55,0.265,1.55); overflow-y: auto; box-shadow: -10px 0 50px rgba(0,255,255,0.3); }
       #nav-menu.active { right: 0; }
       .nav-profile { padding: 40px 30px 30px; border-bottom: 2px solid rgba(0,255,255,0.3); background: linear-gradient(135deg, rgba(0,255,255,0.1), rgba(255,0,255,0.1)); }
@@ -212,20 +219,25 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
         const links = document.querySelectorAll('.nav-link');
 
         // Toggle menu open/close on hamburger click
-        toggle.addEventListener('click', () => {
-          const isNowActive = !menu.classList.contains('active');
-          toggle.classList.toggle('active');
-          menu.classList.toggle('active');
-          overlay.classList.toggle('active');
-          if (isNowActive) loadAioStats();
-        });
-
-        // Close menu when clicking overlay
-        overlay.addEventListener('click', () => {
+        function closeMenu() {
+          toggle.classList.add('closing');
           toggle.classList.remove('active');
           menu.classList.remove('active');
           overlay.classList.remove('active');
+          setTimeout(() => toggle.classList.remove('closing'), 500);
+        }
+        function openMenu() {
+          toggle.classList.remove('closing');
+          toggle.classList.add('active');
+          menu.classList.add('active');
+          overlay.classList.add('active');
+          loadAioStats();
+        }
+        toggle.addEventListener('click', () => {
+          if (menu.classList.contains('active')) { closeMenu(); } else { openMenu(); }
         });
+        // Close menu when clicking overlay
+        overlay.addEventListener('click', () => { closeMenu(); });
 
         // Highlight current page link
         const currentPath = window.location.pathname;
@@ -238,11 +250,7 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
 
         // Close menu on nav link click (mobile)
         links.forEach(link => {
-          link.addEventListener('click', () => {
-            toggle.classList.remove('active');
-            menu.classList.remove('active');
-            overlay.classList.remove('active');
-          });
+          link.addEventListener('click', () => { closeMenu(); });
         });
 
         // Auto-refresh credits from DB
@@ -380,9 +388,11 @@ export const globalNav = (user: { credits: number; user_id: string; avatar_type?
         window.alert = function(msg) { window.customAlert(msg); };
 
         document.addEventListener('DOMContentLoaded', () => {
-          if (/Mobi|Android|iPhone/i.test(navigator.userAgent) && !localStorage.getItem('mobile_warned')) {
-            localStorage.setItem('mobile_warned', 'true');
-            window.customAlert('AI Debateへようこそ！\\n\\nPCデバイスでの閲覧を強く推奨しています。モバイルでは一部のUIが最適化されていない場合があります。');
+          if (/Mobi|Android|iPhone/i.test(navigator.userAgent)) {
+            // モバイル警告は毎回表示
+            setTimeout(() => {
+              window.customAlert('📱 モバイル閲覧について\n\nAI Debate Arena はPCデバイスでの閲覧を強く推奨しています。\nモバイルでは一部のUIが最適化されていない場合があります。');
+            }, 800);
           }
         });
       })();

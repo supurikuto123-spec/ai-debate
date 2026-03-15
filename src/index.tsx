@@ -566,9 +566,9 @@ app.get('/main', async (c) => {
         SELECT id, topic, status, created_at, scheduled_at, agree_position, disagree_position,
                (SELECT COUNT(*) FROM debate_votes WHERE debate_id = debates.id) as total_votes
         FROM debates 
-        WHERE status IN ('live', 'upcoming')
+        WHERE status IN ('live', 'upcoming', 'upcoming_visible')
         ORDER BY 
-          CASE WHEN status = 'live' THEN 0 WHEN status = 'upcoming' THEN 1 ELSE 2 END,
+          CASE WHEN status = 'live' THEN 0 WHEN status = 'upcoming_visible' THEN 1 WHEN status = 'upcoming' THEN 2 ELSE 3 END,
           created_at DESC 
         LIMIT 50
       `).all()
@@ -927,6 +927,35 @@ app.get('/api/debates/live', async (c) => {
   } catch(e) { return c.json({ debate: null }) }
 })
 
+// GET /api/debates/:id/entry-check — ディベート入場可否チェック（スケジュール10分前制限）
+app.get('/api/debates/:id/entry-check', async (c) => {
+  try {
+    const id = c.req.param('id')
+    const debate = await c.env.DB.prepare(
+      'SELECT id, status, scheduled_at FROM debates WHERE id=?'
+    ).bind(id).first() as any
+    if (!debate) return c.json({ can_enter: false, reason: 'not_found' })
+    if (debate.status === 'live') return c.json({ can_enter: true, status: 'live' })
+    if (debate.status === 'upcoming_visible') return c.json({ can_enter: true, status: 'upcoming_visible' })
+    if (debate.status === 'upcoming') {
+      // scheduled_at から10分前かどうかを計算
+      if (debate.scheduled_at) {
+        const schedTime = new Date(debate.scheduled_at).getTime()
+        const now = Date.now()
+        const diffMs = schedTime - now
+        const tenMinMs = 10 * 60 * 1000
+        if (diffMs <= tenMinMs) {
+          return c.json({ can_enter: true, status: 'upcoming', minutes_until: Math.max(0, Math.ceil(diffMs / 60000)) })
+        } else {
+          return c.json({ can_enter: false, status: 'upcoming', reason: 'too_early', minutes_until: Math.ceil(diffMs / 60000) })
+        }
+      }
+      return c.json({ can_enter: false, status: 'upcoming', reason: 'not_started' })
+    }
+    return c.json({ can_enter: false, status: debate.status, reason: 'not_live' })
+  } catch(e) { return c.json({ can_enter: false, reason: String(e) }) }
+})
+
 // ============================================================
 // BATTLE / PvP APIs
 // ============================================================
@@ -1005,17 +1034,26 @@ app.get('/api/battle/queue/status', async (c) => {
         ).first() as any
         const debateId = debate?.id || 'default'
 
+        // ランダムに先攻（first_player）を決定
+        const firstPlayer = Math.random() < 0.5 ? user.user_id : opponent.user_id
+
+        // pvp_rooms に first_player カラムがない場合は追加
+        try {
+          await c.env.DB.prepare('ALTER TABLE pvp_rooms ADD COLUMN first_player TEXT').run()
+        } catch(e) { /* already exists */ }
+
         await c.env.DB.prepare(`
-          INSERT INTO pvp_rooms (room_id, debate_id, player_a, player_b, player_a_stance, player_b_stance, status, created_at, started_at)
-          VALUES (?, ?, ?, ?, 'agree', 'disagree', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-        `).bind(roomId, debateId, user.user_id, opponent.user_id).run()
+          INSERT INTO pvp_rooms (room_id, debate_id, player_a, player_b, player_a_stance, player_b_stance, first_player, status, created_at, started_at)
+          VALUES (?, ?, ?, ?, 'agree', 'disagree', ?, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        `).bind(roomId, debateId, user.user_id, opponent.user_id, firstPlayer).run()
 
         // 両者のキューエントリを matched に更新
         await c.env.DB.prepare(
           "UPDATE match_queue SET status='matched', debate_id=?, matched_at=CURRENT_TIMESTAMP WHERE user_id IN (?,?)"
         ).bind(roomId, user.user_id, opponent.user_id).run()
 
-        return c.json({ status: 'matched', room_id: roomId, your_stance: 'agree', opponent: opponent.username })
+        const yourStance = 'agree'
+        return c.json({ status: 'matched', room_id: roomId, your_stance: yourStance, opponent: opponent.username, first_player: firstPlayer })
       }
       return c.json({ status: 'waiting', queued_at: myEntry.created_at })
     }
@@ -1027,7 +1065,13 @@ app.get('/api/battle/queue/status', async (c) => {
       const yourStance = room?.player_a === user.user_id ? 'agree' : 'disagree'
       const opponentId = room?.player_a === user.user_id ? room?.player_b : room?.player_a
       const opp = await c.env.DB.prepare('SELECT username FROM users WHERE user_id = ?').bind(opponentId).first() as any
-      return c.json({ status: 'matched', room_id: myEntry.debate_id, your_stance: yourStance, opponent: opp?.username || opponentId })
+      return c.json({
+        status: 'matched',
+        room_id: myEntry.debate_id,
+        your_stance: yourStance,
+        opponent: opp?.username || opponentId,
+        first_player: room?.first_player || room?.player_a
+      })
     }
 
     return c.json({ status: myEntry.status })
@@ -1054,9 +1098,12 @@ app.get('/api/battle/room/:roomId', async (c) => {
     return c.json({
       room_id: roomId, status: room.status, your_stance: yourStance,
       messages, winner: room.winner,
+      first_player: room.first_player || room.player_a,
       debate: { title: debate?.title, agree_position: debate?.agree_position, disagree_position: debate?.disagree_position },
       player_a: playerAInfo?.username || room.player_a,
-      player_b: playerBInfo?.username || room.player_b || '待機中'
+      player_b: playerBInfo?.username || room.player_b || '待機中',
+      player_a_id: room.player_a,
+      player_b_id: room.player_b
     })
   } catch(e) { return c.json({ error: String(e) }, 500) }
 })
@@ -1114,20 +1161,31 @@ app.post('/api/battle/ai/message', async (c) => {
     const apiKey = c.env.OPENAI_API_KEY
     if (!apiKey) return c.json({ error: 'API key not configured' }, 500)
 
-    const { theme, ai_stance, human_stance, conversation_history, human_message } = await c.req.json()
+    const { theme, agree_opinion, disagree_opinion, ai_stance, human_stance, difficulty, conversation_history, human_message } = await c.req.json()
+
+    // 難易度別プロンプト
+    const diffMap: Record<string, string> = {
+      easy:   '初級レベルのディベーターとして、シンプルで分かりやすい主張をしてください。感情的な表現も適度に使い、相手が返しやすい余地を残してください。',
+      normal: '中級レベルのディベーターとして、論理的な主張と適切な根拠を示してください。相手の主張の弱点を的確に指摘してください。',
+      hard:   '上級レベルのディベーターとして、鋭い論理と具体的な根拠で相手を追い詰めてください。相手の矛盾点を見逃さず、的確に切り返してください。'
+    }
+    const diffInstruct = diffMap[difficulty || 'normal'] || diffMap.normal
 
     const systemPrompt = `あなたはAIディベーターです。テーマ「${theme}」について「${ai_stance === 'agree' ? '賛成' : '反対'}」の立場でディベートします。
+${ai_stance === 'agree' ? `賛成側の立場: ${agree_opinion || '賛成の立場'}` : `反対側の立場: ${disagree_opinion || '反対の立場'}`}
 相手（人間）は「${human_stance === 'agree' ? '賛成' : '反対'}」の立場です。
+難易度指示: ${diffInstruct}
 ルール:
 - 必ず${ai_stance === 'agree' ? '賛成' : '反対'}の立場を守る
 - 相手の直前発言に具体的に反論する
 - 100〜200文字で簡潔に回答
-- 句点（。）で終わること
-- ラベルや名前は付けない`
+- 句点（。）または感嘆符（！）で終わること
+- ラベルや名前は付けない
+- 超直近の時事問題や特定ソースへの言及は控える`
 
     const messages: any[] = [{ role: 'system', content: systemPrompt }]
     if (conversation_history?.length > 0) {
-      for (const msg of conversation_history.slice(-6)) {
+      for (const msg of conversation_history.slice(-8)) {
         messages.push({ role: msg.is_ai ? 'assistant' : 'user', content: msg.content })
       }
     }
@@ -1135,14 +1193,158 @@ app.post('/api/battle/ai/message', async (c) => {
 
     const resp = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-      body: JSON.stringify({ model: 'gpt-5.1', messages, max_completion_tokens: 200, temperature: 0.8 })
+      body: JSON.stringify({ model: 'gpt-4.1-mini', messages, max_completion_tokens: 250, temperature: difficulty === 'hard' ? 0.95 : difficulty === 'easy' ? 0.6 : 0.8 })
     })
     if (!resp.ok) { const e = await resp.text(); console.error('AI battle error:', e); return c.json({ error: 'AI error' }, 500) }
     const data: any = await resp.json()
     let aiMessage = data.choices[0].message.content.trim()
     if (!aiMessage.endsWith('。') && !aiMessage.endsWith('！') && !aiMessage.endsWith('？')) aiMessage += '。'
-    return c.json({ message: aiMessage, model: data.model || 'gpt-5.1' })
+    return c.json({ message: aiMessage })
   } catch(e) { return c.json({ error: String(e) }, 500) }
+})
+
+// POST /api/battle/evaluate — AI審判: ディベート全文評価・勝敗決定
+app.post('/api/battle/evaluate', async (c) => {
+  const userCookie = getCookie(c, 'user')
+  const user = safeParseUserCookie(userCookie)
+  if (!user) return c.json({ error: 'Not authenticated' }, 401)
+  try {
+    const apiKey = c.env.OPENAI_API_KEY
+    if (!apiKey) return c.json({ error: 'API key not configured' }, 500)
+
+    const { theme, agree_opinion, disagree_opinion, messages, player_agree, player_disagree, mode,
+            ai_battle_cost, room_id } = await c.req.json()
+    // messages: [{username, stance:'agree'|'disagree', content}]
+
+    const transcript = (messages || []).map((m: any) =>
+      `[${m.stance === 'agree' ? '賛成' : '反対'}] ${m.username || m.user_id}: ${m.content}`
+    ).join('\n')
+
+    const systemPrompt = `あなたは公正なディベート審判AIです。
+テーマ: ${theme}
+賛成側の立場: ${agree_opinion || '賛成'}
+反対側の立場: ${disagree_opinion || '反対'}
+
+以下のディベート全文を読み、勝敗を判定してください。
+
+判定基準（正しさではなくディベートのうまさで判断）:
+1. 論理の明快さ・一貫性（相手の主張に対して的確に反論しているか）
+2. 説得力・表現力（聞き手に伝わりやすい言葉を使っているか）
+3. 議論の構成力（根拠→主張→まとめの流れが整っているか）
+4. 相手の弱点を突く力（相手の矛盾や論理の穴を指摘しているか）
+
+※超直近の時事問題や特定ニュースソースの正確性は評価しません
+※内容の正確性より議論の「うまさ」で評価します
+
+ディベート全文:
+${transcript}
+
+以下のJSON形式のみで回答してください（他のテキスト不要）:
+{"winner":"agree|disagree|draw","reason":"判定理由（50文字以内）","comment":"両者へのコメント（100文字以内）","one_word":"このディベートを一言で表すと（8文字以内の端的な言葉）","agree_score":0-100,"disagree_score":0-100}`
+
+    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      body: JSON.stringify({ model: 'gpt-4.1-mini', messages: [{ role: 'system', content: systemPrompt }], max_completion_tokens: 350, temperature: 0.3 })
+    })
+    if (!resp.ok) return c.json({ error: 'AI judge error' }, 500)
+    const data: any = await resp.json()
+    let raw = data.choices[0].message.content.trim()
+    // JSON抽出
+    const jsonMatch = raw.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) return c.json({ error: 'Invalid AI response' }, 500)
+    const result = JSON.parse(jsonMatch[0])
+
+    // レーティング更新（PvP時のみ）と変動値計算
+    let ratingChange: { winner_change: number, loser_change: number } | null = null
+    if (mode === 'pvp' && player_agree && player_disagree && result.winner !== 'draw') {
+      const winnerId = result.winner === 'agree' ? player_agree : player_disagree
+      const loserId = result.winner === 'agree' ? player_disagree : player_agree
+      ratingChange = await updateRating(c.env.DB, winnerId, loserId)
+    }
+
+    // AIバトルのクレジット消費
+    if (mode === 'ai' && ai_battle_cost && ai_battle_cost > 0) {
+      try {
+        const u = await c.env.DB.prepare('SELECT credits FROM users WHERE user_id=?').bind(user.user_id).first() as any
+        const newCredits = Math.max(0, (u?.credits || 0) - ai_battle_cost)
+        await c.env.DB.prepare('UPDATE users SET credits=? WHERE user_id=?').bind(newCredits, user.user_id).run()
+        // クレジット履歴記録
+        try {
+          await c.env.DB.prepare(`INSERT INTO credit_transactions (user_id, amount, type, reason, created_at) VALUES (?,?,?,?,CURRENT_TIMESTAMP)`)
+            .bind(user.user_id, -ai_battle_cost, 'spend', `AI対戦(難易度:${result.winner ? 'played' : 'na'})`)
+            .run()
+        } catch(e) { /* transactions table might not exist */ }
+      } catch(e) { console.error('Credit deduction error:', e) }
+    }
+
+    return c.json({ ...result, success: true, rating_change: ratingChange })
+  } catch(e) { return c.json({ error: String(e) }, 500) }
+})
+
+// レーティング更新ヘルパー (Elo式) - 変動値を返す
+async function updateRating(db: D1Database, winnerId: string, loserId: string): Promise<{ winner_change: number, loser_change: number }> {
+  try {
+    // テーブル自動作成
+    await db.prepare(`CREATE TABLE IF NOT EXISTS user_ratings (
+      user_id TEXT PRIMARY KEY,
+      rating INTEGER DEFAULT 1000,
+      wins INTEGER DEFAULT 0,
+      losses INTEGER DEFAULT 0,
+      draws INTEGER DEFAULT 0,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`).run()
+
+    const w = await db.prepare('SELECT rating FROM user_ratings WHERE user_id=?').bind(winnerId).first() as any
+    const l = await db.prepare('SELECT rating FROM user_ratings WHERE user_id=?').bind(loserId).first() as any
+    const rW = w?.rating || 1000
+    const rL = l?.rating || 1000
+    const K = 32
+    const eW = 1 / (1 + Math.pow(10, (rL - rW) / 400))
+    const eL = 1 / (1 + Math.pow(10, (rW - rL) / 400))
+    const newRW = Math.round(rW + K * (1 - eW))
+    const newRL = Math.round(rL + K * (0 - eL))
+    const winnerChange = newRW - rW
+    const loserChange = newRL - rL
+
+    await db.prepare(`INSERT INTO user_ratings (user_id,rating,wins,losses) VALUES (?,?,1,0)
+      ON CONFLICT(user_id) DO UPDATE SET rating=?,wins=wins+1,updated_at=CURRENT_TIMESTAMP`
+    ).bind(winnerId, newRW, newRW).run()
+    await db.prepare(`INSERT INTO user_ratings (user_id,rating,wins,losses) VALUES (?,?,0,1)
+      ON CONFLICT(user_id) DO UPDATE SET rating=?,losses=losses+1,updated_at=CURRENT_TIMESTAMP`
+    ).bind(loserId, newRL, newRL).run()
+
+    return { winner_change: winnerChange, loser_change: loserChange }
+  } catch(e) {
+    console.error('Rating update error:', e)
+    return { winner_change: 0, loser_change: 0 }
+  }
+}
+
+// GET /api/user/rating — ユーザーのレーティング取得
+app.get('/api/user/rating', async (c) => {
+  try {
+    const userCookie = getCookie(c, 'user')
+    const user = safeParseUserCookie(userCookie)
+    if (!user) return c.json({ error: 'Not authenticated' }, 401)
+    const r = await c.env.DB.prepare(
+      'SELECT rating, wins, losses, draws FROM user_ratings WHERE user_id=?'
+    ).bind(user.user_id).first() as any
+    return c.json({ rating: r?.rating || 1000, wins: r?.wins || 0, losses: r?.losses || 0, draws: r?.draws || 0 })
+  } catch(e) { return c.json({ rating: 1000, wins: 0, losses: 0, draws: 0 }) }
+})
+
+// GET /api/rating/leaderboard — レーティングランキング
+app.get('/api/rating/leaderboard', async (c) => {
+  try {
+    const result = await c.env.DB.prepare(`
+      SELECT ur.user_id, ur.rating, ur.wins, ur.losses,
+             u.username
+      FROM user_ratings ur
+      LEFT JOIN users u ON ur.user_id = u.user_id
+      ORDER BY ur.rating DESC LIMIT 20
+    `).all()
+    return c.json({ leaderboard: result.results || [] })
+  } catch(e) { return c.json({ leaderboard: [] }) }
 })
 
 // GET /api/credits/packages — クレジットパッケージ一覧
@@ -1791,44 +1993,44 @@ app.get('/api/archive/purchased', async (c) => {
   }
 })
 
-// API: Auto-promote upcoming debates to live 3 minutes before scheduled time
+// API: スケジュール確認 - 定刻にlive移行、10分前からupcoming_visible
 app.get('/api/debates/check-upcoming', async (c) => {
   try {
-    // Find upcoming debates whose scheduled_at is within 3 minutes from now
-    const threeMinutesFromNow = new Date(Date.now() + 3 * 60 * 1000).toISOString()
-    const now = new Date().toISOString()
+    const now = new Date()
+    const nowIso = now.toISOString().replace('T',' ').substring(0,19)
+    const tenMinLater = new Date(now.getTime() + 10 * 60 * 1000).toISOString().replace('T',' ').substring(0,19)
 
-    const upcomingDebates = await c.env.DB.prepare(`
-      SELECT id, topic, scheduled_at FROM debates 
-      WHERE status = 'upcoming' AND scheduled_at IS NOT NULL AND scheduled_at <= ?
-    `).bind(threeMinutesFromNow).all()
-
+    // 1. 定刻を過ぎたupcoming → live に昇格
+    const toPromote = await c.env.DB.prepare(`
+      SELECT id FROM debates 
+      WHERE status IN ('upcoming','upcoming_visible') AND scheduled_at IS NOT NULL AND scheduled_at <= ?
+    `).bind(nowIso).all()
     const promoted: string[] = []
+    for (const d of (toPromote.results || [])) {
+      try {
+        await c.env.DB.prepare("UPDATE debates SET status='live' WHERE id=?").bind(d.id).run()
+        promoted.push(d.id as string)
+      } catch(e) {}
+    }
 
-    if (upcomingDebates.results) {
-      for (const debate of upcomingDebates.results) {
-        // Promote to live
+    // 2. 開始10分前になったupcoming → upcoming_visible に移行
+    const toVisible = await c.env.DB.prepare(`
+      SELECT id FROM debates
+      WHERE status = 'upcoming' AND scheduled_at IS NOT NULL AND scheduled_at <= ?
+    `).bind(tenMinLater).all()
+    const visible: string[] = []
+    for (const d of (toVisible.results || [])) {
+      if (!promoted.includes(d.id as string)) {
         try {
-          await c.env.DB.prepare(
-            "UPDATE debates SET status = 'live', started_at = datetime('now') WHERE id = ?"
-          ).bind(debate.id).run()
-          promoted.push(debate.id as string)
-        } catch (e) {
-          try {
-            await c.env.DB.prepare("ALTER TABLE debates ADD COLUMN started_at TEXT").run()
-            await c.env.DB.prepare(
-              "UPDATE debates SET status = 'live', started_at = datetime('now') WHERE id = ?"
-            ).bind(debate.id).run()
-            promoted.push(debate.id as string)
-          } catch (e2) { }
-        }
+          await c.env.DB.prepare("UPDATE debates SET status='upcoming_visible' WHERE id=?").bind(d.id).run()
+          visible.push(d.id as string)
+        } catch(e) {}
       }
     }
 
-    return c.json({ success: true, promoted })
+    return c.json({ success: true, promoted, visible })
   } catch (error) {
-    console.error('Check upcoming error:', error)
-    return c.json({ success: true, promoted: [] })
+    return c.json({ success: true, promoted: [], visible: [] })
   }
 })
 

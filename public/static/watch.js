@@ -1094,6 +1094,34 @@ window.showAIProfile = showAIProfile;
 // ===== Initialize =====
 
 window.addEventListener('DOMContentLoaded', async () => {
+    // スケジュールディベートの入場可否チェック（10分前制限）
+    try {
+        const entryRes = await fetch('/api/debates/' + DEBATE_ID + '/entry-check');
+        if (entryRes.ok) {
+            const entryData = await entryRes.json();
+            if (!entryData.can_enter) {
+                const minutesLeft = entryData.minutes_until || '?';
+                // 入場ブロックUIを表示
+                const bodyEl = document.body;
+                const blockDiv = document.createElement('div');
+                blockDiv.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:99999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);';
+                blockDiv.innerHTML = `
+                    <div style="text-align:center;padding:40px;max-width:480px;background:linear-gradient(135deg,rgba(0,20,40,0.95),rgba(30,0,50,0.95));border:2px solid rgba(6,182,212,0.5);border-radius:20px;box-shadow:0 0 50px rgba(6,182,212,0.3);">
+                        <div style="font-size:56px;margin-bottom:20px;">⏰</div>
+                        <h2 style="font-size:22px;font-weight:900;color:#06b6d4;margin-bottom:12px;font-family:'Orbitron',sans-serif;">入場制限中</h2>
+                        <p style="color:#9ca3af;font-size:15px;margin-bottom:16px;">このディベートはスケジュール開始の<strong style="color:#fbbf24;">10分前</strong>から入場できます。</p>
+                        <div style="background:rgba(6,182,212,0.1);border:1px solid rgba(6,182,212,0.3);border-radius:12px;padding:16px;margin-bottom:24px;">
+                            <p style="color:#67e8f9;font-size:13px;"><i class="fas fa-clock" style="margin-right:6px;"></i>開始まであと約 <strong style="font-size:18px;color:#fbbf24;">${minutesLeft}</strong> 分</p>
+                        </div>
+                        <a href="/main" style="display:inline-block;padding:12px 28px;background:rgba(6,182,212,0.2);border:2px solid #06b6d4;border-radius:10px;color:#67e8f9;font-weight:700;text-decoration:none;">← メインページへ戻る</a>
+                    </div>
+                `;
+                bodyEl.appendChild(blockDiv);
+                return; // 以降の初期化をブロック
+            }
+        }
+    } catch(e) { /* エントリーチェック失敗時は通常通り進む */ }
+
     await Promise.all([loadDebateTheme(), loadModelInfo()]);
 
     document.getElementById('debateTimeLimit').textContent = MAX_DEBATE_TIME + '秒';

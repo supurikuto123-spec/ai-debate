@@ -231,25 +231,43 @@ export const devThemesPage = (user: any) => `
     function renderDebates() {
         const el = document.getElementById('debatesList');
         if (!allDebates.length) { el.innerHTML = '<div class="text-gray-500 text-sm text-center py-6">ディベートがありません</div>'; return; }
-        el.innerHTML = allDebates.map(d => \`
+        el.innerHTML = allDebates.map(d => {
+            let schedInfo = '';
+            if (d.scheduled_at) {
+                const schedDate = new Date(d.scheduled_at + (d.scheduled_at.includes('Z') ? '' : 'Z'));
+                const now = new Date();
+                const diff = schedDate - now;
+                if (diff > 0) {
+                    const mins = Math.floor(diff / 60000);
+                    const hours = Math.floor(mins / 60);
+                    if (hours > 0) schedInfo = \`\${hours}時間\${mins%60}分後に開始\`;
+                    else if (mins > 10) schedInfo = \`\${mins}分後に開始\`;
+                    else if (mins > 0) schedInfo = \`⚠️ \${mins}分後（入室解禁済み）\`;
+                    else schedInfo = '開始待ち';
+                }
+            }
+            return \`
             <div class="flex items-start gap-3 p-3 bg-white/5 rounded-xl border border-white/10">
                 <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 mb-1">
+                    <div class="flex items-center gap-2 mb-1 flex-wrap">
                         <span class="status-badge status-\${d.status}">\${d.status}</span>
-                        \${d.scheduled_at ? \`<span class="text-xs text-cyan-400"><i class="fas fa-clock mr-1"></i>\${d.scheduled_at}</span>\` : ''}
+                        \${d.scheduled_at ? \`<span class="text-xs text-cyan-400"><i class="fas fa-clock mr-1"></i>\${d.scheduled_at.slice(0,16)}</span>\` : ''}
+                        \${schedInfo ? \`<span class="text-xs text-yellow-400">\${schedInfo}</span>\` : ''}
                     </div>
                     <p class="text-sm font-bold text-white truncate">\${escHtml(d.title||d.topic||'')}</p>
                     <p class="text-xs text-green-300"><i class="fas fa-check mr-1"></i>\${escHtml(d.agree_position||'')}</p>
                     <p class="text-xs text-red-300"><i class="fas fa-times mr-1"></i>\${escHtml(d.disagree_position||'')}</p>
                     \${d.duration_seconds ? \`<p class="text-xs text-yellow-400 mt-1"><i class="fas fa-hourglass mr-1"></i>\${Math.round(d.duration_seconds/60)}分</p>\` : ''}
+                    \${d.status==='upcoming' ? '<p class="text-xs text-gray-500 mt-1"><i class="fas fa-lock mr-1"></i>開始10分前まで入室不可</p>' : ''}
+                    \${d.status==='upcoming_visible' ? '<p class="text-xs text-green-400 mt-1"><i class="fas fa-door-open mr-1"></i>入室可能（開始10分前）</p>' : ''}
                 </div>
                 <div class="flex flex-col gap-2 shrink-0">
-                    \${d.status !== 'live' ? \`<button class="dev-btn btn-green px-3 py-1 text-xs" onclick="setDebateStatus('\${d.id}','live')"><i class="fas fa-play mr-1"></i>開始</button>\` : ''}
+                    \${d.status !== 'live' ? \`<button class="dev-btn btn-green px-3 py-1 text-xs" onclick="setDebateStatus('\${d.id}','live')"><i class="fas fa-play mr-1"></i>今すぐ開始</button>\` : ''}
                     \${d.status === 'live' ? \`<button class="dev-btn btn-red px-3 py-1 text-xs" onclick="setDebateStatus('\${d.id}','completed')"><i class="fas fa-stop mr-1"></i>終了</button>\` : ''}
-                    \${d.status === 'upcoming' ? \`<button class="dev-btn btn-yellow px-3 py-1 text-xs" onclick="setDebateStatus('\${d.id}','live')"><i class="fas fa-bolt mr-1"></i>即開始</button>\` : ''}
                 </div>
             </div>
-        \`).join('');
+            \`;
+        }).join('');
     }
 
     function populateScheduleSelect() {
